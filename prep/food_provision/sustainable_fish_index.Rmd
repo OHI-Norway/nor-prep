@@ -1,0 +1,28 @@
+---
+title: "Estimating sustainabile fishereis index"
+author: "Marina Espinasse"
+date: "`r Sys.Date()`"
+output:
+  prettydoc::html_pretty:
+    theme: cerulean
+    highlight: github
+---
+
+###loading libraries
+```{r}
+library(readxl)
+```
+
+###Loading csv files
+```{r}
+ices_bmsy <- read_excel("data/ices_bmsy.xlsx")
+catch <- read_excel("data/landings_per_municipality.xlsx")
+ices_bmsy
+```
+
+
+
+```{r, echo=FALSE, results='asis'}
+##knitr::kable(head(iris, 10))
+```
+
