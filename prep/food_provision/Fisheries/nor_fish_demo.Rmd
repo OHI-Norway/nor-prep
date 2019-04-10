@@ -10,7 +10,7 @@ output: html_document
 library(tidyverse)
 library(zoo) #use this for a rolling average - rollmean()
 
-raw <- read_csv("Desktop/playdata_fisheries10.04.19.csv")
+raw <- read_csv("playdata_fisheries10.04.19.csv")
 ```
 
 Add two more columns to data
