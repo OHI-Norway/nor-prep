@@ -11,7 +11,7 @@ We will use SSB (spawning stock biomass), Bmsy (Biomass of maximum sustainable y
 Data layer    | Source       | Links
 ------------- | -------------|--------
 Catch statistics per municipality | Fisheries directorate of Norway | https://www.fiskeridir.no/English
-Spawning stock biomass | International Council of THE Exploration of the Sea (ICES)| http://www.ices.dk/Pages/default.aspx
+Spawning stock biomass | International Council of The Exploration of the Sea (ICES)| http://www.ices.dk/Pages/default.aspx
 Years of data series - 1994-2015. 
 
 ## 2.  Aquaculture
