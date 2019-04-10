@@ -1,0 +1,88 @@
+---
+title: "Catch-weighting stock scores for OHI Fisheries"
+author: "Jamie Afflerbach"
+date: "4/10/2019"
+output: html_document
+---
+
+```{r}
+#install.packages("tidyverse", "zoo")
+library(tidyverse)
+library(zoo) #use this for a rolling average - rollmean()
+
+raw <- read_csv("Desktop/playdata_fisheries10.04.19.csv")
+```
+
+Add two more columns to data
+ 1. SSB_Blim compares current (SSB) to Blim
+ 2. Blim_Bmsy compares Blim to Bmsy
+ 
+```{r}
+data <- raw %>%
+  mutate(SSB_Blim  = SSB/Blim,
+         Blim_Bmsy = Blim/Bmsy)
+
+ggplot(data, aes(x = as.factor(Year), y = SSB, fill = Year)) +
+  geom_col() +
+  facet_wrap(~Species) +
+  theme_bw() +
+  geom_hline(aes(yintercept = Blim), col = "darkred", linetype = "dashed") +
+  geom_hline(aes(yintercept = Bmsy), col = "darkgreen", linetype = "dashed") +
+  theme(legend.position = "none") +
+  labs(x = "Year")
+```
+
+We want to use Blim as a minimum for scoring our stock between 0 and 1.
+
+```{r}
+data_scores <- data %>% 
+  mutate(stock_score = case_when(
+    SSB.Bmsy >= 1 ~ 1,
+    SSB.Bmsy < 1 & SSB.Bmsy > Blim_Bmsy ~ (SSB.Bmsy - Blim_Bmsy)/Blim_Bmsy,
+    SSB.Bmsy <= Blim_Bmsy ~ 0
+  ))
+
+ggplot(data_scores, aes(x = as.factor(Year), y = stock_score, fill = Year)) +
+  geom_col() +
+  theme_bw() +
+  facet_wrap(~Species) +
+  theme(legend.position = "none") +
+  xlab("Year")
+```
+
+
+Now we want to score each municipality by year using the proportional catch for each stock. 
+
+```{r}
+data_catch_weight <- data_scores %>%
+  group_by(Year, Municip_number, Municip_name) %>%
+  mutate(total_tons = sum(Total_catch)) %>%
+  ungroup() %>%
+  mutate(catch_prop = Total_catch/total_tons,
+         catch_weighted_score = catch_prop*stock_score)
+
+#total catch
+ggplot(data_catch_weight, aes(x = Year, y = Total_catch, fill = Species)) +
+  geom_col() +
+  theme_bw() +
+  labs(main = "Total catch of three species in Bodo")
+
+#proportional catch
+ggplot(data_catch_weight, aes(x = Year, y = catch_prop, fill = Species)) +
+  geom_col() +
+  theme_bw() +
+  labs(main = "Proportional catch of three species in Bodo")
+```
+
+Summarize into scores between 0 and 100
+
+```{r}
+scores <- data_catch_weight %>%
+  group_by(Year, Municip_number, Municip_name) %>%
+  summarize(fis_score = sum(catch_weighted_score)*100)
+
+ggplot(scores, aes(x = Year, y = fis_score)) +
+  geom_line() +
+  theme_bw() #minimal ggplot theme
+```
+
