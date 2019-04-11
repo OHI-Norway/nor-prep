@@ -144,20 +144,4 @@ Delete Beiarn
 
 
 
-###Potentially useful codes
-```{r}
-catch_clean$Municip_name<- capitalizeStrings(tolower(catch_clean$Municip_name), all.words = TRUE, lower.back = TRUE)
-###Loading the data directly from ftp - did not work so far
-url <- "ftp://yourServer"
-userpwd <- "yourUser:yourPass"
-filenames <- getURL(url, userpwd = userpwd,
-ftp.use.epsv = FALSE,dirlistonly = TRUE) 
-#replace funciton (good example of use)
-x <- data.frame(a = c(0,1,2,NA), b = c(0,NA,1,2), c = c(NA, 0, 1, 2)) 
-x$a <- replace(x$a, is.na(x$a), 0)
-x$a <- replace(x$a, x$a == "1", NA)
-#and another good example of "replace" function
-mtcars %>%
-     mutate(mpg=replace(mpg, cyl==4, NA)) %>%
-     as.data.frame()
 ```
