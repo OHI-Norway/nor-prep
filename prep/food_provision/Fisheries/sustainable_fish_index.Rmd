@@ -1,28 +1,163 @@
 ---
-title: "Estimating sustainabile fishereis index"
+title: "Estimating fisheries sustainability index  for Northern Norway "
 author: "Marina Espinasse"
 date: "`r Sys.Date()`"
 output:
   prettydoc::html_pretty:
     theme: cerulean
-    highlight: github
+    code_folding: show
+    toc: true
+    toc_depth: 3
+    toc_float: yes
+    number_sections: true
+    theme: cerulean
+    highlight: haddock
 ---
 
 ###loading libraries
-```{r}
+```{r, message=FALSE}
 library(readxl)
+library(RCurl)
+library(dplyr)
+library(stringr)
 ```
 
-###Loading csv files
+###Loading ICES fishery parameters data, landings in Northern Norway, and species names table
+```{r echo = FALSE}
+temp_ices <- read_excel("raw/ices_bmsy.xlsx")
+temp_catch99 <- read_excel("raw/landings_per_municipality9499.xlsx")
+temp_catch17 <- read_excel("raw/landings_per_municipality0017.xlsx")
+names<-read_excel("raw/Fiskid.xlsx")#fish species names in English and Norwegian
+komlist<-read_excel("raw/komlist.xlsx")#list of municipalities names and codes
+seaarea<-read_excel("raw/KommArea.xlsx")#fishing area (sea area)
+```
+
+###Data cleaning
+Removing unnessesary rows and small-cleaning the ices Bmsy and SSB data
+```{r, echo=FALSE}
+foo <- temp_ices[-c(1:7),]; colnames(foo) <-temp_ices[7,];colnames(foo)[13] <-"SSB"
+ices_clean <- data.frame(Year = rep(foo$Yrs, 6), 
+                         Species = rep(c("Cod", "Haddock", "Herring", "Saithe","Capelin", "Kingcrab"), each = 72),
+                         SSB = rbind(foo[,2], foo[,5],foo[,7],foo[,9],foo[,11],foo[,13]),
+                         Bmsy = rep(c(460000, 80000,3184000,220000,427000,NA), each = 72),
+                         SSB_Bmsy = rbind(foo[,3],foo[,6],foo[,8],foo[,10],foo[,12],foo[,14]),
+                         Blim = rep(c(220000, 50000,2500000,136000,200000,NA), each = 72) )
+ices_fin <- ices_clean %>% 
+            mutate(SSB = as.numeric(SSB),SSB.Bmsy = as.numeric(SSB.Bmsy)) %>% 
+            mutate(Spp_year = paste(Species,Year, sep = "_"))
+```
+
+##Cleaning and formatting fish landings data.
+**NB!** Coastal cod (skrei) and atlantic cod (annen torsk) are all under one name "Cod".
+I also corrected municipalities names so that they are similar in all data layers, by joining catch tables with komlist table.
+```{r, echo=FALSE}
+temp_catch17 <-select(temp_catch17, -c(5,10)) %>% rename("Lengdegr"= "Lengdegr_l.l.")
+temp_catch99 <-select(temp_catch99, -5) #remove species code, which is different between 1990s and 2000s
+temp_catch<-bind_rows(temp_catch99, temp_catch17)
+colnames(temp_catch) <- c("Year", "Month", "Municip_number", "Municip_name","Species",
+                          "Coast_ocean", "Region", "Fleet_length", "Catch_weight", "Payed_NOK")
+#several norwegian names were used for the same species, let's check all variation
+fishnames<-unique(temp_catch$Species)
+str_view(fishnames, regex("torsk", ignore_case = TRUE))#Annen Torsk, Nordostarktisk torsk, Torsk, Torsk (oppdrett), Polartorsk
+str_view(fishnames, regex("hyse", ignore_case = TRUE))#Hyse, Nordostarktisk hyse , Annen hyse
+str_view(fishnames, regex("lodde", ignore_case = TRUE))#Lodde,Barentshavslodde, Lodde - Island/O Gronl./Jan M
+str_view(fishnames, regex("sei", ignore_case = TRUE))#Sei, Sei (oppdrett)
+str_view(fishnames, regex("sild", ignore_case = TRUE))#Sild, Feitsild, Nordsjosild,Norsk vaargytende sild, Skagerraksild
+str_view(fishnames, regex("kongekrabbe", ignore_case = TRUE))#Kongekrabbe, Kongekrabbe, han-, Kongekrabbe, hun-
+
+```
+
+###Finallly creating clean catches data
 ```{r}
-ices_bmsy <- read_excel("data/ices_bmsy.xlsx")
-catch <- read_excel("data/landings_per_municipality.xlsx")
-ices_bmsy
+#I assume that we don't need maricultured cod and saithe (oppdrett torsk, oppdrett sild), capeling from Iceland and Greenalnd 
+catch_clean <- temp_catch %>% 
+              select(-c(7,10)) %>% #remove columns "Region" and "Payed_NOK", we don't need them for now 
+              filter(Coast_ocean == "8") %>% 
+              filter(Species %in% c("Annen Torsk","Annen torsk","Nordostarktisk torsk","Skrei","Hyse","Nordostarktisk hyse", 
+                                    "Annen hyse", "Sei", "Lodde","Barentshavslodde","Sild","Feitsild", "Kongekrabbe" )) %>% 
+              mutate(Species = replace(Species, Species %in% c("Annen Torsk", "Skrei"), "Torsk")) %>% 
+              left_join(names[,c(4,6)], by = c("Species" = "Common (Norw)")) %>% 
+              rename("English" = "Common (Eng)") %>% 
+              left_join(komlist[,c(1,2)], c("Municip_number" = "Komnum")) %>% 
+              select(-4) %>% 
+              rename("Municip_name" = "Name") %>% 
+              select(c(1,2,3,10,4,5:9))
+              
+head(catch_clean, 5)
+```
+A small check - how many observations per species? Relatively few data points for crab and capelin.
+```{r}
+ catch_clean %>% count(English)
+```
+
+###Aggregating catch data by municipality and fish species. Taking total for catches of all types of fleets and for all months.
+I discard Norwegian names from this table.
+Some municipalities names were missing in the list of names (probably they've merged with other muncipalities recently), I will add them anyway.
+```{r}
+catch_final <- catch_clean %>% 
+             mutate(Municip_name = replace(Municip_name, Municip_number == 1839, "Beiarn")) %>% 
+             mutate(Municip_name = replace(Municip_name, Municip_number == 1842, "Skjerstad_2005")) %>% 
+             mutate(Municip_name = replace(Municip_name, Municip_number == 1901, "Harstad_2013")) %>% 
+             mutate(Municip_name = replace(Municip_name, Municip_number == 1915, "Bjarkoy_2013")) %>% 
+             select(-c(5,6)) %>% 
+             group_by(Year,Municip_number,Municip_name,English) %>% 
+             summarize(Total_catch = sum(Catch_weight))
 ```
 
 
-
-```{r, echo=FALSE, results='asis'}
-##knitr::kable(head(iris, 10))
+###Merging catch data with ICES SSB and Bmsy data and adding sea area 
+```{r}
+fish_nor <- catch_final %>% 
+           mutate(English = replace(English, English == "Atlantic cod", "Cod")) %>% 
+           mutate(Spp_year = paste(English,Year, sep = "_")) %>% 
+           left_join(ices_fin[,c(3,4,5,6,7)], by = "Spp_year") %>% 
+           rename("Species" = "English") %>% 
+           left_join(seaarea[,c(2,6)], by = c("Municip_name"= "Name"))
 ```
 
+Checkin the number of data points per species
+```{r}
+fish_nor %>% group_by(Species) %>% 
+            summarize(n = n())
+```
+###Issues with the data:
+The fish landings data is missing two counties: Salangen and Hamaroy although both have access to the sea.
+Beiarn county is not planned to be included in the projecet  - I will delete. 
+
+###NEXT
+Finish updating species name and the whole fish_nor table - continue from line 78
+Merge data for non-existing counties
+Estimate sustain index
+Check if you can find landings of herring per municipality on Fiskedir.
+check if fishereis data exist for Salangen and Hamaroy
+Delete Beiarn
+
+
+
+
+
+
+
+
+
+
+
+
+
+###Potentially useful codes
+```{r}
+catch_clean$Municip_name<- capitalizeStrings(tolower(catch_clean$Municip_name), all.words = TRUE, lower.back = TRUE)
+###Loading the data directly from ftp - did not work so far
+url <- "ftp://yourServer"
+userpwd <- "yourUser:yourPass"
+filenames <- getURL(url, userpwd = userpwd,
+ftp.use.epsv = FALSE,dirlistonly = TRUE) 
+#replace funciton (good example of use)
+x <- data.frame(a = c(0,1,2,NA), b = c(0,NA,1,2), c = c(NA, 0, 1, 2)) 
+x$a <- replace(x$a, is.na(x$a), 0)
+x$a <- replace(x$a, x$a == "1", NA)
+#and another good example of "replace" function
+mtcars %>%
+     mutate(mpg=replace(mpg, cyl==4, NA)) %>%
+     as.data.frame()
+```
