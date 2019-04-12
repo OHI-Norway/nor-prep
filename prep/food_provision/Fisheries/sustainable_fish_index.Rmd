@@ -216,15 +216,3 @@ Made figures, facetting by counties, for fisheries sustainability for all of the
 
 Calculate fisheries score using rolling average
 
-
-
-
-
-
-
-
-
-
-
-
-
