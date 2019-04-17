@@ -1,0 +1,23 @@
+---
+title: "Production"
+author: "Sigrid Engen"
+date: "17 april 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)#what does this mean Jamie?
+
+#libraries
+library(dplyr)
+```
+
+## Mariculture production 
+Make dataset ready for analyses. 
+
+```{r data}
+akva<-read.table("Akvadataut.csv", header=TRUE, sep=";") #load data
+akva<-na.omit(akva)# remove NAs
+prod<-select(akva, Kname, Yrs, Knr2017, Total.Production, Knr2017, SustFoodProd)#subset variables  
+head(prod)
+```

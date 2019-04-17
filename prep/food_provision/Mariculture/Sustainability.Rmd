@@ -1,0 +1,23 @@
+---
+title: "Sustainability"
+author: "Sigrid Engen"
+date: "17 april 2019"
+output: html_document
+---
+
+## Sustainability index
+### Protein retention rate - municipality level Northern-Norway
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#libraries
+library(dplyr)
+```
+
+```{r data}
+akva<-read.table("Akvadataut.csv", header=TRUE, sep=";") #load data
+akva<-na.omit(akva)# remove NAs
+prod<-select(akva, Kname, Yrs, Knr2017,Protein.retention.ratio, SustFoodProd)#subset variables  
+head(prod)
+```
+
