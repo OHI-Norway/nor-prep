@@ -28,7 +28,7 @@ komlist<-read_excel("raw/komlist.xlsx")#list of municipalities names and codes
 ```
 
 ###Cleaning and formatting fish landings data: cheking species names
-```{r results="hide"}
+```{r, results="hide"}
 temp_catch17 <-select(temp_catch17, -c(5,10)) %>% rename("Lengdegr"= "Lengdegr_l.l.")
 temp_catch99 <-select(temp_catch99, -5) #remove species code, which is different between 1990s and 2000s
 temp_catch<-bind_rows(temp_catch99, temp_catch17)
@@ -81,5 +81,5 @@ catch_final <- catch_clean %>%
              group_by(Year,Municip_number,Municip_name,English) %>% 
              summarize(Total_catch = sum(Catch_weight))
 
-write_csv(catch_clean,"data/fish_catch_by_municipality.csv")
+write_csv(catch_final,"data/fish_catch_by_municipality.csv")
 ```
