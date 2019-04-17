@@ -1,4 +1,4 @@
-###  This folder is for the output data - tables with calculation of scores that we make
+###  This folder is for the output data - tables with calculations of scores and intermediate results
 
 For example, the data tables with ready-made indices of sustainable fisheries, which we will upload on the Coastal barometer website, will be storted here.
 
