@@ -1,0 +1,39 @@
+---
+title: "Cleaning ICES stock stats data"
+author: "Marina Espinasse"
+date: "`r Sys.Date()`"
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+    toc: true
+---
+###loading libraries
+```{r, message=FALSE}
+library(readxl)
+library(readr)
+library(RCurl)
+library(dplyr)
+```
+
+###Loading ICES stock parameters data
+```{r }
+temp_ices <- read_excel("raw/ices_bmsy.xlsx")
+```
+
+###Removing unnessesary rows and small-cleaning the ICES Bmsy and SSB data
+```{r, warning=FALSE}
+foo <- temp_ices[-c(1:7),]; colnames(foo) <-temp_ices[7,];colnames(foo)[13] <-"SSB"
+ices_clean <- data.frame(Year = rep(foo$Yrs, 6), 
+                         Species = rep(c("Cod", "Haddock", "Herring", "Saithe","Capelin", "Kingcrab"), each = 72),
+                         SSB = rbind(foo[,2], foo[,5],foo[,7],foo[,9],foo[,11],foo[,13]),
+                         Bmsy = rep(c(460000, 80000,3184000,220000,427000,NA), each = 72),
+                         SSB_Bmsy = rbind(foo[,3],foo[,6],foo[,8],foo[,10],foo[,12],foo[,14]),
+                         Blim = rep(c(220000, 50000,2500000,136000,200000,NA), each = 72) )
+ices_fin <- ices_clean %>% 
+            mutate(SSB = as.numeric(SSB),SSB.Bmsy = as.numeric(SSB.Bmsy)) %>% 
+            mutate(Spp_year = paste(Species,Year, sep = "_"))
+
+#write_csv(ices_fin, "data/ices_stock_stats.csv")
+```
+

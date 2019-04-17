@@ -1,68 +1,85 @@
 ---
-title: "Your Document Title"
-author: "Document Author"
+title: "Cleaning fish catch fata for fisheries goal estimation"
+author: "Marina Espinasse"
 date: "`r Sys.Date()`"
 output:
   prettydoc::html_pretty:
-    theme: architect
+    theme: cayman
     highlight: github
+    toc: true
 ---
 
-## A New Output Format
-
-`html_pretty` in the [**prettydoc**](http://github.com/yixuan/prettydoc/)
-package is a new output format for creating HTML document from R Markdown files.
-`html_pretty` is more lightweight compared to `html_document`, and is more
-stylish than `html_vignette` when creating package vignettes.
-
-## New Styles
-
-`html_pretty` currently supports three page themes (`cayman`, `tactile` and
-`architect`), and two syntax highlight styles (`github` and `vignette`).
-The theme and highlight styles can be specified in the document metadata,
-for example:
-
-```yaml
-output:
-  prettydoc::html_pretty:
-    theme: architect
-    highlight: github
+###Loading libraries
+```{r include=FALSE}
+library(readxl)
+library(readr)
+library(dplyr)
+library(stringr)
+library(kableExtra)
 ```
 
-## Your Familiar Tools
-
-Feel free to use the `knitr` infrastructure with dozens of tunable options in
-your document.
-
-```{r fig.width=6, fig.height=6, fig.align='center'}
-set.seed(123)
-n <- 1000
-x1  <- matrix(rnorm(n), ncol = 2)
-x2  <- matrix(rnorm(n, mean = 3, sd = 1.5), ncol = 2)
-x   <- rbind(x1, x2)
-head(x)
-smoothScatter(x, xlab = "x1", ylab = "x2")
+###Loading fish landings data (1994 - 2017) for  in Northern Norway 
+```{r}
+temp_catch99 <- read_excel("raw/landings_per_municipality9499.xlsx")
+temp_catch99 <- read_excel("raw/landings_per_municipality9499.xlsx")
+temp_catch17 <- read_excel("raw/landings_per_municipality0017.xlsx")
+names<-read_excel("raw/Fiskid.xlsx")#fish species names in English and Norwegian
+komlist<-read_excel("raw/komlist.xlsx")#list of municipalities names and codes
 ```
 
-You can include code snippets of languages other than R, but note that
-the block header has no curly brackets around the language name.
-
-```cpp
-// [[Rcpp::export]]
-NumericVector timesTwo(NumericVector x) {
-    return x * 2;
-}
+###Cleaning and formatting fish landings data: cheking species names
+```{r results="hide"}
+temp_catch17 <-select(temp_catch17, -c(5,10)) %>% rename("Lengdegr"= "Lengdegr_l.l.")
+temp_catch99 <-select(temp_catch99, -5) #remove species code, which is different between 1990s and 2000s
+temp_catch<-bind_rows(temp_catch99, temp_catch17)
+colnames(temp_catch) <- c("Year", "Month", "Municip_number", "Municip_name","Species",
+                          "Coast_ocean", "Region", "Fleet_length", "Catch_weight", "Payed_NOK")
+#several norwegian names were used for the same species, let's check all variations
+fishnames<-unique(temp_catch$Species)
+str_view(fishnames, regex("torsk", ignore_case = TRUE))#Annen Torsk, Nordostarktisk torsk, Torsk, Torsk (oppdrett), Polartorsk
+str_view(fishnames, regex("hyse", ignore_case = TRUE))#Hyse, Nordostarktisk hyse , Annen hyse
+str_view(fishnames, regex("lodde", ignore_case = TRUE))#Lodde,Barentshavslodde, Lodde - Island/O Gronl./Jan M
+str_view(fishnames, regex("sei", ignore_case = TRUE))#Sei, Sei (oppdrett)
+str_view(fishnames, regex("sild", ignore_case = TRUE))#Sild, Feitsild, Nordsjosild,Norsk vaargytende sild, Skagerraksild
+str_view(fishnames, regex("kongekrabbe", ignore_case = TRUE))#Kongekrabbe, han-, Kongekrabbe, hun-, Kongegrabbe
 ```
 
-You can also write math expressions, e.g. $Y = X\beta + \epsilon$,
-footnotes^[A footnote here.], and tables, e.g. using `knitr::kable()`.
-
-```{r, echo=FALSE, results='asis'}
-knitr::kable(head(iris, 10))
+###Creating clean catches data: unifying species names and municipalities names.
+```{r }
+#I assume that we don't need maricultured cod and saithe (oppdrett torsk, oppdrett sild), and capeling from Iceland and Greenalnd, Skagerraksild, Nordsjosild
+catch_clean <- temp_catch %>% 
+              select(-c(7,10)) %>% #remove columns "Region" and "Payed_NOK", we don't need them for now 
+              filter(Coast_ocean == "8") %>% #%>% #select only coastal areas
+              filter(!Species %in% c("Torsk (oppdrett)", "Polartorsk", "Lodde - Island/O Gronl./Jan M", 
+                                     "Sei (oppdrett)", "Skagerraksild" )) %>% 
+              filter(Species %in% c("Annen Torsk","Annen torsk","Nordostarktisk torsk","Skrei","Hyse","Nordostarktisk hyse", 
+                                    "Annen hyse", "Sei", "Lodde","Barentshavslodde","Sild","Feitsild", "Kongekrabbe", "Norsk vaargytende sild")) %>% 
+              mutate(Species = replace(Species, Species %in% c("Annen Torsk","Annen torsk" , "Nordostarktisk torsk", "Skrei"), "Torsk")) %>% 
+              mutate(Species = replace(Species, Species %in% c("Nordostarktisk hyse", "Annen hyse"), "Hyse")) %>% 
+              mutate(Species = replace(Species, Species == "Barentshavslodde", "Lodde")) %>% 
+              mutate(Species = replace(Species, Species %in% c("Kongekrabbe, hun-", "Kongekrabbe, han-"), "Kongekrabbe")) %>%   
+              mutate(Species = replace(Species, Species %in% c("Feitsild", "Norsk vaargytende sild"), "Sild")) %>% 
+              left_join(names[,c(4,6)], by = c("Species" = "Common (Norw)")) %>% 
+              rename("English" = "Common (Eng)") %>% 
+              left_join(komlist[,c(1,2)], c("Municip_number" = "Komnum")) %>% 
+              select(-4) %>% 
+              rename("Municip_name" = "Name") %>% 
+              select(c(1,2,3,9,8,7,6))
+  
+kable(head(catch_clean, 5)) %>% 
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F)
 ```
 
-## Stay Tuned
+###Final cleaning: inserting missing names of municipalities, aggregating catch data for months and fleet sizes
+```{r}
+catch_final <- catch_clean %>% 
+             mutate(Municip_name = replace(Municip_name, Municip_number == 1839, "Beiarn")) %>% 
+             mutate(Municip_name = replace(Municip_name, Municip_number == 1842, "Skjerstad_2005")) %>% 
+             mutate(Municip_name = replace(Municip_name, Municip_number == 1901, "Harstad_2013")) %>% 
+             mutate(Municip_name = replace(Municip_name, Municip_number == 1915, "Bjarkoy_2013")) %>% 
+             mutate(Municip_name = replace(Municip_name, Municip_number == 2011, "Guovdageaidnu-Kautokeino")) %>% 
+             group_by(Year,Municip_number,Municip_name,English) %>% 
+             summarize(Total_catch = sum(Catch_weight))
 
-Please visit the [development page](http://github.com/yixuan/prettydoc/) of the 
-`prettydoc` package for latest updates and news. Comments, bug reports and
-pull requests are always welcome.
+write_csv(catch_clean,"data/fish_catch_by_municipality.csv")
+```
