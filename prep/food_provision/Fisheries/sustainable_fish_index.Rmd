@@ -5,13 +5,7 @@ date: "`r Sys.Date()`"
 output:
   prettydoc::html_pretty:
     theme: cerulean
-    code_folding: show
-    toc: true
-    toc_depth: 3
-    toc_float: yes
-    number_sections: true
-    theme: cerulean
-    highlight: haddock
+    highlight: github
 ---
 
 ###loading libraries
@@ -20,6 +14,10 @@ library(readxl)
 library(RCurl)
 library(dplyr)
 library(stringr)
+library(ggplot2)
+library(ggthemes)
+library(scales)
+library(zoo)
 ```
 
 ###Loading ICES fishery parameters data, landings in Northern Norway, and species names table
@@ -69,19 +67,19 @@ str_view(fishnames, regex("kongekrabbe", ignore_case = TRUE))#Kongekrabbe, han-,
 
 ###Finallly creating clean catches data
 ```{r}
-#I assume that we don't need maricultured cod and saithe (oppdrett torsk, oppdrett sild), and capeling from Iceland and Greenalnd, Skagerraksild
+#I assume that we don't need maricultured cod and saithe (oppdrett torsk, oppdrett sild), and capeling from Iceland and Greenalnd, Skagerraksild, Nordsjosild
 catch_clean <- temp_catch %>% 
               select(-c(7,10)) %>% #remove columns "Region" and "Payed_NOK", we don't need them for now 
               filter(Coast_ocean == "8") %>% #%>% #select only coastal areas
               filter(!Species %in% c("Torsk (oppdrett)", "Polartorsk", "Lodde - Island/O Gronl./Jan M", 
-                                     "Sei (oppdrett)", "Sei (oppdrett)", "Skagerraksild" )) %>% 
+                                     "Sei (oppdrett)", "Skagerraksild" )) %>% 
               filter(Species %in% c("Annen Torsk","Annen torsk","Nordostarktisk torsk","Skrei","Hyse","Nordostarktisk hyse", 
-                                    "Annen hyse", "Sei", "Lodde","Barentshavslodde","Sild","Feitsild", "Kongekrabbe" )) %>% 
+                                    "Annen hyse", "Sei", "Lodde","Barentshavslodde","Sild","Feitsild", "Kongekrabbe", "Norsk vaargytende sild")) %>% 
               mutate(Species = replace(Species, Species %in% c("Annen Torsk","Annen torsk" , "Nordostarktisk torsk", "Skrei"), "Torsk")) %>% 
               mutate(Species = replace(Species, Species %in% c("Nordostarktisk hyse", "Annen hyse"), "Hyse")) %>% 
               mutate(Species = replace(Species, Species == "Barentshavslodde", "Lodde")) %>% 
               mutate(Species = replace(Species, Species %in% c("Kongekrabbe, hun-", "Kongekrabbe, han-"), "Kongekrabbe")) %>%   
-              mutate(Species = replace(Species, Species %in% c("Feitsild", "Nordsjosild", "Norsk vaargytende sild"), "Sild")) %>% 
+              mutate(Species = replace(Species, Species %in% c("Feitsild", "Norsk vaargytende sild"), "Sild")) %>% 
               left_join(names[,c(4,6)], by = c("Species" = "Common (Norw)")) %>% 
               rename("English" = "Common (Eng)") %>% 
               left_join(komlist[,c(1,2)], c("Municip_number" = "Komnum")) %>% 
@@ -97,14 +95,14 @@ A small check - how many observations per species? Relatively few data points fo
 ```
 
 ###Aggregating catch data by municipality and fish species. Taking total for catches of all types of fleets and for all months.
-Some municipalities names were missing in the list of names (probably they've merged with other muncipalities recently), I will add them anyway.
+Some municipalities names were missing in the list of names (these are municipalities that have merged with other muncipalities)
 ```{r}
 catch_final <- catch_clean %>% 
              mutate(Municip_name = replace(Municip_name, Municip_number == 1839, "Beiarn")) %>% 
              mutate(Municip_name = replace(Municip_name, Municip_number == 1842, "Skjerstad_2005")) %>% 
              mutate(Municip_name = replace(Municip_name, Municip_number == 1901, "Harstad_2013")) %>% 
              mutate(Municip_name = replace(Municip_name, Municip_number == 1915, "Bjarkoy_2013")) %>% 
-             mutate(Municip_name = replace(Municip_name, Municip_number == 2011, "Guovdageaidnu-Kautokeino ")) %>% 
+             mutate(Municip_name = replace(Municip_name, Municip_number == 2011, "Guovdageaidnu-Kautokeino")) %>% 
              group_by(Year,Municip_number,Municip_name,English) %>% 
              summarize(Total_catch = sum(Catch_weight))
 ```
@@ -142,12 +140,10 @@ unique(extra_mun)
 
 ###Further data cleaning: removing locations and re-arranging locaitons
 Deleting municipalities that are not in the study (Beiarn county and Guovdageaidnu-Kautokeino)
-Re-estimating landigs for the municipalities that were merged (Bodo + Skjerstad_2005, Bjarkoy_2013 + Harstad_2013) 
- are not planned to be included in the project  - I delete them.
- 
+Re-estimating landings for the municipalities that were merged (Bodo + Skjerstad_2005, Bjarkoy_2013 + Harstad_2013) - I sum the landings for these pairs of municipalities before they have merged. 
 ```{r}
 fish_nor_prep <- fish_nor %>% 
-                  filter(!Municip_name %in% c("Beiarn", "Guovdageaidnu-Kautokeino")) %>% 
+                  filter(!Municip_name %in% c("Beiarn", "Guovdageaidnu-Kautokeino")) %>% #mind the correct spelling of Guo... county
                   mutate(newid = case_when(Municip_name %in% c("Harstad_2013", "Bjarkoy_2013") ~ "1",
                                            Municip_name %in% c("Bodo", "Skjerstad_2005") ~ "2",
                                            TRUE ~ Municip_name)) %>% 
@@ -182,7 +178,7 @@ fish_nor_score <-fish_nor_estim %>% #estimating sustainability score for each st
 #write.csv(fish_nor_score, "sustain_score.csv")
 ```
 
-###Estimating sustainability of fisheries in Northern Norway
+###Estimating sustainability of fisheries in Northern Norway as score*proportion of catch
 ```{r}
 fish_nor_weight <- fish_nor_score %>% #adding total weight of the catch for all stock per municipality and proportion of each stock
                    group_by(Year, Municip_number, Municip_name_new) %>%
@@ -195,24 +191,210 @@ fish_nor_weight <- fish_nor_score %>% #adding total weight of the catch for all 
 
 final_scores <- fish_nor_weight %>%
                   group_by(Year, Municip_number, Municip_name_new) %>%
-                  summarize(fihs_score = sum(catch_weighted_score)*100)
+                  summarize(fish_score = sum(catch_weighted_score)*100)
 
 #write.csv(final_scores, "fishery_final_score.csv")
 
 ```
 
 ###Overview of results with ggplots:
-```{r}
+Compare total proportions of catch per stock  
+```{r, warning=FALSE}
+breaks1 <- seq(1994, 2018, by = 1)
+labels1 <- as.character(breaks1)
+labels1[!breaks1%%2==0]<- ""
 
-
+plot_catches <- fish_nor_weight %>% 
+                group_by(Year, Species) %>% 
+                summarize(catch_spp = sum(Total_catch_new)) %>% 
+                group_by(Year) %>% 
+                mutate(catch_grandtot = sum(catch_spp)) %>% 
+                ungroup() %>% 
+                mutate(catch_prop = (catch_spp/catch_grandtot)*100)
+                
+ggplot(plot_catches, aes(x = Year, y = catch_prop, fill= Species))+
+  geom_bar(stat = "identity")+
+  scale_x_continuous(breaks = breaks1, labels = labels1)+
+  labs(x = "", y = "Total catch proporiton, %")+
+  theme(axis.text.x = element_text(size = 10, angle = 45, hjust = 1, vjust = 0.5, face = "bold", colour = "black"),
+        axis.text.y = element_text(size = 10, face = "bold",colour = "black"),
+        legend.text = element_text(face = "italic"),
+        legend.title = element_blank())+
+  theme_hc()+
+  scale_fill_viridis_d(option = "D") 
 ```
 
 
 
-###NEXT
-CHECK if ICES has SSB and Bmsy for North-east Artic cod and haddock. If not, remove them from final fisheries goal table.
 
-Made figures, facetting by counties, for fisheries sustainability for all of the 81 counties. 
 
-Calculate fisheries score using rolling average
+###Total catch per species and municipality (figures are uploaded as pdf) 
+```{r message=FALSE} 
+stocks_bycounty <-fish_nor_score %>% 
+             mutate(county = case_when(
+                                    Municip_number >= 1800 &  Municip_number < 1900 ~ "Nordland",
+                                    Municip_number >= 1900 &  Municip_number < 2000 ~ "Troms",
+                                    Municip_number >= 2000 ~ "Finnmark")) %>% 
+                                    mutate(log_catch = log(Total_catch_new + 1))
+
+
+counties <- unique(stocks_bycounty$county) 
+
+#redefine breaks if needed, but they are already defined in lines 209 - 211
+# breaks1 <- seq(1994, 2018, by = 1)
+# labels1 <- as.character(breaks1)
+# labels1[!breaks1%%2==0]<- ""
+
+for(i in 1:length(counties))
+  {
+  cty <- counties[i]
+  
+  df <- stocks_bycounty %>%
+    filter(county == cty)
+  
+  species <- unique(df$Species)
+  
+  for(j in 1:length(species)){
+  sp <- species[j]
+    
+  df2 <- df %>% 
+    filter(Species == sp)
+  
+  plot <- ggplot(df2)+
+      geom_col(aes(x = Year, y = log_catch), fill = "dodgerblue4")+
+      facet_wrap(Municip_name_new  ~ .) +
+     # scale_y_continuous(limits = c(0,10))+
+      scale_x_continuous(breaks = breaks1, labels = labels1)+
+      labs(y = "log(Total catch)", x = "") +
+      ggtitle(paste(cty, "_", sp))+
+      theme_stata(scheme = "s1color") +
+      theme(legend.position = "none", 
+            axis.text.x = element_text(size = 6, angle = 90, hjust = 1, vjust = 0.5, face = "bold"),
+            axis.text.y = element_text(size = 7, face = "bold", margin = margin(t = 0, r = 5, b = 0, l = 0)),
+            plot.title = element_text(hjust=0.5, vjust=0.5),
+            axis.ticks.x = element_line(size = 0.5),
+            axis.ticks.length = unit(0.2, "cm"))
+           
+            
+ggsave(paste0("figs/catch_", cty, "_", sp, ".pdf"), plot)
+  
+}
+  
+}
+
+
+```
+
+###How SSB per species varied accross years in relation to Blim and Bmsy?
+```{r message=FALSE}
+#breaks2 <- seq(1994, 2018, by = 1)
+# labels1 <- as.character(breaks1)
+# labels1[!breaks1%%2==0]<- ""
+
+ices_spp <-unique(ices_clean$Species)
+
+ ices_plotprep <- ices_clean %>% 
+       filter(Year == c("1994":"2017")) %>% 
+       select(Year, Species, SSB, Bmsy, Blim) %>% 
+       mutate(SSB = as.numeric(as.character(SSB))) %>% 
+       mutate(Year = as.numeric(as.character(Year)))
+
+ for (i in 1:length(ices_spp)) {
+   
+ sp <-species[i]  
+ df <- ices_plotprep %>% 
+       filter(Species == sp)
+ bmsy = df$Bmsy[1]
+ blim = df$Blim[1]
+ 
+options(scipen = 999) 
+
+plot2 <- ggplot(df)+
+      geom_col(aes(x = Year, y = SSB), fill = "dodgerblue")+
+      scale_x_continuous(breaks = breaks1, labels = labels1)+
+      scale_y_continuous(limits = c(0,max(df$SSB, na.rm = T)))+
+      labs(y = "SSB", x = "") +
+      geom_hline(aes(yintercept = Blim), col = "darkred", linetype = "dashed", size = 1) +
+      geom_hline(aes(yintercept = Bmsy), col = "darkgreen", linetype = "dashed", size = 1) +
+      ggtitle(sp) +
+      annotate("text", x = 1994, y = (bmsy + 20000), label = "Bmsy", hjust = 0, color = "darkgreen", size = 7)+
+      annotate("text", x = 1994, y = (blim + 20000), label = "Blim", hjust = 0, color = "darkred", size = 7)+
+      theme_stata(scheme = "s1color") +
+      theme(legend.position = "none", 
+             axis.title = element_text(size = 15),
+             axis.text.x = element_text(size = 12, angle = 45, hjust = 1, vjust = 0.5, face = "bold"),
+             axis.text.y = element_text(size = 12, face = "bold", margin = margin(t = 0, r = 0, b = 0, l = 0),
+                                        angle = 0, hjust = 1, vjust = 0),
+             plot.title = element_text(hjust=0.5, vjust=0.5),
+             axis.ticks.x = element_line(size = 0.5),
+             axis.ticks.length = unit(0.2, "cm"),
+             strip.text = element_text(size = 15))  
+
+ggsave(paste0("figs/SSB_", "_", sp, ".pdf"), plot2)      
+        
+ } 
+
+```
+
+
+###How did the fisheries sustainability score varied in Norway temporally in each municipality?
+```{r message=FALSE}
+plot_fscores <-final_scores %>% 
+             mutate(county = case_when(
+                                    Municip_number >= 1800 &  Municip_number < 1900 ~ "Nordland",
+                                    Municip_number >= 1900 &  Municip_number < 2000 ~ "Troms",
+                                    Municip_number >= 2000 ~ "Finnmark"
+                                    ))
+
+for(i in 1:length(counties))
+  {
+  cty <- counties[i]
+  
+  df <- plot_fscores %>%
+    filter(county == cty)
+  
+  plot <- ggplot(df)+
+      geom_line(aes(x = Year, y = fish_score))+
+      facet_wrap(Municip_name_new  ~ .) +
+      scale_x_continuous(breaks = breaks1, limits = c(1994,2018), labels = labels1)+
+      labs(y = "Fisheries sustainability score", x = "") +
+      ggtitle(cty)+
+      theme_stata(scheme = "s1color") +
+      theme(legend.position = "none", 
+            axis.text.x = element_text(size = 6, angle = 90, hjust = 1, vjust = 0.5, face = "bold"),
+            axis.text.y = element_text(size = 7, face = "bold", angle = 0, hjust = 1, vjust = 0),
+            axis.title.y = element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)),
+            plot.title = element_text(hjust=0.5, vjust=0.5),
+            axis.ticks.x = element_line(size = 0.5),
+            axis.ticks.length = unit(0.1, "cm"))
+           
+           
+ggsave(paste0("figs/fishery_score","_", cty, ".pdf"), plot)
+  
+}
+
+```
+
+###Re-estimating fisheries sustainability score by smoothing it with a rolling average (zoo package)
+```{r}
+municipalities <-unique(final_scores$Municip_name_new)
+
+finallist <-list()
+for (i in 1:length(municipalities)) 
+  {
+  mp <- municipalities[i]
+  df <- final_scores %>% 
+      filter(Municip_name_new == mp)
+   runmean <-data.frame(runmean = rollapply(df$fish_score, width = 3, FUN = mean,  fill=NA))
+   df2 <- bind_cols(df, runmean)
+  finallist[[i]] <- df2  
+}
+
+smoothed_fish_scores <- do.call("rbind", finallist)
+colSums(is.na(smoothed_fish_scores)) #a lot of NA were introduced with a rolling mean, because some municipailities have too few data lines. Does it make sense to use rolling mean then_
+
+
+
+```
+
 
