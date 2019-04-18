@@ -197,20 +197,23 @@ $(document).ready(function () {
 </div>
 
 
+<pre class="r"><code>library(knitr)
+library(dplyr)</code></pre>
 <div id="mariculture-production" class="section level2">
 <h2>Mariculture production</h2>
-<p>Make dataset ready for analyses.</p>
-<pre class="r"><code>akva&lt;-read.table(&quot;Akvadataut.csv&quot;, header=TRUE, sep=&quot;;&quot;) #load data
+<p>Making dataset ready for analyses.</p>
+<pre class="r"><code>akva&lt;-read.table(&quot;raw/Akvadataut.csv&quot;, header=TRUE, sep=&quot;;&quot;) #load data
 akva&lt;-na.omit(akva)# remove NAs
-prod&lt;-select(akva, Kname, Yrs, Knr2017, Total.Production, Knr2017, SustFoodProd)#subset variables  
+prod&lt;-select(akva, Kname, Yrs, Knr2017, Total.Production)#subset variables  
 head(prod)</code></pre>
-<pre><code>##    Kname  Yrs Knr2017 Total.Production SustFoodProd
-## 12  Bodo 2005    1804           383130     128.8767
-## 13  Bodo 2006    1804          1511323     490.9788
-## 14  Bodo 2007    1804          -295531       0.0000
-## 15  Bodo 2008    1804                0       0.0000
-## 16  Bodo 2009    1804           757502     622.5063
-## 17  Bodo 2010    1804          1856130     542.5410</code></pre>
+<pre><code>##    Kname  Yrs Knr2017 Total.Production
+## 12  Bodo 2005    1804           383130
+## 13  Bodo 2006    1804          1511323
+## 14  Bodo 2007    1804          -295531
+## 15  Bodo 2008    1804                0
+## 16  Bodo 2009    1804           757502
+## 17  Bodo 2010    1804          1856130</code></pre>
+<pre class="r"><code>write.csv(prod, &quot;data/total_mariculture_production.csv&quot;)</code></pre>
 </div>
 
 

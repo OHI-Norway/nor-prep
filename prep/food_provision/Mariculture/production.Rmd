@@ -4,20 +4,28 @@ author: "Sigrid Engen"
 date: "17 april 2019"
 output: html_document
 ---
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE,warning=FALSE, message=FALSE)
+```
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)#what does this mean Jamie?
-
-#libraries
+```{r libraries, results="hide"}
+library(knitr)
 library(dplyr)
 ```
 
+
+```{r setup, include=FALSE, echo=FALSE}
+opts_knit$set(root.dir = "C://github//nor-prep//prep//food_provision//Mariculture")
+```
+
 ## Mariculture production 
-Make dataset ready for analyses. 
+Making dataset ready for analyses. 
 
 ```{r data}
-akva<-read.table("Akvadataut.csv", header=TRUE, sep=";") #load data
+akva<-read.table("raw/Akvadataut.csv", header=TRUE, sep=";") #load data
 akva<-na.omit(akva)# remove NAs
-prod<-select(akva, Kname, Yrs, Knr2017, Total.Production, Knr2017, SustFoodProd)#subset variables  
+prod<-select(akva, Kname, Yrs, Knr2017, Total.Production)#subset variables  
 head(prod)
+
+write.csv(prod, "data/total_mariculture_production.csv")
 ```

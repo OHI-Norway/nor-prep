@@ -201,7 +201,9 @@ $(document).ready(function () {
 <h2>Sustainability index</h2>
 <div id="protein-retention-rate---municipality-level-northern-norway" class="section level3">
 <h3>Protein retention rate - municipality level Northern-Norway</h3>
-<pre class="r"><code>akva&lt;-read.table(&quot;Akvadataut.csv&quot;, header=TRUE, sep=&quot;;&quot;) #load data
+<pre class="r"><code>library(knitr)
+library(dplyr)</code></pre>
+<pre class="r"><code>akva&lt;-read.table(&quot;raw/Akvadataut.csv&quot;, header=TRUE, sep=&quot;;&quot;) #load data
 akva&lt;-na.omit(akva)# remove NAs
 prod&lt;-select(akva, Kname, Yrs, Knr2017,Protein.retention.ratio, SustFoodProd)#subset variables  
 head(prod)</code></pre>
@@ -212,6 +214,7 @@ head(prod)</code></pre>
 ## 15  Bodo 2008    1804               0.0000000       0.0000
 ## 16  Bodo 2009    1804               0.8217884     622.5063
 ## 17  Bodo 2010    1804               0.2922969     542.5410</code></pre>
+<pre class="r"><code>write.csv(prod, &quot;data/Sustainability_mariculture.csv&quot;)</code></pre>
 </div>
 </div>
 

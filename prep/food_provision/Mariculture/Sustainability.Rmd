@@ -8,16 +8,25 @@ output: html_document
 ## Sustainability index
 ### Protein retention rate - municipality level Northern-Norway
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-#libraries
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE,warning=FALSE, message=FALSE)
+```
+
+```{r libraries, results="hide"}
+library(knitr)
 library(dplyr)
 ```
 
+
+```{r setup, include=FALSE, echo=FALSE}
+opts_knit$set(root.dir = "C://github//nor-prep//prep//food_provision//Mariculture")
+```
+
 ```{r data}
-akva<-read.table("Akvadataut.csv", header=TRUE, sep=";") #load data
+akva<-read.table("raw/Akvadataut.csv", header=TRUE, sep=";") #load data
 akva<-na.omit(akva)# remove NAs
 prod<-select(akva, Kname, Yrs, Knr2017,Protein.retention.ratio, SustFoodProd)#subset variables  
 head(prod)
+write.csv(prod, "data/Sustainability_mariculture.csv")
 ```
 
