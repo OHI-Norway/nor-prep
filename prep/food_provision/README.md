@@ -27,7 +27,7 @@ Prevalence of salmon lice |
 Local eutrophication|
 Local pollution| 
 Escapees       |
-Registry of aquaculture companies|https://www.fiskeridir.no/Akvakultur/Registre-og-skjema/Akvakulturregisteret
+Registry of aquaculture companies|Fisheries directorate|https://www.fiskeridir.no/Akvakultur/Registre-og-skjema/Akvakulturregisteret
 
  
 
