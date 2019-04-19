@@ -1,0 +1,26 @@
+---
+title: ""
+author: ""
+output: 
+  html_document:
+    code_folding: show
+    toc: true
+    toc_depth: 3
+    toc_float: yes
+    number_sections: false
+    theme: cerulean
+    highlight: haddock
+  pdf_document:
+    toc: true
+---
+[![ohi logo](ohi_norway_banner.png)](http://ohi-science.org)
+<br>
+[Coastal barometer website](http://folk.ntnu.no/erlenfau/KystBaro/) |
+[Coastal barometer blog](https://kystbarometeret.com) |
+[Ocean health index](http://www.oceanhealthindex.org) |
+[Citation policy](http://ohi-science.org/citation-policy/)
+</p>
+
+
+
+
