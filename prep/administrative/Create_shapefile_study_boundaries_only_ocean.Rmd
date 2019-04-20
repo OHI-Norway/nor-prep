@@ -1,0 +1,105 @@
+---
+title: "Study boundaries - only ocean area"
+author: "Sigrid Engen"
+date: "18 april 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+## Making shapefile of ocean area 
+### - for each municipality in the study region
+
+```{r, results="hide", warning=FALSE, message=FALSE}
+
+library(rgdal)
+library(sp)
+library(dplyr)
+library(raster)
+library(data.table)
+```
+### Load data
+```{r,  results="hide",message=FALSE}
+#Norway counties
+Norway<-readOGR(dsn="C://github//nor-prep//prep//administrative//raw", "NO_Fylker_pol")
+#Ocean area
+ocean<-readOGR(dsn="C://github//nor-prep//prep//administrative//raw", "NO_Havflate_pol")
+#Municipalities 
+municip<-readOGR(dsn="C://github//nor-prep//prep//administrative//raw", "NO_AdminOmrader_pol")
+#Study municipalities
+stud.munic<-read.table("komlist.csv", header=TRUE, sep=";")
+```
+
+### Data cleaning & subset study region 
+```{r,  results="hide",message=FALSE}
+
+#remove value 999Noncoast
+stud.munic<- stud.munic[-c(82),]
+
+#Change municipalnumber of Harstad from 1901 to the correct 1903. THe muncipality was merged with Bjarkjøy in 2013 and went from 
+#number 1901 to 1903. The polygon in the shapefile reflects this merger (Harstad includes Bjarkøy) but the number is wrong. 
+
+municip@data[municip@data$KOMM == "1901", "KOMM"] <- "1903"
+
+#extract subset of data (studymunicipalities from komlist.csv) from spatialpolygonsdataframe
+muni_sub <- municip[municip$KOMM %in% c(1804L, 1805L, 1811L, 1812L, 1813L, 1815L, 1816L, 1818L, 1820L, 
+          1822L, 1824L, 1827L, 1828L, 1832L, 1833L, 1834L, 1835L, 1836L, 
+          1837L, 1838L, 1840L, 1841L, 1845L, 1848L, 1849L, 1850L, 1851L, 
+          1852L, 1853L, 1854L, 1856L, 1857L, 1859L, 1860L, 1865L, 1866L, 
+          1867L, 1868L, 1870L, 1871L, 1874L, 1902L, 1903L, 1911L, 1913L, 
+          1917L, 1919L, 1920L, 1923L, 1924L, 1925L, 1926L, 1927L, 1928L, 
+          1929L, 1931L, 1933L, 1936L, 1938L, 1939L, 1940L, 1941L, 1942L, 
+          1943L, 2002L, 2003L, 2004L, 2012L, 2014L, 2015L, 2017L, 2018L, 
+          2019L, 2020L, 2022L, 2023L, 2024L, 2025L, 2027L, 2028L, 2030L
+          ), ]
+#extract only ocean area of the study municipalities
+muni_sub_ocean<-crop(muni_sub, ocean)
+
+```
+
+### Data cleaning con't - calculating area of each municipality
+
+```{r}
+#projection is UTM, thus gives results in meters so this function works 
+muni_sub_ocean$area_km2 <- area(muni_sub_ocean) / 1000000
+
+#See:
+#https://gist.github.com/mbacou/5880859
+#https://gis.stackexchange.com/questions/141469/how-to-convert-a-spatialpolygon-to-a-spatialpolygonsdataframe-and-add-a-column-t/266813
+#for info on adding attribute data to spdf
+
+#save rown names as explicit variable
+muni_sub_ocean$rn<-row.names(muni_sub_ocean)
+
+#save polygons as a separate object
+poly<-SpatialPolygons(muni_sub_ocean@polygons)
+proj4string(poly) = CRS("+proj=utm +zone=33 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0")
+
+#Create dataframe with new names of municipalities
+#change from integer to character first
+stud.munic$Komnum<-as.character(stud.munic$Komnum)
+muni_sub_ocean_Final<-left_join(muni_sub_ocean@data, stud.munic, by=c("KOMM"="Komnum"))
+
+#and correct rownames
+muni_sub_ocean_Final <- data.frame(muni_sub_ocean_Final, row.names = muni_sub_ocean_Final$rn)
+
+#remove reduntant columns
+muni_sub_ocean_Final<-muni_sub_ocean_Final[-c(1:3,5:7,9,11)]
+colnames(muni_sub_ocean_Final)<-c("rg_id", "area_km2","rg_name,")
+
+final<-SpatialPolygonsDataFrame(poly, muni_sub_ocean_Final)
+```
+
+### Checking final result & save file
+```{r}
+#we want data with region id, total area (km2) and region name. We also want 81 municipalities in total
+head(final)
+nrow(final)
+#writeOGR(final,dsn="C://github//nor-prep//prep//administrative//data","Study_Municipalities_Ocean_Area_Only", driver="ESRI Shapefile")
+
+plot(final, col="lightblue")
+```
+
