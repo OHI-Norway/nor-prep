@@ -1,0 +1,18 @@
+---
+title: "Escapees data preparation"
+author: "*Compiled on `r date()` by `r Sys.info()['user']`*"
+output: 
+  html_document:
+    code_folding: show
+    toc: true
+    toc_depth: 3
+    toc_float: yes
+    number_sections: false
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: '~/github/nor-prep/prep/templates/norway_banner.html'
+  pdf_document:
+    toc: true
+---
+
