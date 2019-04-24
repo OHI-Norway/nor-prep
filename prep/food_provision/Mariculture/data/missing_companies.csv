@@ -1,0 +1,32 @@
+county,company,location_number,n,municip,source
+F,Grieg Seafood Finnmark AS,10665,1,Lebesby,https://www.barentswatch.no/fiskehelse/locality/10665/2018/12
+F,Hammerfest Lakseslakteri,-,1,Hammerfest,name
+F,Skrovnes AS,13815,3,Batsfjord,https://www.regnskapstall.no/informasjon-om-skrovnes-as-101326244S1?utm_source=www.1881.no&utm_medium=Teaser&utm_content=Info&utm_campaign=Finance%20Teaser
+F,Troll Fish AS,17055,1,Lebesby,https://www.kyst.no/article/ny-emisjon-i-troll-fish/
+F,Ultra Seafood Loppa AS,10612,1,Masoy,https://www.masoy.kommune.no/ultra-seafood-flytter-til-lngoey.314542-16670.html
+N,Aga Halibut AS,13113,1,Donna,https://fisk.no/oppdrett/2161-aga-halibut-utvider
+N,Bunes Fisk AS,10484,1,Bodo,https://www.norskeutslipp.no/no/Listesider/Virksomheter-med-utslippstillatelse/?f=18&SectorID=90&s=200&k=1804
+N,Cermaq Norway AS,10484,1,Bodo,bought_by_Bunes
+N,Codfarmeres AS,11114,1,Bodo,not_sure
+N,Codfarmers AS,18715,2,Bodo,not_sure
+N,Codfarmers ASA,16615,1,Bodo,not_sure
+N,Helgelandstorsk ,15758,1,Luroy,https://www.regnskapstall.no/informasjon-om-helgelandstorsk-as-100964773S0
+N,Helgelandstorsk AS,15758,1,Luroy,same_as_above
+N,Kvaroy Torsk AS,28136,1,Luroy,
+N,Lofilab AS,10492,1,,
+N,Mainstream Norway AS,13191,1,Steigen,B_unders�kelse ved utl�p lokalitet 13191 Nordneset. Akvaplan-niva
+N,Nordland Akva AS,26375,2,,
+N,Seafarm Invest AS,10893,3,,
+N,Smolten AS,11296,1,,
+N,Sundsfjord Smolt AS,29316,1,,
+N,Vesterålen Marinfisk AS,11401,1,,
+N,Victoria Lady (brønnbåt),NA,1,,
+T,Akvafarm AS,11426,1,,
+T,Havbruksstasjonen i Tromsø,10767,1,,
+T,Jøkelfjord Laks AS,-,1,,
+T,Laponia Seafarms AS,16160,1,,
+T,Nofima Akvaforsk AS,23035,1,,
+T,Sjøfisk AS,23215,1,,
+T,Sjølaks AS,10807,1,,
+T,Storfjord Torsk AS,10556,1,,
+T,Storfjord Torsk AS,10705,1,,
