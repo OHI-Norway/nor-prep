@@ -92,7 +92,7 @@ sustprod$unsustprod<-(production$Total.Production/1000)-sustprod$sustprod
 sustprod3<-gather(sustprod, key="Type", value="Tons", sustprod, unsustprod)
 sustprod3$Type<-as.factor(sustprod3$Type)
 
-#find rownumbers Salangen 2011 - remove this value
+#find row numbers Salangen 2011 - remove this value
 newdata <- sustprod3[ which(sustprod3$Yrs=='2011' 
 & sustprod3$Knr2017 == "1923"), ]
 sustprod3 <- sustprod3[-c(487, 1297),]#remove outlier - figure out what is wrong with this!
