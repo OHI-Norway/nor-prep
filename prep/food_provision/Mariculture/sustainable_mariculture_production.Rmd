@@ -101,21 +101,21 @@ breaks1 <- seq(1994, 2018, by = 4) # decide where to write label on x-labels
 labels1 <- as.character(breaks1) 
 labels1[!breaks1%%2==0]<- "" 
 
-plot<-ggplot(sustprod3, aes(Yrs, Tons))+
+plot<-ggplot(data = sustprod3, aes(x = Yrs, y = Tons, fill = Type)) +
+      geom_col()+
       facet_wrap(Kname  ~ .) +
-      geom_area(aes(fill=Type))+
       scale_x_continuous(breaks = breaks1, labels = labels1)+ 
       labs(y = "Proportion sustainable mariculture prod (tons)", x = "")+
-      theme(legend.position = "none",  
+      theme(legend.position = "bottom",
+            legend.title=element_blank(),
              axis.text.x = element_text(size = 6, angle = 90, hjust = 1, vjust = 0.5, 
              face = "bold"), 
              axis.text.y = element_text(size = 5.5, angle = 0), 
-             #scale_y_discrete(breaks, c(""))
              plot.title = element_text(hjust=0.5, vjust=0.5), 
              axis.ticks.x = element_line(size = 0.5), 
              axis.ticks.length = unit(0.2, "cm"), 
-             strip.text=element_text(size=8))
-      
+             strip.text=element_text(size=6))
+
 ggsave(paste0("figs/sustainable_production_proportion",".png"), plot) 
 
 #write.csv(sustprod3, "data/delete.csv")# don't write the csv file until we know if it is okay to 
@@ -124,6 +124,3 @@ ggsave(paste0("figs/sustainable_production_proportion",".png"), plot)
 ```{r echo=FALSE, fig.width=15, fig.height=10}
 plot
 ```
-```
-
-

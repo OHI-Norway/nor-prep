@@ -119,17 +119,15 @@ plot<-ggplot(data = sum_muni_loc2, aes(x = Year, y = NumberLocalities, fill = Ty
       labs(y = "Localities above lice limit", x = "")+
       theme(legend.position = "bottom",
             legend.title=element_blank(),
-             axis.text.x = element_text(size = 6, angle = 90, hjust = 1, vjust = 0.5, face = "bold"), 
+             axis.text.x = element_text(size = 6, angle = 90, hjust = 1, vjust = 0.5, 
+             face = "bold"), 
              axis.text.y = element_text(size = 5.5, angle = 0), 
              plot.title = element_text(hjust=0.5, vjust=0.5), 
              axis.ticks.x = element_line(size = 0.5), 
              axis.ticks.length = unit(0.2, "cm"), 
              strip.text=element_text(size=6))
       
-ggsave(paste0("figs/salmon_lice_localities_above_limit_",".png"), plot) 
-
-
-
+#ggsave(paste0("figs/salmon_lice_localities_above_limit_",".png"), plot) 
 
 ```
 
