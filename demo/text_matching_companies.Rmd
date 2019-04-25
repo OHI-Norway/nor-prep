@@ -1,0 +1,82 @@
+---
+title: "Demo of some text matching functionality"
+author: "Jamie Afflerbach"
+date: "4/25/2019"
+output: html_document
+---
+
+This script shows some functionality for matching strings between two aquaculture datasets. This primarily uses the `stringr` package from `tidyverse`.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(readxl)
+```
+
+# Load data
+
+```{r}
+a <- read_excel("~/github/nor-prep/prep/food_provision/Mariculture/raw/Akvakulturregisteret.xlsx", skip = 1) #skip first row
+b <- read_excel("~/github/nor-prep/prep/food_provision/Mariculture/raw/Escapees.xlsx", skip = 2) #skip first 2 rows
+```
+
+There are around `r length(unique(a$NAVN))` companies in Akvakulturregisteret and `r length(unique(b$Selskapsnavn))` in the Escapees data.
+
+# Clean data
+
+```{r}
+#companies data
+comp <- a %>%
+  mutate(name = tolower(NAVN)) %>% #turning all letters to lower case
+  select(name, POSTNR) %>%
+  distinct() %>%
+  mutate(name_fix = str_replace_all(name, " as$", ""), #removes all the " as" at the end of company names
+         name_fix = str_replace_all(name_fix, " a/s$", "")) 
+
+#escapees data
+escape <- b %>%
+  mutate(company = tolower(Selskapsnavn)) %>% #turn all letters to lowercase
+  select(company, Lok.nr.) %>%
+  distinct() %>%
+  mutate(name_fix = str_replace_all(company, " as$", ""),
+         name_fix = str_replace_all(name_fix, " asa$", ""),
+         name_fix = str_replace_all(name_fix, " as, processing", ""))
+
+```
+
+
+First try to match
+
+```{r}
+match1 <- full_join(comp, escape, by = "name_fix") %>%
+  filter(!is.na(company), 
+         !is.na(name))
+```
+
+We successfully matched `r length(unique(match1$name_fix))` companies. That leaves a maximum of `r length(unique(b$Selskapsnavn)) - length(unique(match1$name_fix))` companies to match.
+
+
+Continuing to clean up `comp` and `escape`
+
+```{r}
+escape2 <- escape %>%
+  mutate(name_fix2 = case_when(
+    name_fix == "aqua gen" ~ "aquagen",
+    name_fix == "aqua gen norway" ~ "aquagen",
+    name_fix == "fyllingnes fisk" ~ "fyllingsnes fisk",
+    name_fix == "grieg seaf. finnmark" ~ "grieg seafood finnmark",
+    name_fix == "pan fish norway" ~ "panfish norway",
+    TRUE ~ as.character(name_fix)))
+```
+
+
+
+
+
+
+
+
+
