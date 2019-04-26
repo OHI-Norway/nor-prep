@@ -15,21 +15,94 @@ output:
   pdf_document:
     toc: true
 ---
-###Loading libraries
-```{r}
+## Loading libraries
+```{r message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(message = FALSE, warning= FALSE)
 library(readr)
 library(readxl)
+library(janitor)
+library(dplyr)
+library(stringr)
+library(qdap)
 ```
 
-###Loading the data tables: number of escapees per industry
+## Loading the escapees data table
 ```{r}
 escap_raw <-read_excel("raw/Escapees.xlsx")
 escap_prep <-escap_raw[-c(1:2),]
+#clean_names() - use this funciton to make column titles with _, create upper or lower case.
 colnames(escap_prep) <-c("county", "company", "location_number","species", "size_kg", "date", "year", "count_escaped", "count_esc_fishdir", "produced", "recatched", "escaped_final")
+escap_prep <- filter(escap_prep, !county %in% c("M","H","NT","ST","SF","R","AA"))
 
+
+#use  janitor package, clean_names fucntion to make good column titles.
+lusedata<-read.csv(file = "raw/lakselus_per_fisk_utf8.csv", fileEncoding = "UTF-8")
+lusedat_prep <- clean_names(lusedata)
+
+#list of municipalities names and numbers
+komlist<- read.csv("../../administrative/komlist.csv", sep = ";")
 ```
 
-## #Preliminary data exploration
+## Formatting acquaculture registry data 
+My idea was to use aquaculture registry to get the geogprahical locaiton of all the companies in the escapees data.
+However, when I tired to match aquaculture registry with escapees data by location numers, I got 43 mismatches (locaitons, not occuring in aquaculture registry).
+All these locaitons have escapees data for 2006 - 2015. So, I assume that those are companies that shut down or were sold to other companies, or have moved to other locaitons.
 
+## Merge escapees data lice data 
+```{r}
+lusedat_prep <- lusedat_prep %>% 
+   mutate(lokalitetsnummer = as.character(lokalitetsnummer))
+  
+escap_clean <- escap_prep %>% 
+     left_join(lusedat_prep[,c(3,10,13,14,15)], by = c("location_number" = "lokalitetsnummer")) #get municipalities numbers from lice data set (some companies were not matched with lice data).
+  
+```
 
+###  Exploring missing data: which companies did not have municipality number after merging escapees and lice data?
+```{r}
+nas <- filter(escap_clean, is.na(kommunenummer)) %>% 
+      group_by(county, company, location_number) %>% 
+      summarize(n = n()) #31 companies did not have info on locaiton, I get info by  google serach.
+#write.csv(nas, "missing_companies.csv")
+```
 
+###  Loading back the missing companies data
+```{r}
+missing <-data.table::fread("./data/missing_companies.csv",select = c(2,3,5), encoding = "UTF-8")
+
+read_delim("./data/missing_companies.csv",
+           ";", escape_double = FALSE,
+           locale = locale(encoding = "UTF-8"),
+           trim_ws = TRUE)
+
+missing<-read.csv(file = "./data/missing_companies.csv", fileEncoding = "UTF-8")
+```
+
+### Getting municipalities numers for the data of missing compnaies
+```{r}
+missing_prep <-left_join(missing[,c(1,2,3,5)], komlist[,c(1,2)], by = c("municip" = "Name")) %>% 
+                mutate(location_number = as.character(location_number)) %>% 
+                filter(!company %in% c("Jøkelfjord Laks AS", "Victoria Lady (brønnbåt)","Hammerfest Lakseslakteri"))
+  
+#I remove Victoria Lady bronbat, Hammerfestlakselsakteri and Jokefjord (some of data rows) because they don't have location numbers,
+#I confused Cermaq Norwat and Bunes fisk because they had the same locaiton number, but i identified repetition.
+#So i delete one of the rows where Bunes fisk and Cermaq Norway are prepated two times
+missing_final <-filter(escap_clean, is.na(kommunenummer)) %>% 
+     group_by(company, location_number) %>% 
+     summarize(n = n()) %>% 
+     left_join(missing_prep[,c(2,3,4,5)], by = "company")#TRY ANOTHER TYPE OF JOIN, THIS ONE CREATED DUPLICATES! JOIN BY TWO VARIABLES MAYBE?
+
+#
+escap_prep2 <-filter(escap_clean, is.na(kommunenummer)) %>% 
+               group_by(company) %>% 
+               left_join(missing_final[,c(2,13)], by = "company") %>% 
+               ungroup()
+               mutate(kommunenummer = kommunenummer.y) %>% 
+               select(-c(kommunenummer.x, kommunenummer.y))
+               bind_rows(missing_final)
+   
+     
+```
+
+#Finish merging escap data and kommune list data
+#Check for the data duplicates for the whole escap_final data!
