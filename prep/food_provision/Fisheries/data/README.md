@@ -14,20 +14,9 @@ sustain_score | estimated fisheries sustainability score per municipality
 
 **Explanation of calculations**:
 
-*Stock score*:
-$$ SSB/Bmsy $$
+![Formulas:](../figs/fish_formulas.png)
 
 
-*Catch weighted score*:
-$$ (SSB/Bmsy)*catch.prop $$
-
-*Final sustainability score*:
-
-If $SSB/Bmsy >= 1$, $score = 1$
-
-If $SSB/Bmsy < 1$, $score = [SSB/Bmsy - Blim/Bmsy]/(Blim/Bmsy)$
- 
-If $SSB/Bmsy <=Blim.Bmsy$, $score = 0$
                                    
 
 
