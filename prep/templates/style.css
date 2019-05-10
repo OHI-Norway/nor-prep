@@ -1,0 +1,21 @@
+
+pre code, pre, code {
+  white-space: pre !important;
+  overflow-x: scroll !important;
+  word-break: keep-all !important;
+  word-wrap: initial !important
+}
+
+
+/* Headers */
+  h1,h2,h3,h4,h5,h6 {
+    color:dodgerblue;
+  }
+
+/* Whole document: */
+body{
+  font-size: 11pt;
+  color: black;
+}
+
+
