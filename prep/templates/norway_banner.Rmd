@@ -1,18 +1,8 @@
 ---
-title: ""
-author: ""
-output: 
-  html_document:
-    toc: true
-    toc_depth: 3
-    toc_float: no
-    number_sections: false
-    theme: cerulean
-    highlight: haddock
-  pdf_document:
-    toc: true
+title: "OHI-Norway header"
+output: html_fragment
 ---
-<center>
+<p align = "center">
 [![ohi logo](ohi_norway_banner.png)](http://ohi-science.org)
 <br>
 [Coastal barometer website](http://folk.ntnu.no/erlenfau/KystBaro/) |
