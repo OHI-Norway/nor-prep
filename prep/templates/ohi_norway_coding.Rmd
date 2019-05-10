@@ -1,13 +1,11 @@
 ---
-title: "Escapees data preparation"
+title: "Your Doc title"
 author: "*Compiled on `r date()` by `r Sys.info()['user']`*"
 output: 
   html_document:
-    code_folding: show
+    css: '~/github/nor-prep/prep/templates/style.css'
     toc: true
-    toc_depth: 3
-    toc_float: yes
-    number_sections: false
+    number_sections: true
     theme: cerulean
     highlight: haddock
     includes: 
@@ -15,4 +13,3 @@ output:
   pdf_document:
     toc: true
 ---
-
