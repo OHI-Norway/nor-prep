@@ -1,0 +1,122 @@
+---
+title: "Create study area plot"
+author: "*Compiled on `r date()` by `r Sys.info()['user']`*"
+output: 
+  html_document:
+    code_folding: show
+    toc: true
+    toc_depth: 3
+    toc_float: yes
+    number_sections: false
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: "C:/github/nor-prep/prep/templates/norway_banner.html"
+  pdf_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, results="hide", warning=FALSE, message=FALSE)
+
+```
+
+```{r}
+library(rgdal)
+library(dplyr)
+library(raster)
+library(graticule)
+library(rgeos)
+library(prettymapr)
+```
+### Load data
+```{r}
+#Norway counties
+Norway<-readOGR(dsn="C://github//nor-prep//prep//administrative//raw", "NO_Fylker_pol")
+#Ocean area
+ocean<-readOGR(dsn="C://github//nor-prep//prep//administrative//raw", "NO_Havflate_pol")
+#Municipalities 
+municip<-readOGR(dsn="C://github//nor-prep//prep//administrative//raw", "NO_AdminOmrader_pol")
+#Norway counties
+counties<-readOGR(dsn="C://github//nor-prep//prep//administrative//raw","NO_Fylker_pol")
+#Study municipalities
+stud.munic<-read.table("komlist.csv", header=TRUE, sep=";")
+```
+
+### Data cleaning & subset study region 
+```{r,  results="hide",message=FALSE}
+
+#remove value 999Noncoast
+stud.munic<- stud.munic[-c(82),]
+
+#Change municipalnumber of Harstad from 1901 to the correct 1903. THe muncipality was merged with Bjarkjøy in 2013 and went from 
+#number 1901 to 1903. The polygon in the shapefile reflects this merger (Harstad includes Bjarkøy) but the number is wrong. 
+
+municip@data[municip@data$KOMM == "1901", "KOMM"] <- "1903"
+
+#extract subset of data (studymunicipalities from komlist.csv) from spatialpolygonsdataframe
+muni_sub <- municip[municip$KOMM %in% c(1804L, 1805L, 1811L, 1812L, 1813L, 1815L, 1816L, 1818L, 1820L, 
+          1822L, 1824L, 1827L, 1828L, 1832L, 1833L, 1834L, 1835L, 1836L, 
+          1837L, 1838L, 1840L, 1841L, 1845L, 1848L, 1849L, 1850L, 1851L, 
+          1852L, 1853L, 1854L, 1856L, 1857L, 1859L, 1860L, 1865L, 1866L, 
+          1867L, 1868L, 1870L, 1871L, 1874L, 1902L, 1903L, 1911L, 1913L, 
+          1917L, 1919L, 1920L, 1923L, 1924L, 1925L, 1926L, 1927L, 1928L, 
+          1929L, 1931L, 1933L, 1936L, 1938L, 1939L, 1940L, 1941L, 1942L, 
+          1943L, 2002L, 2003L, 2004L, 2012L, 2014L, 2015L, 2017L, 2018L, 
+          2019L, 2020L, 2022L, 2023L, 2024L, 2025L, 2027L, 2028L, 2030L
+          ), ]
+#extract only ocean area of the study municipalities
+muni_sub_ocean<-crop(muni_sub, ocean)
+
+#subset the northermost counties
+NN<-subset(counties,NAVN=="Troms" | NAVN=="Finnmark" | NAVN=="Nordland")
+
+#merge county polygons to make shapefile of region without counties
+NN <- aggregate(NN,dissolve=T)
+
+#erase ocean area from municipalities file
+muni_sub_land= erase(muni_sub, muni_sub_ocean)
+
+#Make shapefile of municipalities (one for land area and one for ocean area) where we did stakeholder workshops
+muni_stake <- muni_sub_land[muni_sub_land$KOMM %in% c(1815L, 1865L, 1902L, 1941L,2004L, 2002L), ]
+muni_stake_ocean<-muni_sub_ocean[muni_sub_ocean$KOMM %in% c(1815L, 1865L, 1902L, 1941L,2004L, 2002L), ]
+```
+### Make Arctic Circle delineation
+```{r, message=FALSE, results="hide"}
+#graticules r https://cran.r-project.org/web/packages/graticule/vignettes/graticule.html
+prj <- "+proj=utm +zone=33 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0"
+lons <- seq(5, 30, length = 5)
+lats <- 66.56
+#optionally, specify the extents of the meridians and parallels
+#here we push them out a little on each side
+xl <-  range(lons) + c(-0.4, 0.4)
+yl <- range(lats) + c(-0, 0)
+#build the lines with our precise locations and ranges
+grat <- graticule(lons, lats, proj = prj, xlim = xl, ylim = yl)
+```
+### Make final plot
+```{r, results="markup"} 
+#tiff('figs/studysites.tiff',width = 4, height = 4, units = 'in',  res=300) #remove # to save this map as tiff 
+plot(NN, col="lightgrey", border="darkgrey")
+#plot(ocean, add=T, col="lightblue", border="transparent")
+plot(muni_sub_land, add=T, col="lightgreen", border="transparent")
+plot(muni_sub_ocean, add=T, col="lightblue", border="dodgerblue",lwd=0.5)
+plot(muni_stake_ocean, add=T, col="dodgerblue", border="deepskyblue4", lwd=0.5)
+plot(muni_stake, add=T, col="darkgreen", border="transparent")
+plot(grat, add = TRUE, lty = 2, col = rgb(0, 0, 0, 0.8))
+text(260514.67, 7298858.64, "Vega",cex = .6)
+text(370514.67, 7620643.28, "Vågan",cex = .6)
+text(529002.71, 7778814.79, "Tromsø",cex = .6)
+text(679881.05, 7890097.99, "Skjervøy",cex = .6)
+text(785856.82, 7959146.91, "Hammerfest",cex = .6)
+text(1175049.16, 7909146.91, "Vardø",cex = .6)
+text(630514.6, 7368858.64, "Polarsirkelen",cex = .40, font=3)
+addnortharrow(pos = "bottomright", padin = c(0.15, 0.15), scale = 0.5,
+    lwd = 1, border = "dimgray", cols = c("white", "dimgray"),
+    text.col = "dimgray")
+#add scalebar - haven't been able to make it work so far
+#dev.off() # remove # to save this map as tiff
+```
+
+
+
