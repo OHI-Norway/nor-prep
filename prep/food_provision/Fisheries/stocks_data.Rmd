@@ -1,14 +1,21 @@
 ---
-title: "Cleaning ICES stock stats data"
+title: "Preparation of ICES stocks data"
 author: "Marina Espinasse"
 date: "`r Sys.Date()`"
 output:
-  prettydoc::html_pretty:
-    theme: cayman
-    highlight: github
+  html_document:
+    css: '~/github/nor-prep/prep/templates/style.css'
     toc: true
+    number_sections: true
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: '~/github/nor-prep/prep/templates/norway_banner.html'
+  pdf_document:
+    toc: true
+
 ---
-###loading libraries
+
 ```{r, message=FALSE}
 library(readxl)
 library(readr)
@@ -16,12 +23,12 @@ library(RCurl)
 library(dplyr)
 ```
 
-###Loading ICES stock parameters data
+# Loading ICES stock parameters data
 ```{r }
-temp_ices <- read_excel("raw/ices_bmsy.xlsx")
+temp_ices <- read_excel("/Volumes/ftp.imr.no/Fishery/DeliveryDataFiskDir/ices_bmsy.xlsx")
 ```
 
-###Removing unnessesary rows and small-cleaning the ICES Bmsy and SSB data
+# Removing unnessesary rows and small-cleaning the ICES Bmsy and SSB data
 ```{r, warning=FALSE}
 foo <- temp_ices[-c(1:7),]; colnames(foo) <-temp_ices[7,];colnames(foo)[13] <-"SSB"
 ices_clean <- data.frame(Year = rep(foo$Yrs, 6), 
