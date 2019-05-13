@@ -15,7 +15,7 @@ Below is the list of aquaculture data layers. For each layer, and index was aggr
 2. [Lice abundance](https://ohi-norway.github.io/nor-prep/prep/food_provision/Mariculture/salmon.lice.html) 
 
 4. [Total sum of escapees.](https://ohi-norway.github.io/nor-prep/prep/food_provision/Mariculture/escapees_data.html) 
-Data includees escapees count froom 2006 to 2017, from aquaculture industries productind salmon or trout. Relatively few data lines on escapees is available for kveite and cod. 
+
 
 
 
