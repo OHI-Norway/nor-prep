@@ -1,15 +1,21 @@
 ---
-title: "Cleaning fish catch fata for fisheries goal estimation"
+title: "Cleaning fish catch data for fisheries goal estimation"
 author: "Marina Espinasse"
 date: "`r Sys.Date()`"
 output:
-  prettydoc::html_pretty:
-    theme: cayman
-    highlight: github
+  html_document:
+    css: '~/github/nor-prep/prep/templates/style.css'
     toc: true
+    number_sections: true
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: '~/github/nor-prep/prep/templates/norway_banner.html'
+  pdf_document:
+    toc: true
+
 ---
 
-###Loading libraries
 ```{r include=FALSE}
 library(readxl)
 library(readr)
@@ -18,19 +24,19 @@ library(stringr)
 library(kableExtra)
 ```
 
-###Loading fish landings data (1994 - 2017) for  in Northern Norway 
+# Loading fish landings data (1994 - 2017) for  in Northern Norway 
 ```{r}
-temp_catch99 <- read_excel("raw/landings_per_municipality9499.xlsx")
-temp_catch99 <- read_excel("raw/landings_per_municipality9499.xlsx")
-temp_catch17 <- read_excel("raw/landings_per_municipality0017.xlsx")
-names<-read_excel("raw/Fiskid.xlsx")#fish species names in English and Norwegian
-komlist<-read_excel("raw/komlist.xlsx")#list of municipalities names and codes
+#/Volumes/ftp.imr.no/Fishery/DeliveryDataFiskDir/Fisk0017.csv
+temp_catch17 <- read.csv("/Volumes/ftp.imr.no/Fishery/DeliveryDataFiskDir/Fisk0017.csv", sep = ";")
+temp_catch99 <- read.csv("/Volumes/ftp.imr.no/Fishery/DeliveryDataFiskDir/Fisk9499.csv", sep = ";")
+names<-read.csv("/Volumes/ftp.imr.no/Fishery/DeliveryDataFiskDir/Fiskid.csv", sep = ";")#fish species names in English and Norwegian
+komlist<-read.csv("/Volumes/ftp.imr.no/Administrative/komlist.csv", sep = ";")#list of municipalities names and codes
 ```
 
-###Cleaning and formatting fish landings data: cheking species names
+# Cleaning and formatting fish landings data: cheking species names
 ```{r, results="hide"}
-temp_catch17 <-select(temp_catch17, -c(5,10)) %>% rename("Lengdegr"= "Lengdegr_l.l.")
-temp_catch99 <-select(temp_catch99, -5) #remove species code, which is different between 1990s and 2000s
+temp_catch17 <-select(temp_catch17, -c("Artskode","Fangstaar")) %>% rename("Lengdegr"= "Lengdegr.l.l.")
+temp_catch99 <-select(temp_catch99, -Artskode) %>% rename("Lengdegr"= "Lengdegr.l.l.")#remove species code, which is different between 1990s and 2000s
 temp_catch<-bind_rows(temp_catch99, temp_catch17)
 colnames(temp_catch) <- c("Year", "Month", "Municip_number", "Municip_name","Species",
                           "Coast_ocean", "Region", "Fleet_length", "Catch_weight", "Payed_NOK")
@@ -44,7 +50,7 @@ str_view(fishnames, regex("sild", ignore_case = TRUE))#Sild, Feitsild, Nordsjosi
 str_view(fishnames, regex("kongekrabbe", ignore_case = TRUE))#Kongekrabbe, han-, Kongekrabbe, hun-, Kongegrabbe
 ```
 
-###Creating clean catches data: unifying species names and municipalities names.
+# Creating clean catches data: unifying species names and municipalities names.
 ```{r }
 #I assume that we don't need maricultured cod and saithe (oppdrett torsk, oppdrett sild), and capeling from Iceland and Greenalnd, Skagerraksild, Nordsjosild
 catch_clean <- temp_catch %>% 
@@ -59,8 +65,8 @@ catch_clean <- temp_catch %>%
               mutate(Species = replace(Species, Species == "Barentshavslodde", "Lodde")) %>% 
               mutate(Species = replace(Species, Species %in% c("Kongekrabbe, hun-", "Kongekrabbe, han-"), "Kongekrabbe")) %>%   
               mutate(Species = replace(Species, Species %in% c("Feitsild", "Norsk vaargytende sild"), "Sild")) %>% 
-              left_join(names[,c(4,6)], by = c("Species" = "Common (Norw)")) %>% 
-              rename("English" = "Common (Eng)") %>% 
+              left_join(names[,c(4,6)], by = c("Species" = "Common..Norw.")) %>% 
+              rename("English" = "Common..Eng.") %>% 
               left_join(komlist[,c(1,2)], c("Municip_number" = "Komnum")) %>% 
               select(-4) %>% 
               rename("Municip_name" = "Name") %>% 
@@ -70,9 +76,10 @@ kable(head(catch_clean, 5)) %>%
   kable_styling(bootstrap_options = c("striped", "hover"), full_width = F)
 ```
 
-###Final cleaning: inserting missing names of municipalities, aggregating catch data for months and fleet sizes
+# Final cleaning: inserting missing names of municipalities, aggregating catch data for months and fleet sizes
 ```{r}
 catch_final <- catch_clean %>% 
+             mutate(Municip_name = as.character(Municip_name)) %>% 
              mutate(Municip_name = replace(Municip_name, Municip_number == 1839, "Beiarn")) %>% 
              mutate(Municip_name = replace(Municip_name, Municip_number == 1842, "Skjerstad_2005")) %>% 
              mutate(Municip_name = replace(Municip_name, Municip_number == 1901, "Harstad_2013")) %>% 
