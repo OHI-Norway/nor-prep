@@ -1,0 +1,1 @@
+Data includees escapees count froom 2006 to 2017, from aquaculture industries productind salmon or trout. Relatively few data lines on escapees is available for kveite and cod. 
