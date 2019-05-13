@@ -1,14 +1,21 @@
 ---
-title: "Estimating fisheries goal (status)"
+title: "Calculation of fisheries sustainability score"
 author: "Marina Espinasse"
 date: "`r Sys.Date()`"
 output:
-  prettydoc::html_pretty:
-    theme: cayman
-    highlight: github
+  html_document:
+    css: '~/github/nor-prep/prep/templates/style.css'
     toc: true
+    number_sections: true
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: '~/github/nor-prep/prep/templates/norway_banner.html'
+  pdf_document:
+    toc: true
+
 ---
-###Loading libraries
+
 ```{r message = FALSE}
 library(readxl)
 library(readr)
@@ -20,13 +27,13 @@ library(scales)
 library(zoo)
 ```
 
-###Importing formatted catches and stocks data
+# Importing formatted catches and stocks data
 ```{r }
 ices <- read.csv("data/ices_stock_stats.csv")
 catch <- read.csv("data/fish_catch_by_municipality.csv")
 ```
 
-###Merging catch data with ICES stocks data
+# Merging catch data with ICES stocks data
 ```{r warning=FALSE}
 fish_nor <-catch %>% 
            mutate(English = as.character(English)) %>% 
@@ -45,7 +52,7 @@ fish_nor %>% group_by(Species) %>%
 ```
 
 
-###Further data cleaning: removing and re-arranging locaitons
+# Further data cleaning: removing and re-arranging locaitons
 
 Deleting municipalities that are not in the study (Beiarn county and Guovdageaidnu-Kautokeino)
 Re-estimating landings for the municipalities that were merged (Bodo + Skjerstad_2005, Bjarkoy_2013 + Harstad_2013) - I sum the landings for these pairs of municipalities for the years before they've merged. 
@@ -73,7 +80,7 @@ fish_nor_prep2<- fish_nor_prep %>%
 ```
 
 
-###Estimating sustainability score for each of the fish stocks
+# Estimating sustainability score for each of the fish stocks
 ```{r}
 fish_nor_estim <-fish_nor_prep2 %>% 
                  mutate(Blim.Bmsy = Blim/Bmsy)
@@ -88,7 +95,7 @@ fish_nor_score <-fish_nor_estim %>% #estimating sustainability score for each st
 write_csv(fish_nor_score, "sustain_score.csv")
 ```
 
-###Estimating catch weighted score and final fisheries score in Northern Norway 
+# Estimating catch weighted score and final fisheries score in Northern Norway 
 (Check fisheries README. for details)
 ```{r}
 fish_nor_weight <- fish_nor_score %>% #adding total weight of the catch for all stock per municipality and proportion of each stock
