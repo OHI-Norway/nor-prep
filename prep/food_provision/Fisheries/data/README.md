@@ -14,7 +14,7 @@ sustain_score | estimated fisheries sustainability score per municipality
 
 **Explanation of calculations**:
 
-![Formulas:](../figs/fish_formulas.png)
+![Formulas:](../figs/fish_formulas1.png)
 
 
                                    
