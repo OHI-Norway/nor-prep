@@ -31,6 +31,7 @@ temp_catch17 <- read.csv("/Volumes/ftp.imr.no/Fishery/DeliveryDataFiskDir/Fisk00
 temp_catch99 <- read.csv("/Volumes/ftp.imr.no/Fishery/DeliveryDataFiskDir/Fisk9499.csv", sep = ";")
 names<-read.csv("/Volumes/ftp.imr.no/Fishery/DeliveryDataFiskDir/Fiskid.csv", sep = ";")#fish species names in English and Norwegian
 komlist<-read.csv("/Volumes/ftp.imr.no/Administrative/komlist.csv", sep = ";")#list of municipalities names and codes
+seaarea <-read_excel("/Volumes/ftp.imr.no/Fishery/DeliveryDataFiskDir/KommArea.xlsx")
 ```
 
 # Cleaning and formatting fish landings data: cheking species names
