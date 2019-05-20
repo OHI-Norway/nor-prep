@@ -127,10 +127,11 @@ final_scores_area <- weighted_biomass_score %>%
 #write_csv(final_scores_area, "data/fishery_final_area.csv") 
 ```
 
+Quick-check of the distribution of area-weighted final score
 ```{r}
 plot<- ggplot(final_scores_area, ) +
         geom_density(aes(fish_score), fill = "blue", color = "navy", alpha = 0.7)
-plot                
+                
 ```
 
 ```{r}
