@@ -1,0 +1,117 @@
+---
+title: "Your Document Title"
+author: "Document Author"
+date: "`r Sys.Date()`"
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+    toc: true
+---
+###Loading libraries
+```{r include = FALSE}
+library(readxl)
+library(readr)
+library(dplyr)
+library(stringr)
+library(ggplot2)
+library(ggthemes)
+library(scales)
+library(zoo)
+```
+
+
+# Load the data tables
+```{r}
+final_scores <-read.csv("data/fishery_final_area.csv")
+```
+
+# Hourse keeping: prepcodes for plotting
+```{r}
+
+breaks1 <- seq(1994, 2018, by = 1)
+labels1 <- as.character(breaks1)
+labels1[!breaks1%%2==0]<- ""
+```
+
+# How did the sea area-weighted fisheries sustainability score varied in Norway temporally in each municipality?
+```{r message=FALSE}
+plot_fscores <-final_scores %>% 
+             mutate(county = case_when(
+                                    Municip_number >= 1800 &  Municip_number < 1900 ~ "Nordland",
+                                    Municip_number >= 1900 &  Municip_number < 2000 ~ "Troms",
+                                    Municip_number >= 2000 ~ "Finnmark"
+                                    ))
+
+counties <-unique(plot_fscores$county)
+
+for(i in 1:length(counties))
+  {
+  cty <- counties[i]
+  
+  df <- plot_fscores %>%
+    filter(county == cty)
+  
+  plot <- ggplot(df)+
+      geom_line(aes(x = Year, y = fish_score))+
+      facet_wrap(Municip_name_new  ~ .) +
+      scale_x_continuous(breaks = breaks1, limits = c(1994,2018), labels = labels1)+
+      labs(y = "Area-weighted fisheries sustainability score", x = "") +
+      ggtitle(cty)+
+      theme_stata(scheme = "s1color") +
+      theme(legend.position = "none", 
+            axis.text.x = element_text(size = 6, angle = 90, hjust = 1, vjust = 0.5, face = "bold"),
+            axis.text.y = element_text(size = 7, face = "bold", angle = 0, hjust = 1, vjust = 0),
+            axis.title.y = element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)),
+            plot.title = element_text(hjust=0.5, vjust=0.5),
+            axis.ticks.x = element_line(size = 0.5),
+            axis.ticks.length = unit(0.1, "cm"))
+           
+           
+ggsave(paste0("figs/fishery_score_seaarea","_", cty, ".pdf"), plot)
+  
+}
+
+```
+
+# Re-estimating fisheries sustainability score by smoothing it with a rolling average (zoo package)
+```{r}
+municipalities <-unique(final_scores$Municip_name_new)
+
+finallist <-list()
+for (i in 1:length(municipalities)) 
+  {
+  mp <- municipalities[i]
+  df <- final_scores %>% 
+      filter(Municip_name_new == mp)
+   runmean <-data.frame(runmean = rollapply(df$fish_score, width = 3, FUN = mean,  fill=NA))
+   df2 <- bind_cols(df, runmean)
+  finallist[[i]] <- df2  
+}
+
+smoothed_fish_scores <- do.call("rbind", finallist)
+colSums(is.na(smoothed_fish_scores)) #a lot of NA were introduced with a rolling mean, because some municipailities have too few data lines. Does it make sense to use rolling mean then?
+
+```
+
+# Check how smoothed scores are different from non-smoothed - an example from Bodo
+```{r message=FALSE}
+plot2data <- smoothed_fish_scores %>% filter(Municip_name_new == "Bodo")
+  
+  plot2 <- ggplot(plot2data)+
+      geom_line(aes(x = Year, y = runmean))+
+      scale_x_continuous(breaks = breaks1, limits = c(1994,2018), labels = labels1)+
+      labs(y = "Area-weighted fisheries sustainability score", x = "") +
+      theme_stata(scheme = "s1color") +
+      ggtitle("Bodo")+
+      theme(legend.position = "none", 
+            axis.text.x = element_text(size = 10, angle = 90, hjust = 1, vjust = 0.5, face = "bold"),
+            axis.text.y = element_text(size = 10, face = "bold", angle = 0, hjust = 1, vjust = 0),
+            axis.title.y = element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)),
+            axis.ticks.x = element_line(size = 0.5),
+            axis.ticks.length = unit(0.1, "cm"))
+           
+plot2           
+
+
+```
