@@ -31,6 +31,7 @@ library(zoo)
 ```{r }
 ices <- read.csv("data/ices_stock_stats.csv")
 catch <- read.csv("data/fish_catch_by_municipality.csv")
+seaarea <-read_excel("/Volumes/ftp.imr.no/Fishery/DeliveryDataFiskDir/KommArea.xlsx")
 ```
 
 # Merging catch data with ICES stocks data
@@ -103,7 +104,7 @@ fish_nor_weight <- fish_nor_score %>% #adding total weight of the catch for all 
                    mutate(total_tons = sum(Total_catch_new)) %>%
                    ungroup() %>%
                    mutate(catch_prop = Total_catch_new/total_tons,
-                   catch_weighted_score = catch_prop*stock_score)
+                   catch_weighted_score = catch_prop*stock_score) 
 
 write_csv(fish_nor_weight, "catch_weighted_score.csv")
 
