@@ -13,3 +13,10 @@ output:
   pdf_document:
     toc: true
 ---
+
+**Reading file from ftp.imr.no server**
+Windows: read.csv("//ftp.imr.no/yourfolder1/yourfolrder2/yourfile.ext") 
+MAC: read.csv("/Volumes/ftp.imr.no/yourfolder1/yourfolrder2/yourfile.ext") 
+**Examples**
+#Windows: read.csv("//ftp.imr.no/Fishery/DataFiskDir/Fiskid.csv", header=TRUE, sep=";") - replace file names
+#MAC: read.csv("/Volumes/ftp.imr.no/Fishery/DeliveryDataFiskDir/Fisk0017.csv", sep = ";")
