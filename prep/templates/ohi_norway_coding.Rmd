@@ -15,8 +15,8 @@ output:
 ---
 
 **Reading file from ftp.imr.no server**
-Windows: read.csv("//ftp.imr.no/yourfolder1/yourfolrder2/yourfile.ext") 
-MAC: read.csv("/Volumes/ftp.imr.no/yourfolder1/yourfolrder2/yourfile.ext") 
+Windows: read_excel(file.path(dir_M[1], ""Folder1/Folfer2/filename.xslx))
+MAC:  read_excel(file.path(dir_M[2], ""Folder1/Folfer2/filename.xslx))
 **Examples**
-#Windows: read.csv("//ftp.imr.no/Fishery/DataFiskDir/Fiskid.csv", header=TRUE, sep=";") - replace file names
-#MAC: read.csv("/Volumes/ftp.imr.no/Fishery/DeliveryDataFiskDir/Fisk0017.csv", sep = ";")
+#Windows: escap_raw <-read_excel(file.path(dir_M[1], "Aquaculture/Escapees/Escapees.xlsx"))
+#MAC: escap_raw <-read_excel(file.path(dir_M[2], "Aquaculture/Escapees/Escapees.xlsx"))
