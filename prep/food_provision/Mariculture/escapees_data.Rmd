@@ -17,28 +17,30 @@ output:
 # Loading libraries
 ```{r message=FALSE, warning=FALSE}
 knitr::opts_chunk$set(message = FALSE, warning= FALSE)
+source('~/github/nor-prep/prep/src/common.R')
+```
+
+```{r include=FALSE}
 library(readr)
-library(readxl)
 library(janitor)
-library(dplyr)
 library(stringr)
 library(qdap)
+library(kableExtra)
 ```
 
 # Loading data tables
 ```{r}
-#escap_raw <-read_excel("raw/Escapees.xlsx")# - reading from raw 
-#reading data from ftp at IMR
-escap_raw <-read_excel("/Volumes/ftp.imr.no/Aquaculture/Escapees/Escapees.xlsx")#mac path
+escap_raw <-read_excel(file.path(dir_M[2], "Aquaculture/Escapees/Escapees.xlsx"))
 
 escap_prep <-escap_raw[-c(1:2),]
 
-colnames(escap_prep) <-c("county", "company", "location_number","species", "size_kg", "date", "year", "count_escaped", "count_esc_fishdir", "produced", "recatched", "escaped_final")
+colnames(escap_prep) <-c("county", "company", "location_number","species", "size_kg", "date", "year", "count_escaped", "count_esc_fishdir", 
+                         "farmed", "recatched", "escaped_final")
+
 escap_prep <- filter(escap_prep, !county %in% c("M","H","NT","ST","SF","R","AA"))
 
+lusedata <-read.csv(file.path(dir_M[2], "Aquaculture/Lice/lakselus_per_fisk_utf8.csv"), fileEncoding = "UTF-8")
 
-lusedata<-read.csv(file = "raw/lakselus_per_fisk_utf8.csv", fileEncoding = "UTF-8") 
-#lusedata <-read.sv("/Volumes/ftp.imr.no/Aquaculture/Lice/Lusedata.xlsx") - use this path after the file is on ftp
 lusedat_prep <- clean_names(lusedata)
 
 #list of municipalities names and numbers
@@ -124,13 +126,15 @@ escap_fin <-escap_fin %>%
 ## How many locations per municipality for each year and each species and what is the range of escapees count?
 ```{r}
 #Most of the municipalities had just one ovservation from a single locaiton each year. 
-#Some observations for salmon and cod have from differnet locations within the same municipality and year, but no more than 4. 
+#Some observations for salmon and cod are from differnet locations within the same municipality and year, but no more than 4. 
 #Number of escapees within same municipality may vary considerabely, thus we should not average them.
 
 escap_range <-escap_fin  %>% 
              group_by(year, kommunenummer, species) %>% 
              summarize(locperyear = n(),min_esap = min(escaped_final), max_escap = max(escaped_final)) 
-           
+kable(escap_range) %>% 
+    kable_styling("striped", full_width = T) %>% 
+     column_spec(1:6,bold = T) 
 ```
 
 # Aggreagte escapees counts per municiaplity per year per species
@@ -139,7 +143,7 @@ escap_spp <-escap_fin  %>%
              mutate_at(c(8:12), as.numeric) %>% 
              group_by(year, kommunenummer, species) %>% 
              summarize(count_escaped = sum(count_escaped),count_esc_fishdir = sum(count_esc_fishdir), 
-                       produced = sum(produced), recathced = sum(recatched), escaped_final = sum(escaped_final)
-                       )
-write_csv(escap_spp,"./data/escapees_per_yrmpspp.csv")
+                       produced_municip = sum(produced), recathced = sum(recatched), escaped_municip = sum(escaped_final))
+
+#write_csv(escap_spp,"./data/escapees_per_yrmpspp.csv")
 ```

@@ -9,7 +9,7 @@
 <meta name="generator" content="pandoc" />
 
 
-<meta name="author" content="Compiled on Fri May 10 14:19:37 2019 by marinaespinasse" />
+<meta name="author" content="Compiled on Tue May 21 13:36:41 2019 by marinaespinasse" />
 
 
 <title>Escapees data preparation</title>
@@ -360,7 +360,7 @@ $(document).ready(function () {
 
 
 <h1 class="title toc-ignore">Escapees data preparation</h1>
-<h4 class="author"><em><em>Compiled on Fri May 10 14:19:37 2019 by marinaespinasse</em></em></h4>
+<h4 class="author"><em><em>Compiled on Tue May 21 13:36:41 2019 by marinaespinasse</em></em></h4>
 
 </div>
 
@@ -382,31 +382,25 @@ $(document).ready(function () {
 <div id="loading-libraries" class="section level1">
 <h1><span class="header-section-number">1</span> Loading libraries</h1>
 <div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" data-line-number="1">knitr<span class="op">::</span>opts_chunk<span class="op">$</span><span class="kw">set</span>(<span class="dt">message =</span> <span class="ot">FALSE</span>, <span class="dt">warning=</span> <span class="ot">FALSE</span>)</a>
-<a class="sourceLine" id="cb1-2" data-line-number="2"><span class="kw">library</span>(readr)</a>
-<a class="sourceLine" id="cb1-3" data-line-number="3"><span class="kw">library</span>(readxl)</a>
-<a class="sourceLine" id="cb1-4" data-line-number="4"><span class="kw">library</span>(janitor)</a>
-<a class="sourceLine" id="cb1-5" data-line-number="5"><span class="kw">library</span>(dplyr)</a>
-<a class="sourceLine" id="cb1-6" data-line-number="6"><span class="kw">library</span>(stringr)</a>
-<a class="sourceLine" id="cb1-7" data-line-number="7"><span class="kw">library</span>(qdap)</a></code></pre></div>
+<a class="sourceLine" id="cb1-2" data-line-number="2"><span class="kw">source</span>(<span class="st">'~/github/nor-prep/prep/src/common.R'</span>)</a></code></pre></div>
 </div>
 <div id="loading-data-tables" class="section level1">
 <h1><span class="header-section-number">2</span> Loading data tables</h1>
-<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" data-line-number="1"><span class="co">#escap_raw &lt;-read_excel(&quot;raw/Escapees.xlsx&quot;)# - reading from raw </span></a>
-<a class="sourceLine" id="cb2-2" data-line-number="2"><span class="co">#reading data from ftp at IMR</span></a>
-<a class="sourceLine" id="cb2-3" data-line-number="3">escap_raw &lt;-<span class="kw">read_excel</span>(<span class="st">&quot;/Volumes/ftp.imr.no/Aquaculture/Escapees/Escapees.xlsx&quot;</span>)<span class="co">#mac path</span></a>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" data-line-number="1">escap_raw &lt;-<span class="kw">read_excel</span>(<span class="kw">file.path</span>(dir_M[<span class="dv">2</span>], <span class="st">&quot;Aquaculture/Escapees/Escapees.xlsx&quot;</span>))</a>
+<a class="sourceLine" id="cb2-2" data-line-number="2"></a>
+<a class="sourceLine" id="cb2-3" data-line-number="3">escap_prep &lt;-escap_raw[<span class="op">-</span><span class="kw">c</span>(<span class="dv">1</span><span class="op">:</span><span class="dv">2</span>),]</a>
 <a class="sourceLine" id="cb2-4" data-line-number="4"></a>
-<a class="sourceLine" id="cb2-5" data-line-number="5">escap_prep &lt;-escap_raw[<span class="op">-</span><span class="kw">c</span>(<span class="dv">1</span><span class="op">:</span><span class="dv">2</span>),]</a>
-<a class="sourceLine" id="cb2-6" data-line-number="6"></a>
-<a class="sourceLine" id="cb2-7" data-line-number="7"><span class="kw">colnames</span>(escap_prep) &lt;-<span class="kw">c</span>(<span class="st">&quot;county&quot;</span>, <span class="st">&quot;company&quot;</span>, <span class="st">&quot;location_number&quot;</span>,<span class="st">&quot;species&quot;</span>, <span class="st">&quot;size_kg&quot;</span>, <span class="st">&quot;date&quot;</span>, <span class="st">&quot;year&quot;</span>, <span class="st">&quot;count_escaped&quot;</span>, <span class="st">&quot;count_esc_fishdir&quot;</span>, <span class="st">&quot;produced&quot;</span>, <span class="st">&quot;recatched&quot;</span>, <span class="st">&quot;escaped_final&quot;</span>)</a>
+<a class="sourceLine" id="cb2-5" data-line-number="5"><span class="kw">colnames</span>(escap_prep) &lt;-<span class="kw">c</span>(<span class="st">&quot;county&quot;</span>, <span class="st">&quot;company&quot;</span>, <span class="st">&quot;location_number&quot;</span>,<span class="st">&quot;species&quot;</span>, <span class="st">&quot;size_kg&quot;</span>, <span class="st">&quot;date&quot;</span>, <span class="st">&quot;year&quot;</span>, <span class="st">&quot;count_escaped&quot;</span>, <span class="st">&quot;count_esc_fishdir&quot;</span>, </a>
+<a class="sourceLine" id="cb2-6" data-line-number="6">                         <span class="st">&quot;produced&quot;</span>, <span class="st">&quot;recatched&quot;</span>, <span class="st">&quot;escaped_final&quot;</span>)</a>
+<a class="sourceLine" id="cb2-7" data-line-number="7"></a>
 <a class="sourceLine" id="cb2-8" data-line-number="8">escap_prep &lt;-<span class="st"> </span><span class="kw">filter</span>(escap_prep, <span class="op">!</span>county <span class="op">%in%</span><span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;M&quot;</span>,<span class="st">&quot;H&quot;</span>,<span class="st">&quot;NT&quot;</span>,<span class="st">&quot;ST&quot;</span>,<span class="st">&quot;SF&quot;</span>,<span class="st">&quot;R&quot;</span>,<span class="st">&quot;AA&quot;</span>))</a>
 <a class="sourceLine" id="cb2-9" data-line-number="9"></a>
-<a class="sourceLine" id="cb2-10" data-line-number="10"></a>
-<a class="sourceLine" id="cb2-11" data-line-number="11">lusedata&lt;-<span class="kw">read.csv</span>(<span class="dt">file =</span> <span class="st">&quot;raw/lakselus_per_fisk_utf8.csv&quot;</span>, <span class="dt">fileEncoding =</span> <span class="st">&quot;UTF-8&quot;</span>) </a>
-<a class="sourceLine" id="cb2-12" data-line-number="12"><span class="co">#lusedata &lt;-read.sv(&quot;/Volumes/ftp.imr.no/Aquaculture/Lice/Lusedata.xlsx&quot;) - use this path after the file is on ftp</span></a>
-<a class="sourceLine" id="cb2-13" data-line-number="13">lusedat_prep &lt;-<span class="st"> </span><span class="kw">clean_names</span>(lusedata)</a>
-<a class="sourceLine" id="cb2-14" data-line-number="14"></a>
-<a class="sourceLine" id="cb2-15" data-line-number="15"><span class="co">#list of municipalities names and numbers</span></a>
-<a class="sourceLine" id="cb2-16" data-line-number="16">komlist&lt;-<span class="st"> </span><span class="kw">read.csv</span>(<span class="st">&quot;../../administrative/komlist.csv&quot;</span>, <span class="dt">sep =</span> <span class="st">&quot;;&quot;</span>)</a></code></pre></div>
+<a class="sourceLine" id="cb2-10" data-line-number="10">lusedata &lt;-<span class="kw">read.csv</span>(<span class="kw">file.path</span>(dir_M[<span class="dv">2</span>], <span class="st">&quot;Aquaculture/Lice/lakselus_per_fisk_utf8.csv&quot;</span>), <span class="dt">fileEncoding =</span> <span class="st">&quot;UTF-8&quot;</span>)</a>
+<a class="sourceLine" id="cb2-11" data-line-number="11"></a>
+<a class="sourceLine" id="cb2-12" data-line-number="12">lusedat_prep &lt;-<span class="st"> </span><span class="kw">clean_names</span>(lusedata)</a>
+<a class="sourceLine" id="cb2-13" data-line-number="13"></a>
+<a class="sourceLine" id="cb2-14" data-line-number="14"><span class="co">#list of municipalities names and numbers</span></a>
+<a class="sourceLine" id="cb2-15" data-line-number="15">komlist&lt;-<span class="st"> </span><span class="kw">read.csv</span>(<span class="st">&quot;../../administrative/komlist.csv&quot;</span>, <span class="dt">sep =</span> <span class="st">&quot;;&quot;</span>)</a></code></pre></div>
 </div>
 <div id="formatting-acquaculture-registry-data" class="section level1">
 <h1><span class="header-section-number">3</span> Formatting acquaculture registry data</h1>
