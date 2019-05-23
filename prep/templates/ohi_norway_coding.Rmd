@@ -20,3 +20,9 @@ MAC:  read_excel(file.path(dir_M[2], ""Folder1/Folfer2/filename.xslx))
 **Examples**
 #Windows: escap_raw <-read_excel(file.path(dir_M[1], "Aquaculture/Escapees/Escapees.xlsx"))
 #MAC: escap_raw <-read_excel(file.path(dir_M[2], "Aquaculture/Escapees/Escapees.xlsx"))
+
+#First chunk should be this one:
+```{r message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(message = FALSE, warning= FALSE)
+source('~/github/nor-prep/prep/src/common.R')
+```
