@@ -1,12 +1,19 @@
 ---
-title: "Your Document Title"
-author: "Document Author"
+title: "Calculation of fisheries sustainability score"
+author: "Marina Espinasse"
 date: "`r Sys.Date()`"
 output:
-  prettydoc::html_pretty:
-    theme: cayman
-    highlight: github
+  html_document:
+    css: '~/github/nor-prep/prep/templates/style.css'
     toc: true
+    number_sections: true
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: '~/github/nor-prep/prep/templates/norway_banner.html'
+  pdf_document:
+    toc: true
+
 ---
 ###Loading libraries
 ```{r include = FALSE}
@@ -112,6 +119,5 @@ plot2data <- smoothed_fish_scores %>% filter(Municip_name_new == "Bodo")
             axis.ticks.length = unit(0.1, "cm"))
            
 plot2           
-
-
 ```
+
