@@ -1,0 +1,52 @@
+---
+title: "Estimatiing number of aquaculture localities in 2010_2018 "
+author: "Marina Espinasse"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    css: '~/github/nor-prep/prep/templates/style.css'
+    toc: true
+    number_sections: true
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: '~/github/nor-prep/prep/templates/norway_banner.html'
+  pdf_document:
+    toc: true
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source('~/github/nor-prep/prep/src/common.R')
+```
+
+# Load aquaculture registry data (provided by FISKEDIR in May 2019)
+```{r}
+year2010 <-read_excel(file.path(dir_M[2], "Aquaculture/Akvakultur_tillatelser_2010_2018/2010-06-28 Register-internett.xlsx"), skip = 1)
+year2011 <-read_excel(file.path(dir_M[2], "Aquaculture/Akvakultur_tillatelser_2010_2018/2011-01-03 Register-internett.xlsx"), skip = 1)
+year2012 <-read_excel(file.path(dir_M[2], "Aquaculture/Akvakultur_tillatelser_2010_2018/2012-12-31 Register-internett.xlsx"),skip = 1)
+year2013 <-read_excel(file.path(dir_M[2], "Aquaculture/Akvakultur_tillatelser_2010_2018/2013-12-30 Akvakulturregisteret.xlsx"),skip = 1)
+year2015 <-read_excel(file.path(dir_M[2], "Aquaculture/Akvakultur_tillatelser_2010_2018/2015-01-05 Akvakulturregisteret.xlsx"),skip = 1)
+year2016 <-read_excel(file.path(dir_M[2], "Aquaculture/Akvakultur_tillatelser_2010_2018/2016-01-11 Akvakulturregisteret.xlsx"),skip = 1)
+year2018 <-read_excel(file.path(dir_M[2], "Aquaculture/Akvakultur_tillatelser_2010_2018/2018-12-31 Akvakulturregisteret.xlsx"),skip = 1)
+```
+
+Data for all years 2010 - 2017 is not available, but we can just use data for 2018 also for 2017, and data for 2015 also for 2014 assuming that changes in the nuber of licensed aquaculture localities did not change much. 
+
+```{r}
+year2010<-year2010 %>% mutate(TILL_KAP = as.numeric(TILL_KAP),
+                              LOK_KAP = as.numeric(LOK_KAP))
+tillatelser2010_18 <-bind_rows(year2010,year2011,year2012, year2013, year2015, year2016, year2018)
+```
+
+# Filter out North-Norwegian municipalities
+```{r}
+tillatelser2010_18_nord <- tillatelser2010_18 %>% filter(LOK_KOMNR >=1800 & 2100)
+```
+
+# Save the csv
+```{r}
+write.csv(tillatelser2010_18_nord, "aquaculture_lisences_northnorway_2010_2018")
+```
+
+I will not do any more cleaning/aggregating with this data set here, because we may use it for different tasks. 
+Dependeting on the task we will filter and aggregate this data set further.
