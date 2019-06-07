@@ -221,9 +221,6 @@ for (i in 1:length(municipalities))
 }
 
 smoothed_fish_scores <- do.call("rbind", finallist)
-colSums(is.na(smoothed_fish_scores)) #a lot of NA were introduced with a rolling mean, because some municipailities have too few data lines. Does it make sense to use rolling mean then_
-
-
-
+colSums(is.na(smoothed_fish_scores)) #a lot of NA were introduced with a rolling mean, because some municipailities have too few data lines. Does it make sense to use rolling 
 ```
 
