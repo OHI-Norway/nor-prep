@@ -14,7 +14,7 @@ Below is the list of aquaculture data layers. For each layer, and index was aggr
 
 2. [Lice abundance](https://ohi-norway.github.io/nor-prep/prep/food_provision/Mariculture/salmon.lice.html) 
 
-4. [Total sum of escapees.](https://ohi-norway.github.io/nor-prep/prep/food_provision/Mariculture/escapees_data.html) 
+4. [Total sum of escapees](https://ohi-norway.github.io/nor-prep/prep/food_provision/Mariculture/escapees_data.html) 
 
 
 
