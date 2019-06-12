@@ -15,8 +15,8 @@ output:
 ---
 
 **Reading file from ftp.imr.no server**
-Windows: read_excel(file.path(dir_M[1], ""Folder1/Folfer2/filename.xslx))
-MAC:  read_excel(file.path(dir_M[2], ""Folder1/Folfer2/filename.xslx))
+Windows: read_excel(file.path(dir_M[1], "Folder1/Folder2/filename.xslx"))
+MAC:  read_excel(file.path(dir_M[2], "Folder1/Folder2/filename.xslx"))
 **Examples**
 #Windows: 
 escap_raw <-read_excel(file.path(dir_M[1], "Aquaculture/Escapees/Escapees.xlsx"))
