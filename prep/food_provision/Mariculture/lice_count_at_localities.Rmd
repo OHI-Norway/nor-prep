@@ -1,0 +1,108 @@
+---
+title: "Calculation of fisheries sustainability score"
+author: "Marina Espinasse"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    css: '~/github/nor-prep/prep/templates/style.css'
+    toc: true
+    number_sections: true
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: '~/github/nor-prep/prep/templates/norway_banner.html'
+  pdf_document:
+    toc: true
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE)
+source("~/github/nor-prep/prep/src/common.R")
+```
+
+```{r}
+library(varhandle)
+library(stringr)
+```
+# Load data
+```{r}
+# lice counts
+lus <- read.csv(file.path(dir_M[2], "Aquaculture/Lice/lakselus_per_fisk_utf8.csv"), header = TRUE, encoding = "UTF-8")
+municip <- read.table("../../administrative/komlist.csv", header = TRUE, sep = ";")
+```
+
+# Preliminary data cleaning
+```{r}
+colnames(lus)[c(2, 19, 20)] <- c("Ar", "ProduksjonsomradeID", "Produksjonsomrade")
+lus_prep <- lus %>%
+  filter(Kommunenummer >= 1800 & Kommunenummer < 2100) %>%
+  mutate(Kommunenummer = replace(Kommunenummer, Kommunenummer == "1915", "1903")) %>%
+  mutate(Kommunenummer = replace(Kommunenummer, Kommunenummer == "1901", "1903")) %>%
+  mutate(Kommunenummer = as.numeric(Kommunenummer)) %>%
+  left_join(municip[, c(1, 2)], by = c("Kommunenummer" = "Komnum")) %>%
+  mutate(Kommune = Name) %>%
+  select(-Name)
+```
+
+# Further data cleaning: remove inactive localities and those that did not count lice
+## How many localities are there in total per municipality per year
+We may want to know how many locations were active per municiality, year and week to be aware how many locations actually report lice count.
+```{r}
+total_locations <- lus_prep %>%
+  group_by(Kommune, Kommunenummer,Ar, Uke) %>%
+  summarize(tot_loc = n_distinct(Lokalitetsnummer)) %>%
+  mutate(key = paste(Kommune,"_" , Ar, "_", Uke))
+```
+
+# Prepare final dataset with total number of localities with over-threshold lice cound
+Select only locations were counting lice. I do not filter out inactive locaitons, because obviously, they did not count lice.
+Change column names to English.
+```{r}
+lus_final <- lus_prep %>%
+  filter(Har.telt.lakselus == "Ja") %>%
+  select(-c(
+    "Voksne.hunnlus", "Lus.i.bevegelige.stadier", "Fastsittende.lus", "Brakklagt", "Sj.temperatur",
+    "Har.telt.lakselus", "Lusegrense.uke", "ProduksjonsomradeID", "Produksjonsomrade"
+  )) %>%
+  rename(
+    Week = Uke, Year = Ar, Locality_number = Lokalitetsnummer, Locality_name = Lokalitetsnavn,
+    Municip_number = Kommunenummer, Municip_name = Kommune, County_number = Fylkesnummer, County = Fylke,
+    Above_threshold = Over.lusegrense.uke
+  )
+```
+
+# Estimate total number and proportion of locaitons above lice threshold per week
+```{r}
+above_threshold_locs <- lus_final %>%
+  mutate(Above_thr_new = case_when(
+    Above_threshold == "Nei" ~ "0",
+    Above_threshold == "Ja" ~ "1"
+  )) %>%
+  mutate(Above_thr_new = as.numeric(as.character(Above_thr_new))) %>% 
+  group_by(Week, Year, Municip_number, Municip_name) %>%
+  summarize(locs_above_thr_count = sum(Above_thr_new), locs_active = n(), locs_above_thr_prop = locs_above_thr_count / locs_active) 
+  
+#write.csv(above_threshold_locs, "data/count_locations_above_lice_threshold_weekly.csv")
+```
+
+# Estimate average number of localities with high lice count per municipality*year
+```{r}
+above_threshold_yearly_average <-above_threshold_locs %>% 
+  group_by(Municip_number,Municip_name, Year) %>% 
+  summarize(average_locs_above_thr = mean(locs_above_thr_count), average_prop_locs_above_thr = mean(locs_above_thr_prop))
+
+```
+
+# Add the column of total number of localities (including inactive that did not count lice)
+```{r}
+above_threhold_locs_tototal <- above_threhold_locs %>%
+  mutate(key = paste(Municip_name, "_", Year, "_", Week)) %>%
+  left_join(total_locations[, c(5, 6)], by = "key")
+
+#write.csv(above_threhold_locs_tototal, "data/locations_above_lice_th_compare_tototal.csv")
+```
+
+
+
+
+
+
