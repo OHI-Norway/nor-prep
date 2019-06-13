@@ -86,10 +86,11 @@ above_threshold_locs <- lus_final %>%
 
 # Estimate average number of localities with high lice count per municipality*year
 ```{r}
-above_threshold_yearly_average <-above_threshold_locs %>% 
-  group_by(Municip_number,Municip_name, Year) %>% 
+above_threshold_yearly_average <- above_threshold_locs %>%
+  group_by(Municip_number, Municip_name, Year) %>%
   summarize(average_locs_above_thr = mean(locs_above_thr_count), average_prop_locs_above_thr = mean(locs_above_thr_prop))
 
+#write.csv(above_threshold_yearly_average, "data/above_lcos_yearly_averages.csv")
 ```
 
 # Add the column of total number of localities (including inactive that did not count lice)
@@ -98,11 +99,6 @@ above_threhold_locs_tototal <- above_threhold_locs %>%
   mutate(key = paste(Municip_name, "_", Year, "_", Week)) %>%
   left_join(total_locations[, c(5, 6)], by = "key")
 
-#write.csv(above_threhold_locs_tototal, "data/locations_above_lice_th_compare_tototal.csv")
+#write.csv(above_threhold_locs_tototal, "data/locations_above_lice_thr_compare_tototal.csv")
 ```
-
-
-
-
-
 
