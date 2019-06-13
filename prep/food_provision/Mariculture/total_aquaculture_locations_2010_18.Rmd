@@ -58,7 +58,7 @@ tillatelser2010_18_nord <- tillatelser2010_18 %>% filter(LOK_KOMNR >=1800 & 2100
 
 # Save the csv
 ```{r}
-write.csv(tillatelser2010_18_nord, "data/aquaculture_lisences_northnorway_2010_2018")
+write.csv(tillatelser2010_18_nord, "data/aquaculture_lisences_northnorway_2010_2018.csv")
 ```
 
 I will not do any more cleaning/aggregating with this data set here, because we may use it for different tasks. 
