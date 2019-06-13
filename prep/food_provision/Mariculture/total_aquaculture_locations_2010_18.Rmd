@@ -25,9 +25,11 @@ year2010 <-read_excel(file.path(dir_M[2], "Aquaculture/Akvakultur_tillatelser_20
 year2011 <-read_excel(file.path(dir_M[2], "Aquaculture/Akvakultur_tillatelser_2010_2018/2011-01-03 Register-internett.xlsx"), skip = 1)
 year2012 <-read_excel(file.path(dir_M[2], "Aquaculture/Akvakultur_tillatelser_2010_2018/2012-12-31 Register-internett.xlsx"),skip = 1)
 year2013 <-read_excel(file.path(dir_M[2], "Aquaculture/Akvakultur_tillatelser_2010_2018/2013-12-30 Akvakulturregisteret.xlsx"),skip = 1)
-year2015 <-read_excel(file.path(dir_M[2], "Aquaculture/Akvakultur_tillatelser_2010_2018/2015-01-05 Akvakulturregisteret.xlsx"),skip = 1)
-year2016 <-read_excel(file.path(dir_M[2], "Aquaculture/Akvakultur_tillatelser_2010_2018/2016-01-11 Akvakulturregisteret.xlsx"),skip = 1)
+year2014 <-read_excel(file.path(dir_M[2], "Aquaculture/Akvakultur_tillatelser_2010_2018/2015-01-05 Akvakulturregisteret.xlsx"),skip = 1)
+year2015 <-read_excel(file.path(dir_M[2], "Aquaculture/Akvakultur_tillatelser_2010_2018/2016-01-11 Akvakulturregisteret.xlsx"),skip = 1)
+year2017 <-read_excel(file.path(dir_M[2], "Aquaculture/Akvakultur_tillatelser_2010_2018/2018-01-01 Akvakulturregisteret.xlsx"),skip = 1)
 year2018 <-read_excel(file.path(dir_M[2], "Aquaculture/Akvakultur_tillatelser_2010_2018/2018-12-31 Akvakulturregisteret.xlsx"),skip = 1)
+
 ```
 
 Data for all years 2010 - 2017 is not available, but we can just use data for 2018 also for 2017, and data for 2015 also for 2014 assuming that changes in the nuber of licensed aquaculture localities did not change much. 
@@ -37,14 +39,15 @@ year2010<-year2010 %>% mutate(TILL_KAP = as.numeric(TILL_KAP),
                               LOK_KAP = as.numeric(LOK_KAP))
 
 
-tillatelser2010_18 <- bind_rows(year2010, year2011, year2012, year2013, year2015, year2016, year2018) %>%
+tillatelser2010_18 <- bind_rows(year2010, year2011, year2012, year2013, year2014, year2015, year2017, year2018) %>%
   mutate(Year = c(
     rep(2010, nrow(year2010)),
     rep(2011, nrow(year2011)),
     rep(2012, nrow(year2012)),
     rep(2013, nrow(year2013)),
+    rep(2014, nrow(year2014)),
     rep(2015, nrow(year2015)),
-    rep(2016, nrow(year2016)),
+    rep(2017, nrow(year2017)),
     rep(2018, nrow(year2018))
   )) %>%
   select(27, c(2:26))
