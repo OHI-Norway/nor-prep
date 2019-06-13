@@ -90,7 +90,7 @@ above_threshold_yearly_average <- above_threshold_locs %>%
   group_by(Municip_number, Municip_name, Year) %>%
   summarize(average_locs_above_thr = mean(locs_above_thr_count), average_prop_locs_above_thr = mean(locs_above_thr_prop))
 
-#write.csv(above_threshold_yearly_average, "data/above_lcos_yearly_averages.csv")
+#write.csv(above_threshold_yearly_average, "data/locs_above_thr_yearly_averages.csv")
 ```
 
 # Add the column of total number of localities (including inactive that did not count lice)
