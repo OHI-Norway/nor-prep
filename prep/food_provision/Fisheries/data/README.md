@@ -11,6 +11,7 @@ fishery_final_score| final score of  fisheries sustainability per municipality (
 fish_catch_by_municipality|cleaned and formatted catch (landings) data per municipality
 ices_stock_stats | ICES data on SSB, Bmsy,Blim for 1994 - 2017
 sustain_score | estimated fisheries sustainability score per municipality
+fishery_final_score_smoothed_by_area.csv | final fisheries score based on smoothed (3-year rolling mean) and scaled by sea area    catches (as in **Approach2**)
 
 **Explanation of calculations**:
 
