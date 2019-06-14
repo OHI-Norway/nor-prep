@@ -15,6 +15,7 @@ output:
     toc: true
 
 ---
+
 ```{r }
 library(sf) #run this first
 ```
@@ -39,7 +40,7 @@ library(maps)
 
 # Loading data
 ## Municipalities shape files
-```{r }
+```{r}
 fylker <-readOGR(dsn = "/Users/marinaespinasse/github/nor-prep/prep/administrative/raw/shapefiles/NO_Fylker")
 allkommuner <-readOGR(dsn = "/Users/marinaespinasse/github/nor-prep/prep/administrative/raw/shapefiles/NO_AdminOmrader")
 komlist <-read.csv("../../administrative/komlist.csv", sep = ";")
@@ -47,7 +48,7 @@ komlist <-read.csv("../../administrative/komlist.csv", sep = ";")
 
 ## Fisheries score data and municipalities
 ```{r }
-fishscore <-read.csv("./data/fishery_final_score.csv")
+fishscore <-read.csv("./data/fishery_final_score.csv")#read the relevant file, this is jsut an example
 fishscore <-fishscore %>% rename("fish_score"= "fihs_score")
 ```
 
@@ -57,7 +58,7 @@ fishscore <-fishscore %>% rename("fish_score"= "fihs_score")
 norway<- map_data("worldHires", c("Norway", "Sweden", "Finland", "USSR")) 
 ```
 
-## Simple map of Norther Norway with municipalities
+## Simple map of Northern Norway with municipalities
 ```{r fig.width = 6, fig.height=6, dpi=200}
 norway.map <- ggplot(norway)  + 
   geom_polygon(aes(x=long, y=lat, group=group),colour="gray35", fill="gray85") + 
@@ -330,5 +331,8 @@ norway.layer4 <-ggplot() +
   theme_map()  
 norway.layer4
 ```
+# Plot average fisheries scores over years 
+```{r}
 
+```
 
