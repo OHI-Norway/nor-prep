@@ -49,7 +49,7 @@ akva_final <- akva_prep2 %>%
 #write.csv(akva_final, "data/total_mariculture_production.csv")
 ```
 
-# Deleting negative produciton numbpers 
+# Deleting negative produciton numbers 
 ```{r}
 plot_data <- akva_final %>%  
     filter(!total_production < "0") %>% 
@@ -57,7 +57,7 @@ plot_data <- akva_final %>%
 ```
 
 
-# Plot total log(aquaculture production)
+# Plot log(total aquaculture production)
 ```{r plot total production, message =FALSE}
 breaks1 <- seq(2004, 2014, by = 2) # decide where to write label on x-labels
 labels1 <- as.character(breaks1) 
