@@ -1,0 +1,97 @@
+---
+title: "Total aquaculture production"
+author: "*Compiled on `r date()` by `r Sys.info()['user']`*"
+output: 
+  html_document:
+    css: '~/github/nor-prep/prep/templates/style.css'
+    toc: true
+    number_sections: true
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: '~/github/nor-prep/prep/templates/norway_banner.html'
+  pdf_document:
+    toc: true
+---
+```{r message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(message = FALSE, warning= FALSE)
+source('~/github/nor-prep/prep/src/common.R')
+```
+
+```{r libraries, results="hide"}
+library(ggthemes)
+library(janitor)
+```
+
+# Loading aquaculture production data
+```{r}
+akva_raw<-read_excel(file.path(dir_M[2],"Aquaculture/Akvadataut.xlsx")) 
+```
+
+# Cleaning aquculture production data
+```{r data}
+akva_prep <- akva_raw[-c(1:3), ]
+colnames(akva_prep) <- akva_raw[3, ]
+
+# Some columns got similar names but different counts:
+names_freq <- as.data.frame(table(names(akva_prep)))
+duplicated(names(akva_prep)) # columns 27,31,26,37,38,39 are duplicated (all about phoshorus and nitrogen)
+
+# For now, I just delete duplicated columns because they don't allow to clean data fully
+akva_prep2 <- akva_prep[!duplicated(names(akva_prep), fromLast = TRUE)]
+
+akva_final <- akva_prep2 %>%
+  select(-c(16:33)) %>%
+  filter_at(vars(c(8:15)), all_vars(!is.na(.))) %>% 
+  clean_names(.)   
+ 
+
+#write.csv(akva_final, "data/total_mariculture_production.csv")
+```
+
+# Deleting negative produciton numbpers 
+```{r}
+plot_data <- akva_final %>%  
+    filter(!total_production < "0") %>% 
+    mutate(total_production = as.numeric(total_production))
+```
+
+
+# Plot total log(aquaculture production)
+```{r plot total production, message =FALSE}
+breaks1 <- seq(2004, 2014, by = 2) # decide where to write label on x-labels
+labels1 <- as.character(breaks1) 
+#labels1[!breaks1%%2==0]<- "" 
+
+counties <- unique(plot_data$county)
+
+for (i in 1:length(counties)) {
+  ct1 <- plot_data[plot_data$county == counties[i], ]
+
+  plot <- ggplot(ct1) +
+    geom_col(aes(x = as.numeric(yrs), y = total_production), fill = "dodgerblue4") +
+    facet_wrap(kname ~ .) +
+    scale_x_continuous(breaks = breaks1, labels = labels1) +
+    scale_y_continuous(trans = "log10") +
+    labs(y = "Log(Total Mariculture prod (tons))", x = "") +
+    ggtitle(counties[i]) +
+    theme_stata(scheme = "s1color") +
+    theme(
+      legend.position = "none",
+      axis.text.x = element_text(
+        size = 6, angle = 90, hjust = 1, vjust = 0.5,
+        face = "bold"
+      ),
+      axis.text.y = element_text(size = 7, angle = 0),
+      axis.title.y = element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)),
+      plot.title = element_text(hjust = 0.5, vjust = 0.5),
+      axis.ticks.x = element_line(size = 0.5),
+      axis.ticks.length = unit(0.2, "cm"),
+      strip.text = element_text(size = 12)
+    )
+
+  ggsave(paste0("figs/tot_prod", "_", counties[i], ".pdf"), plot)
+}
+
+```
+
