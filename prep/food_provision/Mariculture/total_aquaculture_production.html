@@ -9,7 +9,7 @@
 <meta name="generator" content="pandoc" />
 
 
-<meta name="author" content="Compiled on Mon Jun 17 13:55:17 2019 by marinaespinasse" />
+<meta name="author" content="Compiled on Tue Jun 18 11:39:51 2019 by marinaespinasse" />
 
 
 <title>Total aquaculture production</title>
@@ -360,14 +360,14 @@ $(document).ready(function () {
 
 
 <h1 class="title toc-ignore">Total aquaculture production</h1>
-<h4 class="author"><em><em>Compiled on Mon Jun 17 13:55:17 2019 by marinaespinasse</em></em></h4>
+<h4 class="author"><em><em>Compiled on Tue Jun 18 11:39:51 2019 by marinaespinasse</em></em></h4>
 
 </div>
 
 <div id="TOC">
 <ul>
 <li><a href="#loading-aquaculture-production-data"><span class="toc-section-number">1</span> Loading aquaculture production data</a></li>
-<li><a href="#cleaning-aquculture-production-data"><span class="toc-section-number">2</span> Cleaning aquculture production data</a></li>
+<li><a href="#cleaning-of-aquaculture-production-data"><span class="toc-section-number">2</span> Cleaning of aquaculture production data</a></li>
 <li><a href="#deleting-negative-produciton-numbers"><span class="toc-section-number">3</span> Deleting negative produciton numbers</a></li>
 <li><a href="#plot-logtotal-aquaculture-production"><span class="toc-section-number">4</span> Plot log(total aquaculture production)</a></li>
 </ul>
@@ -381,14 +381,16 @@ $(document).ready(function () {
 <h1><span class="header-section-number">1</span> Loading aquaculture production data</h1>
 <div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" data-line-number="1">akva_raw&lt;-<span class="kw">read_excel</span>(<span class="kw">file.path</span>(dir_M[<span class="dv">2</span>],<span class="st">&quot;Aquaculture/Akvadataut.xlsx&quot;</span>)) </a></code></pre></div>
 </div>
-<div id="cleaning-aquculture-production-data" class="section level1">
-<h1><span class="header-section-number">2</span> Cleaning aquculture production data</h1>
+<div id="cleaning-of-aquaculture-production-data" class="section level1">
+<h1><span class="header-section-number">2</span> Cleaning of aquaculture production data</h1>
 <div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" data-line-number="1">akva_prep &lt;-<span class="st"> </span>akva_raw[<span class="op">-</span><span class="kw">c</span>(<span class="dv">1</span><span class="op">:</span><span class="dv">3</span>), ]</a>
 <a class="sourceLine" id="cb4-2" data-line-number="2"><span class="kw">colnames</span>(akva_prep) &lt;-<span class="st"> </span>akva_raw[<span class="dv">3</span>, ]</a>
 <a class="sourceLine" id="cb4-3" data-line-number="3"></a>
-<a class="sourceLine" id="cb4-4" data-line-number="4"><span class="co"># Some columns got similar names but different counts:</span></a>
-<a class="sourceLine" id="cb4-5" data-line-number="5">names_freq &lt;-<span class="st"> </span><span class="kw">as.data.frame</span>(<span class="kw">table</span>(<span class="kw">names</span>(akva_prep)))</a>
-<a class="sourceLine" id="cb4-6" data-line-number="6"><span class="kw">duplicated</span>(<span class="kw">names</span>(akva_prep)) <span class="co"># columns 27,31,26,37,38,39 are duplicated (all about phoshorus and nitrogen)</span></a></code></pre></div>
+<a class="sourceLine" id="cb4-4" data-line-number="4"></a>
+<a class="sourceLine" id="cb4-5" data-line-number="5"></a>
+<a class="sourceLine" id="cb4-6" data-line-number="6"><span class="co"># Some columns got similar names but different counts:</span></a>
+<a class="sourceLine" id="cb4-7" data-line-number="7">names_freq &lt;-<span class="st"> </span><span class="kw">as.data.frame</span>(<span class="kw">table</span>(<span class="kw">names</span>(akva_prep)))</a>
+<a class="sourceLine" id="cb4-8" data-line-number="8"><span class="kw">duplicated</span>(<span class="kw">names</span>(akva_prep)) <span class="co"># columns 27,31,26,37,38,39 are duplicated (all about phoshorus and nitrogen)</span></a></code></pre></div>
 <pre><code>##  [1] FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE
 ## [12] FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE
 ## [23] FALSE FALSE FALSE FALSE  TRUE FALSE FALSE FALSE  TRUE FALSE FALSE
@@ -397,12 +399,12 @@ $(document).ready(function () {
 <a class="sourceLine" id="cb6-2" data-line-number="2">akva_prep2 &lt;-<span class="st"> </span>akva_prep[<span class="op">!</span><span class="kw">duplicated</span>(<span class="kw">names</span>(akva_prep), <span class="dt">fromLast =</span> <span class="ot">TRUE</span>)]</a>
 <a class="sourceLine" id="cb6-3" data-line-number="3"></a>
 <a class="sourceLine" id="cb6-4" data-line-number="4">akva_final &lt;-<span class="st"> </span>akva_prep2 <span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb6-5" data-line-number="5"><span class="st">  </span><span class="kw">select</span>(<span class="op">-</span><span class="kw">c</span>(<span class="dv">16</span><span class="op">:</span><span class="dv">33</span>)) <span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb6-6" data-line-number="6"><span class="st">  </span><span class="kw">filter_at</span>(<span class="kw">vars</span>(<span class="kw">c</span>(<span class="dv">8</span><span class="op">:</span><span class="dv">15</span>)), <span class="kw">all_vars</span>(<span class="op">!</span><span class="kw">is.na</span>(.))) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb6-5" data-line-number="5"><span class="st">  </span><span class="kw">select</span>(<span class="op">-</span><span class="kw">c</span>(<span class="dv">14</span>,<span class="dv">16</span><span class="op">:</span><span class="dv">33</span>)) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb6-6" data-line-number="6"><span class="st">  </span><span class="kw">filter_at</span>(<span class="kw">vars</span>(<span class="kw">c</span>(<span class="dv">8</span><span class="op">:</span><span class="dv">14</span>)), <span class="kw">all_vars</span>(<span class="op">!</span><span class="kw">is.na</span>(.))) <span class="op">%&gt;%</span><span class="st"> </span></a>
 <a class="sourceLine" id="cb6-7" data-line-number="7"><span class="st">  </span><span class="kw">clean_names</span>(.)   </a>
 <a class="sourceLine" id="cb6-8" data-line-number="8"> </a>
 <a class="sourceLine" id="cb6-9" data-line-number="9"></a>
-<a class="sourceLine" id="cb6-10" data-line-number="10"><span class="co">#write.csv(akva_final, &quot;data/total_mariculture_production.csv&quot;)</span></a></code></pre></div>
+<a class="sourceLine" id="cb6-10" data-line-number="10"><span class="co">#write_csv(akva_final, &quot;data/total_mariculture_production.csv&quot;)</span></a></code></pre></div>
 </div>
 <div id="deleting-negative-produciton-numbers" class="section level1">
 <h1><span class="header-section-number">3</span> Deleting negative produciton numbers</h1>
