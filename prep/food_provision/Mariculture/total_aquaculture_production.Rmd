@@ -14,7 +14,7 @@ output:
     toc: true
 ---
 ```{r message=FALSE, warning=FALSE}
-knitr::opts_chunk$set(message = FALSE, warning= FALSE)
+knitr::opts_chunk$set(message = FALSE, warning= FALSE, message = FALSE)
 source('~/github/nor-prep/prep/src/common.R')
 ```
 
