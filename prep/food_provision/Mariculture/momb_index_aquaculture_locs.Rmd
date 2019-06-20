@@ -1,0 +1,76 @@
+---
+title: "Mom-b examination of aquaculture localities"
+author: "*Compiled on `r date()` by `r Sys.info()['user']`*"
+output: 
+  html_document:
+    css: '~/github/nor-prep/prep/templates/style.css'
+    toc: true
+    number_sections: true
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: '~/github/nor-prep/prep/templates/norway_banner.html'
+  pdf_document:
+    toc: true
+---
+```{r message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(message = FALSE, warning= FALSE, message = FALSE)
+source('~/github/nor-prep/prep/src/common.R')
+```
+
+```{r libraries, results="hide"}
+library(ggthemes)
+library(janitor)
+```
+
+# Load mom-b examination data and municipalities names
+```{r}
+momb <-read_excel(file.path(dir_M[2],"Aquaculture/MOMB/MOM_BFiskdirb/v_m_akva_lokalitet_mom_b_siste.xlsx"))
+komlist <-read.csv("../../administrative/komlist.csv", sep = ";")
+```
+# Filtering out redundant info and locations
+```{r}
+map_chr(komlist, typeof)#check the type of municp number, usually varies betwee integer and character
+komlist <- komlist %>%  mutate(Komnum = as.character(Komnum))
+
+momb_prep <- momb %>%
+  select(-c("prodorgnav", "lokalitet", "loktilstan", "dato_frien", "status_lok", "mu_type", "rapportid", "lat_lokali", "lon_lokali", "url", "vannmiljo_", "fylkeskode", "dato_fri_1", "prodorgn_1")) %>%
+  filter(fylke %in% c("Nordland", "Troms", "Finnmark")) %>%
+  filter(vannmilj_1 == "SALT") %>%
+  rename(loknavn = navn) %>%
+  left_join(komlist[, c(1, 2)], by = c("kommunenr" = "Komnum")) %>%
+  mutate(kommune = Name) %>%
+  select(-"Name") %>%
+  mutate(mu_dato = excel_numeric_to_date(as.numeric(mu_dato))) %>% 
+  mutate(Year = lubridate::year(mu_dato))
+```
+
+# Cleaning mom b data: prepare mom b status columns
+```{r}
+momb_prep2 <- momb_prep %>%
+  mutate(loktilst_1 = (gsub("[()]", "", loktilst_1))) %>%
+  mutate(momb_index = str_extract(loktilst_1, "\\d")) %>%
+  mutate(momb_explanation = word(loktilst_1, start = 3, end = -1)) %>% 
+  select(-c("loktilst_1", "vannmiljo","vannmilj_1","plassering")) %>% 
+  filter(!duplicated(., MARGIN = 1)) %>% #remove duplicated rows of data 
+  select(c(10,1:9,11,12))#here hyst changing the order of columns
+```
+
+# Preparing final  table: proportion and count of localities with mom b below 2 per municipality
+Proportion of localities below mom b 2 in relation to all localities categorized by mom b that year in a municipality.
+```{r}
+momb_final <- momb_prep2 %>%
+  mutate(newindex = case_when(
+    momb_index > 2 ~ "1",
+    momb_index <= 2 ~ "0"
+  )) %>%
+  mutate(newindex = as.numeric(newindex)) %>% 
+  group_by(Year, kommunenr, kommune) %>%
+  summarize(
+    tot_locs = n(),
+    locs_momb_low_count = sum(newindex, na.rm = TRUE),
+    locs_momb_low_prop = locs_momb_low_count / tot_locs
+  )
+```
+
+
