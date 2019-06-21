@@ -53,7 +53,7 @@ momb_prep2 <- momb_prep %>%
   mutate(momb_explanation = word(loktilst_1, start = 3, end = -1)) %>% 
   select(-c("loktilst_1", "vannmiljo","vannmilj_1","plassering")) %>% 
   filter(!duplicated(., MARGIN = 1)) %>% #remove duplicated rows of data 
-  select(c(10,1:9,11,12))#here hyst changing the order of columns
+  select(c(10,1:9,11,12))# changing the order of columns
 ```
 
 # Preparing final  table: proportion and count of localities with mom b below 2 per municipality
