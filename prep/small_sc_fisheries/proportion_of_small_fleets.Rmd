@@ -1,0 +1,123 @@
+---
+title: "Proportion of small fleets to total fleet number"
+author: "*Compiled on `r date()` by `r Sys.info()['user']`*"
+output: 
+  html_document:
+    code_folding: show
+    toc: true
+    toc_depth: 3
+    toc_float: yes
+    number_sections: false
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: "C:/github/nor-prep/prep/templates/norway_banner.html"
+  pdf_document:
+    toc: true
+---
+```{r message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(message = FALSE, warning= FALSE)
+source('~/github/nor-prep/prep/src/common.R')
+```
+
+```{r libraries, results="hide"}
+library(ggthemes)
+library(janitor)
+```
+
+# Loading data on small fleets and total fleets per municipality and municipalities names
+```{r}
+smallfleet <-read_excel(file.path(dir_M[2],"Small_scale_fishery/15m_fiskerifartoy per kommune.xlsx"),skip = 3, trim_ws = T) 
+totfleet <- read_excel(file.path(dir_M[2],"Small_scale_fishery/Fiskerifartoy per kommune.xlsx"),skip = 3, trim_ws =  T) 
+komlist <- read.csv("../administrative/komlist.csv", sep = ";")
+```
+
+# Cleaning smallfleets data
+```{r}
+komlist <- komlist %>%
+  mutate(Komnum = as.character(Komnum))
+
+smallfleet <- smallfleet[-c(86:131), ]
+
+smallfleet_prep <- smallfleet %>%
+  select(-1) %>%
+  rename(Location_Year = X__2) %>%
+  gather(key = Year, c("2001":"2018"), value = "smfleet_count") %>%
+  mutate(Kommunenr = word(Location_Year, start = 1)) %>%
+  mutate(Kommune = word(Location_Year, start = -1)) %>%
+  select(-Location_Year) %>%
+  left_join(komlist[, c(1, 2)], by = c("Kommunenr" = "Komnum")) %>%
+  mutate(Kommune = Name) %>%
+  select(-Name) 
+```
+
+# Further cleaning small fleets data
+The municipalities 1839,1842,1901,1915 did not have name in the komlist dataset. These are the municipalities that were merged with other municipalities since 1990's.
+1901 - Harstad, 1915 - former Bjarkoy now Harstad, 1842 - former Skjerskad now Bodo, 1839 - Beiarn that we do not include in the project.
+```{r}
+smallfleet_prep2 <- smallfleet_prep %>%
+  filter(!Kommunenr == "1839") %>%
+  mutate(newid = case_when(
+    Kommunenr %in% c(1901,1903, 1915) ~ "1",
+    Kommunenr %in% c(1804, 1842) ~ "2",
+    TRUE ~ Kommunenr
+  )) %>%
+  group_by(Year, newid) %>%
+  summarize(smfleets_count_new = sum(smfleet_count)) 
+
+
+smallfleet_prep3 <- smallfleet_prep2 %>%
+  mutate(Kommunenr_new = newid) %>% 
+  mutate(Kommunenr_new = replace(Kommunenr_new, Kommunenr_new == "1", "1903")) %>%
+  mutate(Kommunenr_new = replace(Kommunenr_new, Kommunenr_new == "2", "1804")) %>% 
+  select(-"newid") %>% 
+  mutate(key =  paste(Kommunenr_new, Year, sep = "_")) 
+```
+
+26.06 BEGIN HERE
+# Cleaning total fleets data
+Applying same manupilations to total fleets table as for small fleets
+```{r}
+totfleet <- totfleet[-c(89:134), ]
+
+totfleet_prep <- totfleet %>%
+  rename(Location_Year = X__1) %>%
+  gather(key = Year, c("2000":"2018"), value = "allfleets_count") %>%
+  mutate(Kommunenr = word(Location_Year, start = 1)) %>%
+  mutate(Kommune = word(Location_Year, start = -1)) %>%
+  select(-Location_Year) 
+
+totfleet_prep2 <- totfleet_prep %>%
+  filter(!Kommunenr == "1839") %>%
+  mutate(newid = case_when(
+    Kommunenr %in% c(1901, 1903, 1915) ~ "1",
+    Kommunenr %in% c(1804, 1842) ~ "2",
+    TRUE ~ Kommunenr
+  )) %>%
+  mutate(allfleets_count = as.numeric(allfleets_count)) %>% 
+  group_by(Year, newid) %>%
+  summarize(allfleets_count_new = sum(allfleets_count)) 
+
+
+totfleet_prep3 <- totfleet_prep2 %>%
+  mutate(Kommunenr_new = newid) %>% 
+  mutate(Kommunenr_new = replace(Kommunenr_new, Kommunenr_new == "1", "1903")) %>%
+  mutate(Kommunenr_new = replace(Kommunenr_new, Kommunenr_new == "2", "1804")) %>% 
+  select(-"newid") %>% 
+  mutate(key =  paste(Kommunenr_new, Year, sep = "_")) 
+```
+
+# Merge data on small fleets and total number of fleets and estimate proportion
+```{r}
+smallfleet_final <-smallfleet_prep3 %>% 
+  left_join(totfleet_prep3[, c(2,4)], by = "key") %>% 
+  mutate(small_fleet_prop = smfleets_count_new/allfleets_count_new)  %>% 
+  select(-key)
+
+
+#just check if there are NAs
+map(smalfleet_final, ~ sum(is.na(.)))
+
+#write_csv(smallfleet_final,"data/prop_small_fleets.csv")
+```
+
