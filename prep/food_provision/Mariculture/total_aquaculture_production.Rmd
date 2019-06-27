@@ -114,17 +114,24 @@ theme_map <- function(...) {
 county_names <- list("Finnmark", "Nordland", "Troms")
 
 counties_df <- split(akva_final, akva_final$county)
-plots_akva <- map(counties_df, ~ ggplot(data = .) +
-  geom_col(aes(x = as.numeric(yrs), y = as.numeric(total_prod_corrected)), fill = "dodgerblue4") +
-    facet_wrap(kname ~ .) +
-    scale_x_continuous(breaks = breaks1, labels = labels1) +
-    scale_y_continuous(trans = "log10")+
-    labs(y = "Log(Total Mariculture prod (tons))", x = "") +
-   # ggtitle(counties[i]) + how to interate over titles?
-    theme_map()
-  )
+
+plots_akva <- map2(
+  counties_df, 
+  names(counties_df),
+   ~ ggplot(data = .x, mapping = aes(x = as.numeric(yrs), y = as.numeric(total_prod_corrected))) +
+  geom_col(fill = "dodgerblue4") +
+  ggtitle(.y)  +
+  facet_wrap(kname ~ .) +
+  scale_x_continuous(breaks = breaks1, labels = labels1) +
+  scale_y_continuous(trans = "log10") +
+  labs(y = "Log(Total Mariculture prod (tons))", x = "") +
+  theme_map())
+
  file_names <- paste0("figs/tot_prod", "_", county_names, ".pdf")
  map2(file_names, plots_akva, ggsave)
 
 ```
 
+ 
+ 
+ 
