@@ -88,7 +88,7 @@ for (i in 1:length(counties)) {
 
 ```
 
-## Hoursekeeping for plots
+## Creating ggplot theme
 ```{r}
 theme_map <- function(...) {
   theme_stata(scheme = "s1color") +
@@ -109,7 +109,7 @@ theme_map <- function(...) {
 ```
 
 
-## Plotting total akvakalutre production using purrr...
+## Plotting total acquaculture production using purrr
 ```{r}
 county_names <- list("Finnmark", "Nordland", "Troms")
 

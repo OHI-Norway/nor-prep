@@ -9,7 +9,7 @@
 <meta name="generator" content="pandoc" />
 
 
-<meta name="author" content="Compiled on Tue Jun 18 11:39:51 2019 by marinaespinasse" />
+<meta name="author" content="Compiled on Thu Jun 27 15:48:26 2019 by marinaespinasse" />
 
 
 <title>Total aquaculture production</title>
@@ -360,7 +360,7 @@ $(document).ready(function () {
 
 
 <h1 class="title toc-ignore">Total aquaculture production</h1>
-<h4 class="author"><em><em>Compiled on Tue Jun 18 11:39:51 2019 by marinaespinasse</em></em></h4>
+<h4 class="author"><em><em>Compiled on Thu Jun 27 15:48:26 2019 by marinaespinasse</em></em></h4>
 
 </div>
 
@@ -368,12 +368,14 @@ $(document).ready(function () {
 <ul>
 <li><a href="#loading-aquaculture-production-data"><span class="toc-section-number">1</span> Loading aquaculture production data</a></li>
 <li><a href="#cleaning-of-aquaculture-production-data"><span class="toc-section-number">2</span> Cleaning of aquaculture production data</a></li>
-<li><a href="#deleting-negative-produciton-numbers"><span class="toc-section-number">3</span> Deleting negative produciton numbers</a></li>
-<li><a href="#plot-logtotal-aquaculture-production"><span class="toc-section-number">4</span> Plot log(total aquaculture production)</a></li>
+<li><a href="#plot-logtotal-aquaculture-production"><span class="toc-section-number">3</span> Plot log(total aquaculture production)</a><ul>
+<li><a href="#creating-ggplot-theme"><span class="toc-section-number">3.1</span> Creating ggplot theme</a></li>
+<li><a href="#plotting-total-acquaculture-production-using-purrr"><span class="toc-section-number">3.2</span> Plotting total acquaculture production using purrr</a></li>
+</ul></li>
 </ul>
 </div>
 
-<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" data-line-number="1">knitr<span class="op">::</span>opts_chunk<span class="op">$</span><span class="kw">set</span>(<span class="dt">message =</span> <span class="ot">FALSE</span>, <span class="dt">warning=</span> <span class="ot">FALSE</span>)</a>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" data-line-number="1">knitr<span class="op">::</span>opts_chunk<span class="op">$</span><span class="kw">set</span>(<span class="dt">message =</span> <span class="ot">FALSE</span>, <span class="dt">warning=</span> <span class="ot">FALSE</span>, <span class="dt">message =</span> <span class="ot">FALSE</span>)</a>
 <a class="sourceLine" id="cb1-2" data-line-number="2"><span class="kw">source</span>(<span class="st">'~/github/nor-prep/prep/src/common.R'</span>)</a></code></pre></div>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" data-line-number="1"><span class="kw">library</span>(ggthemes)</a>
 <a class="sourceLine" id="cb2-2" data-line-number="2"><span class="kw">library</span>(janitor)</a></code></pre></div>
@@ -386,67 +388,107 @@ $(document).ready(function () {
 <div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" data-line-number="1">akva_prep &lt;-<span class="st"> </span>akva_raw[<span class="op">-</span><span class="kw">c</span>(<span class="dv">1</span><span class="op">:</span><span class="dv">3</span>), ]</a>
 <a class="sourceLine" id="cb4-2" data-line-number="2"><span class="kw">colnames</span>(akva_prep) &lt;-<span class="st"> </span>akva_raw[<span class="dv">3</span>, ]</a>
 <a class="sourceLine" id="cb4-3" data-line-number="3"></a>
-<a class="sourceLine" id="cb4-4" data-line-number="4"></a>
-<a class="sourceLine" id="cb4-5" data-line-number="5"></a>
-<a class="sourceLine" id="cb4-6" data-line-number="6"><span class="co"># Some columns got similar names but different counts:</span></a>
-<a class="sourceLine" id="cb4-7" data-line-number="7">names_freq &lt;-<span class="st"> </span><span class="kw">as.data.frame</span>(<span class="kw">table</span>(<span class="kw">names</span>(akva_prep)))</a>
-<a class="sourceLine" id="cb4-8" data-line-number="8"><span class="kw">duplicated</span>(<span class="kw">names</span>(akva_prep)) <span class="co"># columns 27,31,26,37,38,39 are duplicated (all about phoshorus and nitrogen)</span></a></code></pre></div>
+<a class="sourceLine" id="cb4-4" data-line-number="4"><span class="co"># Some columns got similar names (those are eutropfication data, which we don't need now)</span></a>
+<a class="sourceLine" id="cb4-5" data-line-number="5">names_freq &lt;-<span class="st"> </span><span class="kw">as.data.frame</span>(<span class="kw">table</span>(<span class="kw">names</span>(akva_prep)))</a>
+<a class="sourceLine" id="cb4-6" data-line-number="6"><span class="kw">duplicated</span>(<span class="kw">names</span>(akva_prep)) <span class="co"># columns 27,31,26,37,38,39 are duplicated (all about phoshorus and nitrogen)</span></a></code></pre></div>
 <pre><code>##  [1] FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE
 ## [12] FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE
 ## [23] FALSE FALSE FALSE FALSE  TRUE FALSE FALSE FALSE  TRUE FALSE FALSE
 ## [34] FALSE FALSE  TRUE  TRUE  TRUE  TRUE</code></pre>
-<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb6-1" data-line-number="1"><span class="co"># For now, I just delete duplicated columns because they don't allow to clean data fully</span></a>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb6-1" data-line-number="1"><span class="co">#  I delete duplicated columns because they don't allow to clean data fully</span></a>
 <a class="sourceLine" id="cb6-2" data-line-number="2">akva_prep2 &lt;-<span class="st"> </span>akva_prep[<span class="op">!</span><span class="kw">duplicated</span>(<span class="kw">names</span>(akva_prep), <span class="dt">fromLast =</span> <span class="ot">TRUE</span>)]</a>
 <a class="sourceLine" id="cb6-3" data-line-number="3"></a>
 <a class="sourceLine" id="cb6-4" data-line-number="4">akva_final &lt;-<span class="st"> </span>akva_prep2 <span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb6-5" data-line-number="5"><span class="st">  </span><span class="kw">select</span>(<span class="op">-</span><span class="kw">c</span>(<span class="dv">14</span>,<span class="dv">16</span><span class="op">:</span><span class="dv">33</span>)) <span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb6-6" data-line-number="6"><span class="st">  </span><span class="kw">filter_at</span>(<span class="kw">vars</span>(<span class="kw">c</span>(<span class="dv">8</span><span class="op">:</span><span class="dv">14</span>)), <span class="kw">all_vars</span>(<span class="op">!</span><span class="kw">is.na</span>(.))) <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb6-7" data-line-number="7"><span class="st">  </span><span class="kw">clean_names</span>(.)   </a>
-<a class="sourceLine" id="cb6-8" data-line-number="8"> </a>
-<a class="sourceLine" id="cb6-9" data-line-number="9"></a>
+<a class="sourceLine" id="cb6-5" data-line-number="5"><span class="st">  </span><span class="kw">clean_names</span>(.) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb6-6" data-line-number="6"><span class="st">  </span><span class="kw">select</span>(<span class="op">-</span><span class="kw">c</span>(<span class="dv">14</span>, <span class="dv">16</span><span class="op">:</span><span class="dv">33</span>)) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb6-7" data-line-number="7"><span class="st">  </span><span class="kw">filter_at</span>(<span class="kw">vars</span>(<span class="kw">c</span>(<span class="dv">8</span><span class="op">:</span><span class="dv">14</span>)), <span class="kw">all_vars</span>(<span class="op">!</span><span class="kw">is.na</span>(.))) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb6-8" data-line-number="8"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">total_prod_corrected =</span> <span class="kw">ifelse</span>(total_production <span class="op">&lt;</span><span class="st"> </span><span class="dv">0</span>, <span class="dv">0</span>, total_production))</a>
+<a class="sourceLine" id="cb6-9" data-line-number="9">  </a>
 <a class="sourceLine" id="cb6-10" data-line-number="10"><span class="co">#write_csv(akva_final, &quot;data/total_mariculture_production.csv&quot;)</span></a></code></pre></div>
 </div>
-<div id="deleting-negative-produciton-numbers" class="section level1">
-<h1><span class="header-section-number">3</span> Deleting negative produciton numbers</h1>
-<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" data-line-number="1">plot_data &lt;-<span class="st"> </span>akva_final <span class="op">%&gt;%</span><span class="st">  </span></a>
-<a class="sourceLine" id="cb7-2" data-line-number="2"><span class="st">    </span><span class="kw">filter</span>(<span class="op">!</span>total_production <span class="op">&lt;</span><span class="st"> &quot;0&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb7-3" data-line-number="3"><span class="st">    </span><span class="kw">mutate</span>(<span class="dt">total_production =</span> <span class="kw">as.numeric</span>(total_production))</a></code></pre></div>
-</div>
 <div id="plot-logtotal-aquaculture-production" class="section level1">
-<h1><span class="header-section-number">4</span> Plot log(total aquaculture production)</h1>
-<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb8-1" data-line-number="1">breaks1 &lt;-<span class="st"> </span><span class="kw">seq</span>(<span class="dv">2004</span>, <span class="dv">2014</span>, <span class="dt">by =</span> <span class="dv">2</span>) <span class="co"># decide where to write label on x-labels</span></a>
-<a class="sourceLine" id="cb8-2" data-line-number="2">labels1 &lt;-<span class="st"> </span><span class="kw">as.character</span>(breaks1) </a>
-<a class="sourceLine" id="cb8-3" data-line-number="3"><span class="co">#labels1[!breaks1%%2==0]&lt;- &quot;&quot; </span></a>
-<a class="sourceLine" id="cb8-4" data-line-number="4"></a>
-<a class="sourceLine" id="cb8-5" data-line-number="5">counties &lt;-<span class="st"> </span><span class="kw">unique</span>(plot_data<span class="op">$</span>county)</a>
-<a class="sourceLine" id="cb8-6" data-line-number="6"></a>
-<a class="sourceLine" id="cb8-7" data-line-number="7"><span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span><span class="kw">length</span>(counties)) {</a>
-<a class="sourceLine" id="cb8-8" data-line-number="8">  ct1 &lt;-<span class="st"> </span>plot_data[plot_data<span class="op">$</span>county <span class="op">==</span><span class="st"> </span>counties[i], ]</a>
-<a class="sourceLine" id="cb8-9" data-line-number="9"></a>
-<a class="sourceLine" id="cb8-10" data-line-number="10">  plot &lt;-<span class="st"> </span><span class="kw">ggplot</span>(ct1) <span class="op">+</span></a>
-<a class="sourceLine" id="cb8-11" data-line-number="11"><span class="st">    </span><span class="kw">geom_col</span>(<span class="kw">aes</span>(<span class="dt">x =</span> <span class="kw">as.numeric</span>(yrs), <span class="dt">y =</span> total_production), <span class="dt">fill =</span> <span class="st">&quot;dodgerblue4&quot;</span>) <span class="op">+</span></a>
-<a class="sourceLine" id="cb8-12" data-line-number="12"><span class="st">    </span><span class="kw">facet_wrap</span>(kname <span class="op">~</span><span class="st"> </span>.) <span class="op">+</span></a>
-<a class="sourceLine" id="cb8-13" data-line-number="13"><span class="st">    </span><span class="kw">scale_x_continuous</span>(<span class="dt">breaks =</span> breaks1, <span class="dt">labels =</span> labels1) <span class="op">+</span></a>
-<a class="sourceLine" id="cb8-14" data-line-number="14"><span class="st">    </span><span class="kw">scale_y_continuous</span>(<span class="dt">trans =</span> <span class="st">&quot;log10&quot;</span>) <span class="op">+</span></a>
-<a class="sourceLine" id="cb8-15" data-line-number="15"><span class="st">    </span><span class="kw">labs</span>(<span class="dt">y =</span> <span class="st">&quot;Log(Total Mariculture prod (tons))&quot;</span>, <span class="dt">x =</span> <span class="st">&quot;&quot;</span>) <span class="op">+</span></a>
-<a class="sourceLine" id="cb8-16" data-line-number="16"><span class="st">    </span><span class="kw">ggtitle</span>(counties[i]) <span class="op">+</span></a>
-<a class="sourceLine" id="cb8-17" data-line-number="17"><span class="st">    </span><span class="kw">theme_stata</span>(<span class="dt">scheme =</span> <span class="st">&quot;s1color&quot;</span>) <span class="op">+</span></a>
-<a class="sourceLine" id="cb8-18" data-line-number="18"><span class="st">    </span><span class="kw">theme</span>(</a>
-<a class="sourceLine" id="cb8-19" data-line-number="19">      <span class="dt">legend.position =</span> <span class="st">&quot;none&quot;</span>,</a>
-<a class="sourceLine" id="cb8-20" data-line-number="20">      <span class="dt">axis.text.x =</span> <span class="kw">element_text</span>(</a>
-<a class="sourceLine" id="cb8-21" data-line-number="21">        <span class="dt">size =</span> <span class="dv">6</span>, <span class="dt">angle =</span> <span class="dv">90</span>, <span class="dt">hjust =</span> <span class="dv">1</span>, <span class="dt">vjust =</span> <span class="fl">0.5</span>,</a>
-<a class="sourceLine" id="cb8-22" data-line-number="22">        <span class="dt">face =</span> <span class="st">&quot;bold&quot;</span></a>
-<a class="sourceLine" id="cb8-23" data-line-number="23">      ),</a>
-<a class="sourceLine" id="cb8-24" data-line-number="24">      <span class="dt">axis.text.y =</span> <span class="kw">element_text</span>(<span class="dt">size =</span> <span class="dv">7</span>, <span class="dt">angle =</span> <span class="dv">0</span>),</a>
-<a class="sourceLine" id="cb8-25" data-line-number="25">      <span class="dt">axis.title.y =</span> <span class="kw">element_text</span>(<span class="dt">margin =</span> <span class="kw">margin</span>(<span class="dt">t =</span> <span class="dv">0</span>, <span class="dt">r =</span> <span class="dv">10</span>, <span class="dt">b =</span> <span class="dv">0</span>, <span class="dt">l =</span> <span class="dv">0</span>)),</a>
-<a class="sourceLine" id="cb8-26" data-line-number="26">      <span class="dt">plot.title =</span> <span class="kw">element_text</span>(<span class="dt">hjust =</span> <span class="fl">0.5</span>, <span class="dt">vjust =</span> <span class="fl">0.5</span>),</a>
-<a class="sourceLine" id="cb8-27" data-line-number="27">      <span class="dt">axis.ticks.x =</span> <span class="kw">element_line</span>(<span class="dt">size =</span> <span class="fl">0.5</span>),</a>
-<a class="sourceLine" id="cb8-28" data-line-number="28">      <span class="dt">axis.ticks.length =</span> <span class="kw">unit</span>(<span class="fl">0.2</span>, <span class="st">&quot;cm&quot;</span>),</a>
-<a class="sourceLine" id="cb8-29" data-line-number="29">      <span class="dt">strip.text =</span> <span class="kw">element_text</span>(<span class="dt">size =</span> <span class="dv">12</span>)</a>
-<a class="sourceLine" id="cb8-30" data-line-number="30">    )</a>
-<a class="sourceLine" id="cb8-31" data-line-number="31"></a>
-<a class="sourceLine" id="cb8-32" data-line-number="32">  <span class="kw">ggsave</span>(<span class="kw">paste0</span>(<span class="st">&quot;figs/tot_prod&quot;</span>, <span class="st">&quot;_&quot;</span>, counties[i], <span class="st">&quot;.pdf&quot;</span>), plot)</a>
-<a class="sourceLine" id="cb8-33" data-line-number="33">}</a></code></pre></div>
+<h1><span class="header-section-number">3</span> Plot log(total aquaculture production)</h1>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" data-line-number="1">breaks1 &lt;-<span class="st"> </span><span class="kw">seq</span>(<span class="dv">2004</span>, <span class="dv">2014</span>, <span class="dt">by =</span> <span class="dv">2</span>) <span class="co"># decide where to write label on x-labels</span></a>
+<a class="sourceLine" id="cb7-2" data-line-number="2">labels1 &lt;-<span class="st"> </span><span class="kw">as.character</span>(breaks1) </a>
+<a class="sourceLine" id="cb7-3" data-line-number="3"><span class="co">#labels1[!breaks1%%2==0]&lt;- &quot;&quot; </span></a>
+<a class="sourceLine" id="cb7-4" data-line-number="4"></a>
+<a class="sourceLine" id="cb7-5" data-line-number="5">counties &lt;-<span class="st"> </span><span class="kw">unique</span>(akva_final<span class="op">$</span>county)</a>
+<a class="sourceLine" id="cb7-6" data-line-number="6"></a>
+<a class="sourceLine" id="cb7-7" data-line-number="7"><span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span><span class="kw">length</span>(counties)) {</a>
+<a class="sourceLine" id="cb7-8" data-line-number="8">  ct1 &lt;-<span class="st"> </span>akva_final[akva_final<span class="op">$</span>county <span class="op">==</span><span class="st"> </span>counties[i], ]</a>
+<a class="sourceLine" id="cb7-9" data-line-number="9"></a>
+<a class="sourceLine" id="cb7-10" data-line-number="10">  plot &lt;-<span class="st"> </span><span class="kw">ggplot</span>(ct1) <span class="op">+</span></a>
+<a class="sourceLine" id="cb7-11" data-line-number="11"><span class="st">    </span><span class="kw">geom_col</span>(<span class="kw">aes</span>(<span class="dt">x =</span> <span class="kw">as.numeric</span>(yrs), <span class="dt">y =</span> <span class="kw">as.numeric</span>(total_prod_corrected)), <span class="dt">fill =</span> <span class="st">&quot;dodgerblue4&quot;</span>) <span class="op">+</span></a>
+<a class="sourceLine" id="cb7-12" data-line-number="12"><span class="st">    </span><span class="kw">facet_wrap</span>(kname <span class="op">~</span><span class="st"> </span>.) <span class="op">+</span></a>
+<a class="sourceLine" id="cb7-13" data-line-number="13"><span class="st">    </span><span class="kw">scale_x_continuous</span>(<span class="dt">breaks =</span> breaks1, <span class="dt">labels =</span> labels1) <span class="op">+</span></a>
+<a class="sourceLine" id="cb7-14" data-line-number="14"><span class="st">    </span><span class="kw">scale_y_continuous</span>(<span class="dt">trans =</span> <span class="st">&quot;log10&quot;</span>) <span class="op">+</span></a>
+<a class="sourceLine" id="cb7-15" data-line-number="15"><span class="st">    </span><span class="kw">labs</span>(<span class="dt">y =</span> <span class="st">&quot;Log(Total Mariculture prod (tons))&quot;</span>, <span class="dt">x =</span> <span class="st">&quot;&quot;</span>) <span class="op">+</span></a>
+<a class="sourceLine" id="cb7-16" data-line-number="16"><span class="st">    </span><span class="kw">ggtitle</span>(counties[i]) <span class="op">+</span></a>
+<a class="sourceLine" id="cb7-17" data-line-number="17"><span class="st">    </span><span class="kw">theme_stata</span>(<span class="dt">scheme =</span> <span class="st">&quot;s1color&quot;</span>) <span class="op">+</span></a>
+<a class="sourceLine" id="cb7-18" data-line-number="18"><span class="st">    </span><span class="kw">theme</span>(</a>
+<a class="sourceLine" id="cb7-19" data-line-number="19">      <span class="dt">legend.position =</span> <span class="st">&quot;none&quot;</span>,</a>
+<a class="sourceLine" id="cb7-20" data-line-number="20">      <span class="dt">axis.text.x =</span> <span class="kw">element_text</span>(</a>
+<a class="sourceLine" id="cb7-21" data-line-number="21">        <span class="dt">size =</span> <span class="dv">6</span>, <span class="dt">angle =</span> <span class="dv">90</span>, <span class="dt">hjust =</span> <span class="dv">1</span>, <span class="dt">vjust =</span> <span class="fl">0.5</span>,</a>
+<a class="sourceLine" id="cb7-22" data-line-number="22">        <span class="dt">face =</span> <span class="st">&quot;bold&quot;</span></a>
+<a class="sourceLine" id="cb7-23" data-line-number="23">      ),</a>
+<a class="sourceLine" id="cb7-24" data-line-number="24">      <span class="dt">axis.text.y =</span> <span class="kw">element_text</span>(<span class="dt">size =</span> <span class="dv">7</span>, <span class="dt">angle =</span> <span class="dv">0</span>),</a>
+<a class="sourceLine" id="cb7-25" data-line-number="25">      <span class="dt">axis.title.y =</span> <span class="kw">element_text</span>(<span class="dt">margin =</span> <span class="kw">margin</span>(<span class="dt">t =</span> <span class="dv">0</span>, <span class="dt">r =</span> <span class="dv">10</span>, <span class="dt">b =</span> <span class="dv">0</span>, <span class="dt">l =</span> <span class="dv">0</span>)),</a>
+<a class="sourceLine" id="cb7-26" data-line-number="26">      <span class="dt">plot.title =</span> <span class="kw">element_text</span>(<span class="dt">hjust =</span> <span class="fl">0.5</span>, <span class="dt">vjust =</span> <span class="fl">0.5</span>),</a>
+<a class="sourceLine" id="cb7-27" data-line-number="27">      <span class="dt">axis.ticks.x =</span> <span class="kw">element_line</span>(<span class="dt">size =</span> <span class="fl">0.5</span>),</a>
+<a class="sourceLine" id="cb7-28" data-line-number="28">      <span class="dt">axis.ticks.length =</span> <span class="kw">unit</span>(<span class="fl">0.2</span>, <span class="st">&quot;cm&quot;</span>),</a>
+<a class="sourceLine" id="cb7-29" data-line-number="29">      <span class="dt">strip.text =</span> <span class="kw">element_text</span>(<span class="dt">size =</span> <span class="dv">12</span>)</a>
+<a class="sourceLine" id="cb7-30" data-line-number="30">    )</a>
+<a class="sourceLine" id="cb7-31" data-line-number="31"></a>
+<a class="sourceLine" id="cb7-32" data-line-number="32">  <span class="kw">ggsave</span>(<span class="kw">paste0</span>(<span class="st">&quot;figs/tot_prod&quot;</span>, <span class="st">&quot;_&quot;</span>, counties[i], <span class="st">&quot;.pdf&quot;</span>), plot)</a>
+<a class="sourceLine" id="cb7-33" data-line-number="33">}</a></code></pre></div>
+<div id="creating-ggplot-theme" class="section level2">
+<h2><span class="header-section-number">3.1</span> Creating ggplot theme</h2>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb8-1" data-line-number="1">theme_map &lt;-<span class="st"> </span><span class="cf">function</span>(...) {</a>
+<a class="sourceLine" id="cb8-2" data-line-number="2">  <span class="kw">theme_stata</span>(<span class="dt">scheme =</span> <span class="st">&quot;s1color&quot;</span>) <span class="op">+</span></a>
+<a class="sourceLine" id="cb8-3" data-line-number="3"><span class="st">    </span><span class="kw">theme</span>(</a>
+<a class="sourceLine" id="cb8-4" data-line-number="4">      <span class="dt">legend.position =</span> <span class="st">&quot;none&quot;</span>,</a>
+<a class="sourceLine" id="cb8-5" data-line-number="5">      <span class="dt">axis.text.x =</span> <span class="kw">element_text</span>(</a>
+<a class="sourceLine" id="cb8-6" data-line-number="6">        <span class="dt">size =</span> <span class="dv">6</span>, <span class="dt">angle =</span> <span class="dv">90</span>, <span class="dt">hjust =</span> <span class="dv">1</span>, <span class="dt">vjust =</span> <span class="fl">0.5</span>,</a>
+<a class="sourceLine" id="cb8-7" data-line-number="7">        <span class="dt">face =</span> <span class="st">&quot;bold&quot;</span></a>
+<a class="sourceLine" id="cb8-8" data-line-number="8">      ),</a>
+<a class="sourceLine" id="cb8-9" data-line-number="9">      <span class="dt">axis.text.y =</span> <span class="kw">element_text</span>(<span class="dt">size =</span> <span class="dv">7</span>, <span class="dt">angle =</span> <span class="dv">0</span>),</a>
+<a class="sourceLine" id="cb8-10" data-line-number="10">      <span class="dt">axis.title.y =</span> <span class="kw">element_text</span>(<span class="dt">margin =</span> <span class="kw">margin</span>(<span class="dt">t =</span> <span class="dv">0</span>, <span class="dt">r =</span> <span class="dv">10</span>, <span class="dt">b =</span> <span class="dv">0</span>, <span class="dt">l =</span> <span class="dv">0</span>)),</a>
+<a class="sourceLine" id="cb8-11" data-line-number="11">      <span class="dt">plot.title =</span> <span class="kw">element_text</span>(<span class="dt">hjust =</span> <span class="fl">0.5</span>, <span class="dt">vjust =</span> <span class="fl">0.5</span>),</a>
+<a class="sourceLine" id="cb8-12" data-line-number="12">      <span class="dt">axis.ticks.x =</span> <span class="kw">element_line</span>(<span class="dt">size =</span> <span class="fl">0.5</span>),</a>
+<a class="sourceLine" id="cb8-13" data-line-number="13">      <span class="dt">axis.ticks.length =</span> <span class="kw">unit</span>(<span class="fl">0.2</span>, <span class="st">&quot;cm&quot;</span>),</a>
+<a class="sourceLine" id="cb8-14" data-line-number="14">      <span class="dt">strip.text =</span> <span class="kw">element_text</span>(<span class="dt">size =</span> <span class="dv">12</span>)</a>
+<a class="sourceLine" id="cb8-15" data-line-number="15">    )</a>
+<a class="sourceLine" id="cb8-16" data-line-number="16">}</a></code></pre></div>
+</div>
+<div id="plotting-total-acquaculture-production-using-purrr" class="section level2">
+<h2><span class="header-section-number">3.2</span> Plotting total acquaculture production using purrr</h2>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb9-1" data-line-number="1">county_names &lt;-<span class="st"> </span><span class="kw">list</span>(<span class="st">&quot;Finnmark&quot;</span>, <span class="st">&quot;Nordland&quot;</span>, <span class="st">&quot;Troms&quot;</span>)</a>
+<a class="sourceLine" id="cb9-2" data-line-number="2"></a>
+<a class="sourceLine" id="cb9-3" data-line-number="3">counties_df &lt;-<span class="st"> </span><span class="kw">split</span>(akva_final, akva_final<span class="op">$</span>county)</a>
+<a class="sourceLine" id="cb9-4" data-line-number="4"></a>
+<a class="sourceLine" id="cb9-5" data-line-number="5">plots_akva &lt;-<span class="st"> </span><span class="kw">map2</span>(</a>
+<a class="sourceLine" id="cb9-6" data-line-number="6">  counties_df, </a>
+<a class="sourceLine" id="cb9-7" data-line-number="7">  <span class="kw">names</span>(counties_df),</a>
+<a class="sourceLine" id="cb9-8" data-line-number="8">   <span class="op">~</span><span class="st"> </span><span class="kw">ggplot</span>(<span class="dt">data =</span> .x, <span class="dt">mapping =</span> <span class="kw">aes</span>(<span class="dt">x =</span> <span class="kw">as.numeric</span>(yrs), <span class="dt">y =</span> <span class="kw">as.numeric</span>(total_prod_corrected))) <span class="op">+</span></a>
+<a class="sourceLine" id="cb9-9" data-line-number="9"><span class="st">  </span><span class="kw">geom_col</span>(<span class="dt">fill =</span> <span class="st">&quot;dodgerblue4&quot;</span>) <span class="op">+</span></a>
+<a class="sourceLine" id="cb9-10" data-line-number="10"><span class="st">  </span><span class="kw">ggtitle</span>(.y)  <span class="op">+</span></a>
+<a class="sourceLine" id="cb9-11" data-line-number="11"><span class="st">  </span><span class="kw">facet_wrap</span>(kname <span class="op">~</span><span class="st"> </span>.) <span class="op">+</span></a>
+<a class="sourceLine" id="cb9-12" data-line-number="12"><span class="st">  </span><span class="kw">scale_x_continuous</span>(<span class="dt">breaks =</span> breaks1, <span class="dt">labels =</span> labels1) <span class="op">+</span></a>
+<a class="sourceLine" id="cb9-13" data-line-number="13"><span class="st">  </span><span class="kw">scale_y_continuous</span>(<span class="dt">trans =</span> <span class="st">&quot;log10&quot;</span>) <span class="op">+</span></a>
+<a class="sourceLine" id="cb9-14" data-line-number="14"><span class="st">  </span><span class="kw">labs</span>(<span class="dt">y =</span> <span class="st">&quot;Log(Total Mariculture prod (tons))&quot;</span>, <span class="dt">x =</span> <span class="st">&quot;&quot;</span>) <span class="op">+</span></a>
+<a class="sourceLine" id="cb9-15" data-line-number="15"><span class="st">  </span><span class="kw">theme_map</span>())</a>
+<a class="sourceLine" id="cb9-16" data-line-number="16"></a>
+<a class="sourceLine" id="cb9-17" data-line-number="17"> file_names &lt;-<span class="st"> </span><span class="kw">paste0</span>(<span class="st">&quot;figs/tot_prod&quot;</span>, <span class="st">&quot;_&quot;</span>, county_names, <span class="st">&quot;.pdf&quot;</span>)</a>
+<a class="sourceLine" id="cb9-18" data-line-number="18"> <span class="kw">map2</span>(file_names, plots_akva, ggsave)</a></code></pre></div>
+<pre><code>## [[1]]
+## NULL
+## 
+## [[2]]
+## NULL
+## 
+## [[3]]
+## NULL</code></pre>
+</div>
 </div>
 
 
