@@ -56,7 +56,7 @@ tillatelser2010_18 <- bind_rows(year2010, year2011, year2012, year2013, year2014
 
 # Filter out North-Norwegian municipalities
 ```{r}
-tillatelser2010_18_nord <- tillatelser2010_18 %>% filter(LOK_KOMNR >=1800 & 2100)
+tillatelser2010_18_nord <- tillatelser2010_18 %>% filter(TILL_KOMNR >= 1800 & TILL_KOMNR <= 2100)
 ```
 
 # Save the csv
