@@ -331,8 +331,19 @@ norway.layer4 <-ggplot() +
   theme_map()  
 norway.layer4
 ```
-# Plot average fisheries scores over years 
-```{r}
 
+
+#  Trying 3D tricks to plot the score
+```{r}
+library(rayshader)
 ```
+
+```{r}
+plot_gg(coloredplot3, raytrace = TRUE, width = 10, height = 8, scale = 100, windowsize = c(1400, 866), 
+         multicore = TRUE, fov = 50, zoom = 0.9, phi = 45, theta = 20,  sunangle = 300)
+render_camera(fov = 50, zoom = 0.5, theta = 50, phi = 45)
+```
+
+
+
 
