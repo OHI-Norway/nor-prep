@@ -58,14 +58,16 @@ fish_nor %>% group_by(Species) %>%
 Deleting municipalities that are not in the study (Beiarn county and Guovdageaidnu-Kautokeino)
 Re-estimating landings for the municipalities that were merged (Bodo + Skjerstad_2005, Bjarkoy_2013 + Harstad_2013) - I sum the landings for these pairs of municipalities for the years before they've merged. 
 ```{r}
-fish_nor_prep <- fish_nor %>% 
-                  mutate(Municip_name = as.character(Municip_name)) %>% 
-                  filter(!Municip_name %in% c("Beiarn", "Guovdageaidnu-Kautokeino")) %>% #mind the correct spelling of Guo... county
-                  mutate(newid = case_when(Municip_name %in% c("Harstad_2013", "Bjarkoy_2013") ~ "1",
-                                           Municip_name %in% c("Bodo", "Skjerstad_2005") ~ "2",
-                                           TRUE ~ Municip_name)) %>% 
-                  group_by(newid, Year, Species) %>% 
-                  mutate(Total_catch_new = sum(Total_catch))
+fish_nor_prep <- fish_nor %>%
+  mutate(Municip_name = as.character(Municip_name)) %>%
+  filter(!Municip_name %in% c("Beiarn", "Guovdageaidnu-Kautokeino")) %>% # mind the correct spelling of Guo... county
+  mutate(newid = case_when(
+    Municip_name %in% c("Harstad_2013", "Bjarkoy_2013") ~ "1",
+    Municip_name %in% c("Bodo", "Skjerstad_2005") ~ "2",
+    TRUE ~ Municip_name
+  )) %>%
+  group_by(newid, Year, Species) %>%
+  mutate(Total_catch_new = sum(Total_catch))
 ```
 
 And now update the whole table, aggregate landings over counties that were merged, remove Skjerstad_2005 and Bjarkoy_2013.
