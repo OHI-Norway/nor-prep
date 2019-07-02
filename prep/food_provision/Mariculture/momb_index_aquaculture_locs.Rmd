@@ -25,15 +25,58 @@ library(janitor)
 
 # Load mom-b examination data and municipalities names
 ```{r}
-momb <-read_excel(file.path(dir_M[2],"Aquaculture/MOMB/MOM_BFiskdirb/v_m_akva_lokalitet_mom_b_siste.xlsx"))
+momb_early <-read_excel(file.path(dir_M[2],"Aquaculture/MOMB_2019/MOM_BFiskDira/v_m_akva_lokalitet_mom_b.xlsx"))
+momb_latest <-read_excel(file.path(dir_M[2],"Aquaculture/MOMB_2019/B_undersøkelser_Nordland_Troms_Finn_ Fdir_june2019.xls"))
 komlist <-read.csv("../../administrative/komlist.csv", sep = ";")
 ```
-# Filtering out redundant info and locations
-```{r}
-map_chr(komlist, typeof)#check the type of municp number, usually varies betwee integer and character
-komlist <- komlist %>%  mutate(Komnum = as.character(Komnum))
 
-momb_prep <- momb %>%
+
+# Further preparation of momb data
+```{r}
+#There is no indicaiton of county and municipality in the new momb data. To find out where the locations were, I will merge this dataset with our previous momb for years 2011-2018.
+
+early_locations <-momb_early %>% 
+  select(c("loknr", "fylke", "kommunenr")) %>% 
+  mutate(loknr = as.character(loknr)) %>% 
+  filter(fylke %in% c("Nordland", "Troms", "Finnmark")) %>% 
+  group_by(loknr, kommunenr) %>% 
+  summarize(n = n())
+
+momb_latest_prep2 <-  momb_latest_prep %>% 
+  mutate(Year = lubridate::year(dato_provetaking)) %>% 
+  left_join(early_locations[,c(1,2)], by = "loknr")
+
+map(momb_latest_prep2, ~sum(is.na(.x))) # Still 35 locations did not have info on the municipality where they are located
+```
+
+
+
+# Preparing final  table: proportion and count of localities with mom b below 2 per municipality
+Proportion of localities below mom b 2 in relation to all localities categorized by mom b that year in a municipality.
+```{r}
+momb_final <- momb_latest_prep2 %>%
+  mutate(newindex = case_when(
+    momb_index > 2 ~ "1",
+    momb_index <= 2 ~ "0"
+  )) %>%
+  mutate(newindex = as.numeric(newindex)) %>% 
+  group_by(Year, kommunenr) %>%
+  summarize(
+    tot_locs = n(),
+    locs_momb_low_count = sum(newindex, na.rm = TRUE),
+    locs_momb_low_prop = locs_momb_low_count / tot_locs
+  )
+```
+I see that at maximum there are 12 -17 localities examined per municipality (in the last years). Before 2011 - there are only 1 to 6 localities examined, which confirms insufficient data. I suggest to leave momb estimations aside for now. 
+
+
+-------------------------------------------------------------------------------
+# Extra info (maybe redundant)
+## If getting momb info based on earlier dataset  (momb_early) 
+```{r}
+map_chr(komlist, typeof)#check the type of municp number, usually varies between integer and character
+
+momb_prep_early <- momb_early %>%
   select(-c("prodorgnav", "lokalitet", "loktilstan", "dato_frien", "status_lok", "mu_type", "rapportid", "lat_lokali", "lon_lokali", "url", "vannmiljo_", "fylkeskode", "dato_fri_1", "prodorgn_1")) %>%
   filter(fylke %in% c("Nordland", "Troms", "Finnmark")) %>%
   filter(vannmilj_1 == "SALT") %>%
@@ -41,36 +84,27 @@ momb_prep <- momb %>%
   left_join(komlist[, c(1, 2)], by = c("kommunenr" = "Komnum")) %>%
   mutate(kommune = Name) %>%
   select(-"Name") %>%
-  mutate(mu_dato = excel_numeric_to_date(as.numeric(mu_dato))) %>% 
-  mutate(Year = lubridate::year(mu_dato))
+  mutate(mu_dato = excel_numeric_to_date(as.numeric(mu_dato))) 
 ```
 
-# Cleaning mom b data: prepare mom b status columns
+# Further cleaning mom b 2001-2010 data
 ```{r}
-momb_prep2 <- momb_prep %>%
-  mutate(loktilst_1 = (gsub("[()]", "", loktilst_1))) %>%
-  mutate(momb_index = str_extract(loktilst_1, "\\d")) %>%
-  mutate(momb_explanation = word(loktilst_1, start = 3, end = -1)) %>% 
-  select(-c("loktilst_1", "vannmiljo","vannmilj_1","plassering")) %>% 
-  filter(!duplicated(., MARGIN = 1)) %>% #remove duplicated rows of data 
-  select(c(10,1:9,11,12))# changing the order of columns
+momb_prep2_early <- momb_prep_early %>% 
+  select(-c("TilstandKlasse__1", "vannmiljo","vannmilj_1","plassering", "status_l_1")) %>% 
+  clean_names()
 ```
 
-# Preparing final  table: proportion and count of localities with mom b below 2 per municipality
-Proportion of localities below mom b 2 in relation to all localities categorized by mom b that year in a municipality.
+# Cleaning mom b data for 
 ```{r}
-momb_final <- momb_prep2 %>%
-  mutate(newindex = case_when(
-    momb_index > 2 ~ "1",
-    momb_index <= 2 ~ "0"
-  )) %>%
-  mutate(newindex = as.numeric(newindex)) %>% 
-  group_by(Year, kommunenr, kommune) %>%
-  summarize(
-    tot_locs = n(),
-    locs_momb_low_count = sum(newindex, na.rm = TRUE),
-    locs_momb_low_prop = locs_momb_low_count / tot_locs
-  )
+momb_latest_prep <- momb_latest %>% 
+  select(-c("Reference","Dato-ferdig rapport","Rapporterings Dato", "MOM-type")) %>% 
+  clean_names()
 ```
+
+
+
+
+
+
 
 
