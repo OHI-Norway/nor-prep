@@ -24,87 +24,68 @@ library(janitor)
 ```
 
 # Load mom-b examination data and municipalities names
+NB!I use only the dataset send by Fishereis directorate on July 2nd, 2019.
 ```{r}
-momb_early <-read_excel(file.path(dir_M[2],"Aquaculture/MOMB_2019/MOM_BFiskDira/v_m_akva_lokalitet_mom_b.xlsx"))
-momb_latest <-read_excel(file.path(dir_M[2],"Aquaculture/MOMB_2019/B_undersøkelser_Nordland_Troms_Finn_ Fdir_june2019.xls"))
+load_by_sheet <-function(x, page = 1) {
+  read_excel(file.path(x),sheet = page)
+}
+path <-file.path(dir_M[2],"Aquaculture/MOMB_2019/B-undersøkelser Nordland_Troms_Finnmark _Fdir_june2019nr.xls")
+page <- list(5,6,7)
+allcounties <- map2(path, page, load_by_sheet) 
+
+momb_prep <-  allcounties %>% 
+  do.call("rbind", .) %>% 
+  clean_names()
+```
+
+```{r}
+akvareg <-load_by_sheet(path, page = 4) 
+akvareg <- akvareg %>%  mutate(LOK_NR = as.numeric(LOK_NR))
 komlist <-read.csv("../../administrative/komlist.csv", sep = ";")
 ```
 
-
 # Further preparation of momb data
 ```{r}
-#There is no indicaiton of county and municipality in the new momb data. To find out where the locations were, I will merge this dataset with our previous momb for years 2011-2018.
-
-early_locations <-momb_early %>% 
-  select(c("loknr", "fylke", "kommunenr")) %>% 
-  mutate(loknr = as.character(loknr)) %>% 
-  filter(fylke %in% c("Nordland", "Troms", "Finnmark")) %>% 
-  group_by(loknr, kommunenr) %>% 
-  summarize(n = n())
-
-momb_latest_prep2 <-  momb_latest_prep %>% 
+momb_prep2 <-  momb_prep %>% 
   mutate(Year = lubridate::year(dato_provetaking)) %>% 
-  left_join(early_locations[,c(1,2)], by = "loknr")
+  select(-c("mom_type", "reference")) %>% 
+  rename("Kommune" = "akvareg_lok_kom", "Komnum" = "akvareg_lok_komnr") %>% 
+  left_join(komlist[,c(1,2)], by = "Komnum") %>% 
+  mutate(Kommune = Name) %>% 
+  select(-Name)
+  
 
-map(momb_latest_prep2, ~sum(is.na(.x))) # Still 35 locations did not have info on the municipality where they are located
+map(momb_prep2, ~sum(is.na(.x))) #Still 93 locations did not have info on the municipality where they are located.
+
+momb_prep3 <- momb_prep2 %>% 
+  filter(!is.na(Kommune)) 
 ```
+Regarding localities with no municipality info: they are either shut down or have not yet given licence to start the produciton (commented by Fisheries Directorate). Thus, I delete these locaitons. 
 
-
+## Check how many examined aquaculture localities per municipality each year
+```{r}
+examinations_year <- momb_prep3 %>% 
+  group_by(Year, Kommune) %>% 
+  summarize(examinations = n_distinct(loknr))
+```
 
 # Preparing final  table: proportion and count of localities with mom b below 2 per municipality
 Proportion of localities below mom b 2 in relation to all localities categorized by mom b that year in a municipality.
 ```{r}
-momb_final <- momb_latest_prep2 %>%
+momb_final <- momb_prep3 %>%
   mutate(newindex = case_when(
     momb_index > 2 ~ "1",
     momb_index <= 2 ~ "0"
   )) %>%
-  mutate(newindex = as.numeric(newindex)) %>% 
+  mutate(newindex = as.numeric(newindex)) %>%
   group_by(Year, kommunenr) %>%
   summarize(
     tot_locs = n(),
     locs_momb_low_count = sum(newindex, na.rm = TRUE),
     locs_momb_low_prop = locs_momb_low_count / tot_locs
   )
+
 ```
-I see that at maximum there are 12 -17 localities examined per municipality (in the last years). Before 2011 - there are only 1 to 6 localities examined, which confirms insufficient data. I suggest to leave momb estimations aside for now. 
-
-
--------------------------------------------------------------------------------
-# Extra info (maybe redundant)
-## If getting momb info based on earlier dataset  (momb_early) 
-```{r}
-map_chr(komlist, typeof)#check the type of municp number, usually varies between integer and character
-
-momb_prep_early <- momb_early %>%
-  select(-c("prodorgnav", "lokalitet", "loktilstan", "dato_frien", "status_lok", "mu_type", "rapportid", "lat_lokali", "lon_lokali", "url", "vannmiljo_", "fylkeskode", "dato_fri_1", "prodorgn_1")) %>%
-  filter(fylke %in% c("Nordland", "Troms", "Finnmark")) %>%
-  filter(vannmilj_1 == "SALT") %>%
-  rename(loknavn = navn) %>%
-  left_join(komlist[, c(1, 2)], by = c("kommunenr" = "Komnum")) %>%
-  mutate(kommune = Name) %>%
-  select(-"Name") %>%
-  mutate(mu_dato = excel_numeric_to_date(as.numeric(mu_dato))) 
-```
-
-# Further cleaning mom b 2001-2010 data
-```{r}
-momb_prep2_early <- momb_prep_early %>% 
-  select(-c("TilstandKlasse__1", "vannmiljo","vannmilj_1","plassering", "status_l_1")) %>% 
-  clean_names()
-```
-
-# Cleaning mom b data for 
-```{r}
-momb_latest_prep <- momb_latest %>% 
-  select(-c("Reference","Dato-ferdig rapport","Rapporterings Dato", "MOM-type")) %>% 
-  clean_names()
-```
-
-
-
-
-
 
 
 
