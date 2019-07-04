@@ -48,8 +48,7 @@ komlist <-read.csv("../../administrative/komlist.csv", sep = ";")
 
 ## Fisheries score data and municipalities
 ```{r }
-fishscore <-read.csv("./data/fishery_final_score.csv")#read the relevant file, this is jsut an example
-fishscore <-fishscore %>% rename("fish_score"= "fihs_score")
+fishscore <-read.csv("./data/fishery_final_score_smoothed_by_area.csv")#read the relevant file, this is jsut an example
 ```
 
 # Trial basic maps for all needs
@@ -95,9 +94,10 @@ kommunersf <- sf::st_as_sf(ohikom, coords= c("long", "lat"),crs = 4326, agr="ide
 
 # Plot year fisheries score for year 1994
 ```{r }
-fishscore94 <-filter(fishscore, Year == "1994")
-foo <- left_join(kommunersf, fishscore94, by = c("KOMM" ="Municip_number"))
-plot_fishscore <- st_as_sf(foo)
+fishscore95 <-filter(fishscore, Year == "1995")
+foo <- left_join(kommunersf, fishscore95, by = c("KOMM" ="Municip_number")) %>% 
+  filter(!is.na(Municip_name_new))
+plot_fishscore95 <- st_as_sf(foo)
 ```
 
 
@@ -105,10 +105,11 @@ plot_fishscore <- st_as_sf(foo)
 (jsut an example of quick and dirty solution)
 ```{r }
 coloredplot3 <- ggplot(data = world) +
+  ggtitle("1995") + 
   geom_sf()+
    geom_sf(fill = "antiquewhite1") +
-   geom_sf(data = plot_fishscore, aes(fill = fish_score), color = "black", size = 0.5) + 
-  scale_fill_viridis_c(option = "C", alpha = 0.85, begin=0.1, end = 0.7, name= " ")+
+   geom_sf(data = plot_fishscore95, aes(fill = fish_score), color = "black", size = 0.5) + 
+  scale_fill_viridis_c(option = "C", alpha = 0.85, begin=0, end = 0.8, name= "Fisheries \n score ")+
    coord_sf(xlim = c(10, 32), ylim = c(65,72), expand = FALSE)+
    labs(x = "", y = "")+
    scale_y_continuous(breaks = 66:72)+
@@ -117,6 +118,7 @@ coloredplot3 <- ggplot(data = world) +
         axis.ticks= element_line(size = 1),
         axis.ticks.length = unit(0.2, "cm"),
         axis.text = element_text(size = 15, colour = "black"),
+        plot.title = element_text(size = 15, hjust = 0.5, vjust = 0.5),
         legend.text = element_text(face = "bold"),
         legend.title = element_text(face = "bold"))
 coloredplot3
@@ -127,11 +129,13 @@ coloredplot3
 
 no_classes <- 5
 
+# intervals based on quantiles
 quantiles <-plot_fishscore %>% 
   filter(!is.na(fish_score)) %>% 
   pull("fish_score") %>%
   quantile(probs = seq(0, 1, length.out = no_classes + 1)) %>%
   as.vector() # to remove names of quantiles, so idx below is numeric
+
 
 #create custom labels
 labels <- imap_chr(quantiles, function(., id){
@@ -145,15 +149,36 @@ labels <- imap_chr(quantiles, function(., id){
 labels <- labels[1:length(labels) - 1]
 
 #create new variable in the plot_data dataframe
-plot_fishscore  <- plot_fishscore %>% 
+plot_fishscore95  <- plot_fishscore95 %>% 
   mutate(score_quantiles = cut(fish_score,
                                breaks = quantiles,
                                labels = labels,
                                include.lowest = T))
+
+
+
+################################################################
+##Custom labels version2, based on intervals by 14.
+
+labels2 <- imap_chr(intervals, function(., id){
+  return(paste0(round(intervals[id], 0),
+                             "",
+                             " – ",
+                             round(intervals[id + 1], 0),
+                             ""))
+})
+
+labels2 <- labels2[1:length(labels2) - 1]
+  
+plot_fishscore95_2  <- plot_fishscore95 %>% 
+  mutate(score_quantiles = cut(fish_score,
+                               breaks = intervals,
+                               labels = labels2,
+                               include.lowest = T))
 ```
 
 
-##  Defniing the general map theme (some items will be customized later)
+##  Defining the general map theme (some items will be customized later)
 ```{r}
 theme_map <- function(...) {
   theme_minimal() +
@@ -171,7 +196,7 @@ theme_map <- function(...) {
     panel.border = element_blank(),
     # titles
     legend.text = element_text(size = 15, hjust = 0, color = "#4e4d47"),
-    plot.title = element_blank(),
+    #plot.title = element_blank(),
     legend.title = element_text(size = 12)
   )
 }
@@ -179,7 +204,7 @@ theme_map <- function(...) {
 
 ## Map version 1 - only study municipalities are present
 ```{r}
-ggplot(data = plot_fishscore) +
+ggplot(data = plot_fishscore95_2) +
   # use the "alpha hack" (as the "fill" aesthetic is already taken)
   scale_alpha(name = "",
               range = c(0.6, 0),
@@ -229,7 +254,7 @@ norway.layer2<- ggplot()  +
   geom_sf(data = world, fill = "antiquewhite1",color = "gray") +
   #coord_sf(xlim = c(10, 32), ylim = c(65,72))+
   labs(x = "Longitude",y = "Latitude")+
-  geom_sf(data = plot_fishscore,
+  geom_sf(data = plot_fishscore95_2,
          mapping = aes(fill = score_quantiles),
          color = "white",
           size = 0.4) +
@@ -268,7 +293,7 @@ norway.layer3 <- ggplot()  +
   geom_sf(data = norway_admin, fill = "antiquewhite1",color = "gray") +
   #coord_sf(xlim = c(10, 32), ylim = c(65,72))+
   labs(x = "Longitude",y = "Latitude")+
-  geom_sf(data = plot_fishscore,
+  geom_sf(data = plot_fishscore95_2,
          mapping = aes(fill = score_quantiles),
          color = "white",
           size = 0.2) +
@@ -288,7 +313,7 @@ norway.layer3 <- ggplot()  +
      reverse = T )) +     
     labs(x = NULL,
          y = NULL,
-         title = "Fisheries score")
+         title = "Fisheries score") 
   # add theme
   theme_map()  
  
@@ -300,12 +325,14 @@ norway.layer3
 # Map verion 4: using world data
 ```{r}
 norway.layer4 <-ggplot() +
+    ggtitle("1995") +
     geom_sf(data = world, fill = "antiquewhite1",color = "gray", size = 1) +
     #coord_sf(xlim = c(4, 32), ylim = c(58, 72), expand = FALSE) +
   theme(axis.text = element_text(size = 17),
         panel.background = element_rect(fill = "aliceblue") ,
-        panel.grid.major = element_line(color = "#dbdbd9", linetype = "dashed")) +
-  geom_sf(data = plot_fishscore,
+        panel.grid.major = element_line(color = "#dbdbd9", linetype = "dashed"),
+        plot.title = element_text(hjust = 0.5, vjust = 0.5, size = 15, face = "bold")) +
+  geom_sf(data = plot_fishscore95_2,
          mapping = aes(fill = score_quantiles),
          color = "white",
           size = 0.8) +
@@ -333,17 +360,74 @@ norway.layer4
 ```
 
 
-#  Trying 3D tricks to plot the score
+#  Trying 3D tricks to plot the fishereis score
 ```{r}
 library(rayshader)
 ```
 
 ```{r}
-plot_gg(coloredplot3, raytrace = TRUE, width = 10, height = 8, scale = 100, windowsize = c(1400, 866), 
-         multicore = TRUE, fov = 50, zoom = 0.9, phi = 45, theta = 20,  sunangle = 300)
-render_camera(fov = 50, zoom = 0.5, theta = 50, phi = 45)
+plot_gg(coloredplot3, raytrace = TRUE, width = 10, height = 8, scale = 200, windowsize = c(1400, 866), 
+         multicore = TRUE, fov = 50, zoom = 0.7, phi = 45, theta = 30,  sunangle = 300)
+#render_camera(fov = 50, zoom = 0.9, theta = 50, phi = 45)
+render_snapshot()
 ```
 
 
+# Map where land is over the filled polygons of municipalities
+```{r}
+norway.layer5 <- ggplot() +
+  geom_sf(
+   data = world, 
+   fill = "antiquewhite1", 
+   color = "gray", 
+   size = 0.2) +
+   coord_sf(xlim = c(10, 32), ylim = c(65, 72)
+    ) +
+  theme(axis.text = element_text(size = 17),
+        panel.background = element_rect(fill = "aliceblue") ,
+        panel.grid.major = element_line(color = "#dbdbd9", linetype = "dashed"),
+        plot.title = element_text(hjust = 0.5, vjust = 0.5, size = 15, face = "bold")
+  ) +
+  geom_sf(
+    data = plot_fishscore95_2,
+    mapping = aes(fill = score_quantiles),
+    color = "white",
+    size = 0.2
+  ) +
+  labs(x = "Longitude", y = "Latitude") +
+  scale_alpha(
+    name = "",
+    range = c(0.6, 0),
+    guide = F
+  ) +
+  scale_fill_viridis_d(
+    option = "magma",
+    name = "Fisheries score",
+    alpha = 0.8, # make fill a bit brighter
+    begin = 0.1, end = 0.9,
+    direction = 1, # dark is lowest, yellow is highest
+    guide = guide_legend(
+      keyheight = unit(10, units = "mm"),
+      title.position = "top",
+      reverse = T
+    )
+  ) +
+  labs(
+    x = NULL,
+    y = NULL,
+    title = "1995"
+  )
+# add theme
+theme_map()
+  
+norway.layer6 <- norway.layer5  + geom_sf(data = world, fill = "antiquewhite1", color = "gray") +
+   coord_sf(xlim = c(10, 32), ylim = c(65, 72)) 
+```
 
+# Adding municipalities borders on land
+```{r}
+norway.layer7 <- norway.layer6 +geom_path(kommuner.pol, mapping = aes(x = long, y = lat, group = id), color = 'dimgray',  size = .4)
+norway.layer7
+  
+```
 
