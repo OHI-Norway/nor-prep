@@ -247,22 +247,21 @@ plot
 ```
 
 
-# Option: applying rolling mean to the final fisheries score bbased on non-smoothed catches
+# Option: applying rolling mean to the final fisheries score based on non-smoothed catches
 (if not applying rolling mean already on catches)
 ```{r}
 municipalities <-unique(fish_nor_score$Municip_name_new)
 
-finallist2 <-list()
-for (i in 1:length(municipalities)) 
-  {
+finallist2 <- list()
+for (i in 1:length(municipalities))
+{
   mp <- municipalities[i]
- dfmp <- final_scores_area %>% 
-      filter(Municip_name_new == mp)
-   runmean <-data.frame(runmean = rollapply(dfmp$fish_score, width = 5, FUN = mean,  fill=NA))#5 steps rolling mean has a better effect than 3-steps
-   dfall <- bind_cols(dfmp, runmean)
-  finallist2[[i]] <- dfall  
+  dfmp <- final_scores_area %>%
+    filter(Municip_name_new == mp)
+  runmean <- data.frame(runmean = rollapply(dfmp$fish_score, width = 5, FUN = mean, fill = NA)) # 5 steps rolling mean has a better effect than 3-steps
+  dfall <- bind_cols(dfmp, runmean)
+  finallist2[[i]] <- dfall
 }
-
 smoothed_final_scores <- do.call("rbind", finallist2)
 colSums(is.na(smoothed_final_scores)) 
 

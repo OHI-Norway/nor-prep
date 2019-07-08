@@ -41,6 +41,7 @@ momb_prep <-  allcounties %>%
 ```{r}
 akvareg <-load_by_sheet(path, page = 4) 
 akvareg <- akvareg %>%  mutate(LOK_NR = as.numeric(LOK_NR))
+licenses <-read.csv("data/aquaculture_lisences_northnorway_2010_2018.csv")
 komlist <-read.csv("../../administrative/komlist.csv", sep = ";")
 ```
 
@@ -62,29 +63,50 @@ momb_prep3 <- momb_prep2 %>%
 ```
 Regarding localities with no municipality info: they are either shut down or have not yet given licence to start the produciton (commented by Fisheries Directorate). Thus, I delete these locaitons. 
 
-## Check how many examined aquaculture localities per municipality each year
+## Check how many examined aquaculture localities per municipality each year and compare to total
 ```{r}
+names(licenses) <- gsub("Ø", names(licenses), replacement = "O") %>%
+  gsub("Å", ., replacement = "A") %>%
+  str_to_lower(.)
+
+totlocs_mp <- licenses %>%
+  filter(vannmiljo == "SALTVANN") %>%
+  group_by(year, till_komnr, till_kom) %>%
+  summarize(nlocs = n_distinct(lok_nr)) %>% 
+  rename(Year = year, Komnum = till_komnr,Kommune = till_kom)
+
+#Examinations per year per municipality
 examinations_year <- momb_prep3 %>% 
-  group_by(Year, Kommune) %>% 
-  summarize(examinations = n_distinct(loknr))
+  group_by(Year, Kommune, Komnum) %>% 
+  summarize(examinations = n_distinct(loknr)) %>% 
+  left_join(totlocs_mp, by = c("Year", "Komnum"))
+
+#Compare the number of examinations to the total number of registered localities
+examinations_filtered <- filter(examinations_year, !is.na(nlocs))
+examinations <-examinations_filtered$examinations
+totals <-examinations_filtered$nlocs
+
+for (i in length(examinations)) {
+ print(examinations[examinations == totals])
+  }
+#In none of the observations, all of the registered locallities were examined for momb (in 2010 - 2019)  
+
+
 ```
 
 # Preparing final  table: proportion and count of localities with mom b below 2 per municipality
 Proportion of localities below mom b 2 in relation to all localities categorized by mom b that year in a municipality.
 ```{r}
-momb_final <- momb_prep3 %>%
-  mutate(newindex = case_when(
-    momb_index > 2 ~ "1",
-    momb_index <= 2 ~ "0"
+momb_prep4 <- momb_prep3 %>%
+  mutate(mombtrans = case_when(
+    miljo_tilstand == 1 ~ "1",
+    miljo_tilstand == 2 ~ "0.66",
+    miljo_tilstand == 3 ~ "0.33",
+    miljo_tilstand == 4 ~ "0"
   )) %>%
-  mutate(newindex = as.numeric(newindex)) %>%
-  group_by(Year, kommunenr) %>%
-  summarize(
-    tot_locs = n(),
-    locs_momb_low_count = sum(newindex, na.rm = TRUE),
-    locs_momb_low_prop = locs_momb_low_count / tot_locs
-  )
-
+  mutate(mombtrans = as.numeric(mombtrans)) %>%
+  group_by(Year, Komnum, Kommune) %>%
+  summarize(momb_mean = mean(mombtrans))
 ```
 
 
