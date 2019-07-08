@@ -97,7 +97,7 @@ fish_nor_score <-fish_nor_estim %>% #estimating sustainability score for each st
                                     ))
 ```
 
-# Examin the distribution of total catch by species regardless of municipality
+# Examing the distribution of total catch by species regardless of municipality
 ```{r}
 catch_dist <-ggplot(data =fish_nor_score)+
    geom_density_ridges(aes(y = Species, x = Year, fill = Species))+
@@ -220,7 +220,7 @@ newtable <- biomass.area.favstats %>%
     mutate(max = cell_spec(
     as.numeric(max), "html", 
     color = ifelse(max > 90, "red", "blue"))) %>% 
-    kable(escape = F, align = "c") %>%
+    kable(escape = F, align = "c", digits = 4) %>%
     kable_styling(c("striped", "condensed"), full_width = F) %>% 
     column_spec(1:10,bold = T,background = "azure", color = "darkgreen")
 newtable
