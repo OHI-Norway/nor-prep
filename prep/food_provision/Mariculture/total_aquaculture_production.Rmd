@@ -48,7 +48,33 @@ akva_final <- akva_prep2 %>%
   
 #write_csv(akva_final, "data/total_mariculture_production.csv")
 ```
-# Estiamte difference in the tota production year to year - yearly produciton growth rate
+
+# Check the overall distribution of aquaculture production
+```{r}
+
+mosaic::fav_stats(akva_final$total_prod_corrected)
+# min Q1  median      Q3      max    mean      sd   n missing
+#    0  0 3041960 6843759 24784477 4427182 4763020 810       0
+
+densplot_data <- akva_final %>%
+  mutate(total_prod_corrected = as.numeric(total_prod_corrected))
+
+dens_plot <- ggplot(data = densplot_data) +
+  geom_density(
+    mapping = aes(x = total_prod_corrected),
+    fill = "salmon", color = "darkred", alpha = 0.7
+  ) +
+  scale_x_continuous(labels = scales::comma) +
+  labs(x = "Total aquaculture production, kg") +
+  theme(axis.text = element_text(size = 12)) +
+  theme_gdocs()
+
+dens_plot
+```
+
+
+
+# Estiamte difference in the total production year to year - yearly produciton growth rate
 ```{r}
 prod_growth <- akva_final %>%
   group_by(knr2017, kname) %>%
