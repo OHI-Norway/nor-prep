@@ -21,7 +21,8 @@ Aquacultue index measures sustainability and efficiency of aquaculture producito
   
 Data layer    | Source       | Links
 ------------- | -------------|--------
-Total produdction and biomass of salmon and trout | Fisheries Directorate of Norway | www.fiskeridir.no
+Total production and biomass of salmon and trout | Fisheries Directorate of Norway | www.fiskeridir.no
+|Constants for protein efficiency ratio| The Norwegian Institute of Food, Fisheries and Aquaculture Research (Nofima)  |https://nofima.no/wp-content/uploads/2014/11/Nofima_report_resource_utilisation_Oct_2014.pdf
 Use of arable land and forage fish in aquaculture|Statistics Norway and FAO |www.ssb.no, http://www.fao.org/sustainability/en/
 Prevalence of salmon lice |Barentswatch portal|https://www.barentswatch.no
 Local eutrophication|Fisheries Directorate of Norway|www.fiskeridir.no
