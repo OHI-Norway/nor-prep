@@ -9,8 +9,6 @@ Raw data are loaded from the ftp.imr.no sever, and the data on aquaculture indic
 Below is the list of aquaculture data layers. For each layer, and index was aggregated per municipality per year. Open the link to read the codes):
 
 1. [Total aquaculture production](https://ohi-norway.github.io/nor-prep/prep/food_provision/Mariculture/total_aquaculture_production.html)
-
-2. [Sustainable aquaculture production](https://ohi-norway.github.io/nor-prep/prep/food_provision/Mariculture/sustainable_mariculture_production.html
 ) 
 3. [Protein efficiency ratio](https://ohi-norway.github.io/nor-prep/prep/food_provision/Mariculture/Protein.retention.rate.html)
 
