@@ -23,7 +23,6 @@ Data layer    | Source       | Links
 ------------- | -------------|--------
 Total produdction and biomass of salmon and trout | Fisheries Directorate of Norway | www.fiskeridir.no
 Use of arable land and forage fish in aquaculture|Statistics Norway and FAO |www.ssb.no, http://www.fao.org/sustainability/en/
-Feed ingredients     | --- | Literature
 Prevalence of salmon lice |Barentswatch portal|https://www.barentswatch.no
 Local eutrophication|Fisheries Directorate of Norway|www.fiskeridir.no
 Local pollution| Fisheries Directorate of Norway|www.fiskeridir.no
