@@ -73,8 +73,7 @@ dens_plot
 ```
 
 
-
-# Estiamte difference in the total production year to year - yearly produciton growth rate
+# Estimate difference in the total production year to year - yearly produciton growth rate
 ```{r}
 prod_growth <- akva_final %>%
   group_by(knr2017, kname) %>%
