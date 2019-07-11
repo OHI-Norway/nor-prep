@@ -15,7 +15,7 @@ Spawning stock biomass | International Council of The Exploration of the Sea (IC
 
 
 ### 2.  Aquaculture
-Aquacultue index indicates efficiency of aquaculture produciton as well as global and enbironmental sutainability of aquaculture in Northern Norway.
+Aquacultue index measures sustainability and efficiency of aquaculture produciton in Northern Norway.
  
   **Data souces**
   
