@@ -15,15 +15,15 @@ Spawning stock biomass | International Council of The Exploration of the Sea (IC
 
 
 ### 2.  Aquaculture
-Aquacultue index indicates efficiency of aquaculture produciton as well as global and enbironmental sutainability of aquaculture in Northern Norway.
+Aquacultue index measures sustainability and efficiency of aquaculture produciton in Northern Norway.
  
   **Data souces**
   
 Data layer    | Source       | Links
 ------------- | -------------|--------
-Total produdction and biomass of salmon and trout | Fisheries Directorate of Norway | www.fiskeridir.no
-Usa of arable land and forage fish in aquaculture|Statistics Norway and FAO |www.ssb.no, http://www.fao.org/sustainability/en/
-Feed ingredients     | --- | Literature
+Total production and biomass of salmon and trout | Fisheries Directorate of Norway | www.fiskeridir.no
+|Constants for protein efficiency ratio| The Norwegian Institute of Food, Fisheries and Aquaculture Research (Nofima)  |https://nofima.no/wp-content/uploads/2014/11/Nofima_report_resource_utilisation_Oct_2014.pdf
+Use of arable land and forage fish in aquaculture|Statistics Norway and FAO |www.ssb.no, http://www.fao.org/sustainability/en/
 Prevalence of salmon lice |Barentswatch portal|https://www.barentswatch.no
 Local eutrophication|Fisheries Directorate of Norway|www.fiskeridir.no
 Local pollution| Fisheries Directorate of Norway|www.fiskeridir.no
