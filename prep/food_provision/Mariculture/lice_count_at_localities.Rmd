@@ -1,5 +1,5 @@
 ---
-title: "Calculation of fisheries sustainability score"
+title: "Proporiton of localities with above-thresholdp lice count"
 author: "Marina Espinasse"
 date: "`r Sys.Date()`"
 output:
@@ -53,8 +53,8 @@ total_locations <- lus_prep %>%
   mutate(key = paste(Kommune,"_" , Ar, "_", Uke))
 ```
 
-# Prepare final dataset with total number of localities with over-threshold lice cound
-Select only locations were counting lice. I do not filter out inactive locaitons, because obviously, they did not count lice.
+# Prepare final dataset with total number of localities with over-threshold lice count
+Select only locations that were counting lice. I do not filter out inactive locaitons, because obviously, they did not count lice.
 Change column names to English.
 ```{r}
 lus_final <- lus_prep %>%
@@ -95,7 +95,7 @@ above_threshold_yearly_average <- above_threshold_locs %>%
 
 # Add the column of total number of localities (including inactive that did not count lice)
 ```{r}
-above_threhold_locs_tototal <- above_threhold_locs %>%
+above_threhold_locs_tototal <- above_threshold_locs %>%
   mutate(key = paste(Municip_name, "_", Year, "_", Week)) %>%
   left_join(total_locations[, c(5, 6)], by = "key")
 
