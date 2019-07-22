@@ -7,6 +7,8 @@
 | aquaculture_licenses_northnorway_2010_2018.csv  | Total aquaculture licenses ("tillatelser" in norwegian) in years 2010 through 2018, no data for 2016.  | 
 | count_locations_above_lice_threshold_weekly.csv   |  Table with the number of locations with high lice and the proportion of the  of these locations to the total number of locations that counted lice. Data is per week and for each municipality  |
 |locs_above_thr_yearly_averages.csv|Average number of locations that had high lice count during a year and municipality |  
+|total_mariculture_production|Total  mariculture (salmon and trout) production per municiaplity and year|
+|protein_efficiency_ratio|Protein efficiency based on total annual production and protein conten in feed and produced fish filets (based on _T.Ytrestøyl et al 2014, Nofima_ |
 
 
 
