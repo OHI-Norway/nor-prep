@@ -89,13 +89,9 @@ totals <-examinations_filtered$nlocs
 for (i in length(examinations)) {
  print(examinations[examinations == totals])
   }
-#In none of the observations, all of the registered locallities were examined for momb (in 2010 - 2019)  
-
-
 ```
 
-# Preparing final  table: proportion and count of localities with mom b below 2 per municipality
-Proportion of localities below mom b 2 in relation to all localities categorized by mom b that year in a municipality.
+# Preparing final  table: average momb per municipality and year
 ```{r}
 momb_prep4 <- momb_prep3 %>%
   mutate(mombtrans = case_when(
@@ -107,6 +103,8 @@ momb_prep4 <- momb_prep3 %>%
   mutate(mombtrans = as.numeric(mombtrans)) %>%
   group_by(Year, Komnum, Kommune) %>%
   summarize(momb_mean = mean(mombtrans))
+
+write.csv2(momb_prep4, "data/mean_momb_mp_yr.csv")
 ```
 
 
