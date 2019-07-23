@@ -104,7 +104,7 @@ momb_prep4 <- momb_prep3 %>%
   group_by(Year, Komnum, Kommune) %>%
   summarize(momb_mean = mean(mombtrans))
 
-write.csv2(momb_prep4, "data/mean_momb_mp_yr.csv")
+#write.csv(momb_prep4, "data/mean_momb_mp_yr.csv")
 ```
 
 
