@@ -9,7 +9,7 @@
 <meta name="generator" content="pandoc" />
 
 
-<meta name="author" content="Compiled on Thu Jul 11 11:39:55 2019 by marinaespinasse" />
+<meta name="author" content="Compiled on Thu Jul 25 15:18:23 2019 by marinaespinasse" />
 
 
 <title>Protein efficiency ratio</title>
@@ -360,21 +360,22 @@ $(document).ready(function () {
 
 
 <h1 class="title toc-ignore">Protein efficiency ratio</h1>
-<h4 class="author"><em><em>Compiled on Thu Jul 11 11:39:55 2019 by marinaespinasse</em></em></h4>
+<h4 class="author"><em><em>Compiled on Thu Jul 25 15:18:23 2019 by marinaespinasse</em></em></h4>
 
 </div>
 
 <div id="TOC">
 <ul>
-<li><a href="#loading-aquaculture-production-data"><span class="toc-section-number">1</span> Loading aquaculture production data</a></li>
+<li><a href="#loading-aquaculture-production-data-and-calculating-protein-efficiency-based-on-average-constant-for-trout-and-salmon"><span class="toc-section-number">1</span> Loading aquaculture production data and calculating protein efficiency based on average constant for trout and salmon</a></li>
 <li><a href="#cleaning-aquaculture-production-table"><span class="toc-section-number">2</span> Cleaning aquaculture production table</a></li>
+<li><a href="#final-table-preparation"><span class="toc-section-number">3</span> Final table preparation</a></li>
 </ul>
 </div>
 
 <div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">library</span>(ggthemes)</a>
 <a class="sourceLine" id="cb1-2" data-line-number="2"><span class="kw">library</span>(janitor)</a></code></pre></div>
-<div id="loading-aquaculture-production-data" class="section level1">
-<h1><span class="header-section-number">1</span> Loading aquaculture production data</h1>
+<div id="loading-aquaculture-production-data-and-calculating-protein-efficiency-based-on-average-constant-for-trout-and-salmon" class="section level1">
+<h1><span class="header-section-number">1</span> Loading aquaculture production data and calculating protein efficiency based on average constant for trout and salmon</h1>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" data-line-number="1">akva_raw&lt;-<span class="kw">read_excel</span>(<span class="kw">file.path</span>(dir_M[<span class="dv">2</span>],<span class="st">&quot;Aquaculture/Akvadataut.xlsx&quot;</span>)) </a></code></pre></div>
 </div>
 <div id="cleaning-aquaculture-production-table" class="section level1">
@@ -385,13 +386,38 @@ $(document).ready(function () {
 <a class="sourceLine" id="cb3-4" data-line-number="4"><span class="co"># Deleting duplicated columns </span></a>
 <a class="sourceLine" id="cb3-5" data-line-number="5">protein_prep2 &lt;-<span class="st"> </span>protein_prep[<span class="op">!</span><span class="kw">duplicated</span>(<span class="kw">names</span>(protein_prep), <span class="dt">fromLast =</span> <span class="ot">TRUE</span>)]</a>
 <a class="sourceLine" id="cb3-6" data-line-number="6"></a>
-<a class="sourceLine" id="cb3-7" data-line-number="7">protein_final &lt;-<span class="st"> </span>protein_prep2 <span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb3-8" data-line-number="8"><span class="st">  </span><span class="kw">select</span>(<span class="kw">c</span>(<span class="dv">1</span><span class="op">:</span><span class="dv">7</span>,<span class="dv">26</span>)) <span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb3-9" data-line-number="9"><span class="st">  </span><span class="kw">filter_at</span>(<span class="kw">vars</span>(<span class="dv">8</span>), <span class="kw">all_vars</span>(<span class="op">!</span><span class="kw">is.na</span>(.))) <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb3-10" data-line-number="10"><span class="st">  </span><span class="kw">clean_names</span>(.) <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb3-11" data-line-number="11"><span class="st">  </span><span class="kw">rename</span>(<span class="dt">protein_efficiency_ratio =</span> protein_retention_ratio)</a>
-<a class="sourceLine" id="cb3-12" data-line-number="12"></a>
-<a class="sourceLine" id="cb3-13" data-line-number="13"><span class="co">#write_csv(protein_final, &quot;data/protein_efficiency_ratio.csv&quot;)</span></a></code></pre></div>
+<a class="sourceLine" id="cb3-7" data-line-number="7">estimate_per &lt;-<span class="st"> </span><span class="cf">function</span>(arg1, arg2) {</a>
+<a class="sourceLine" id="cb3-8" data-line-number="8">  <span class="cf">if</span> (<span class="kw">any</span>(<span class="kw">is.na</span>(<span class="kw">c</span>(arg1, arg2)))) {</a>
+<a class="sourceLine" id="cb3-9" data-line-number="9">    <span class="kw">return</span>(<span class="ot">NA</span>)</a>
+<a class="sourceLine" id="cb3-10" data-line-number="10">  } <span class="cf">else</span> <span class="cf">if</span> (arg1 <span class="op">==</span><span class="st"> </span><span class="dv">0</span> <span class="op">|</span><span class="st"> </span>arg2 <span class="op">==</span><span class="st"> </span><span class="dv">0</span>) {</a>
+<a class="sourceLine" id="cb3-11" data-line-number="11">    <span class="kw">return</span>(<span class="ot">NA</span>)</a>
+<a class="sourceLine" id="cb3-12" data-line-number="12">  } <span class="cf">else</span> {</a>
+<a class="sourceLine" id="cb3-13" data-line-number="13">    nom &lt;-<span class="st"> </span>arg1 <span class="op">*</span><span class="st"> </span><span class="fl">0.60</span> <span class="op">*</span><span class="st"> </span><span class="fl">0.191</span></a>
+<a class="sourceLine" id="cb3-14" data-line-number="14">    denom &lt;-<span class="st"> </span>arg2 <span class="op">*</span><span class="st"> </span><span class="fl">0.938</span> <span class="op">*</span><span class="st"> </span><span class="fl">0.354</span></a>
+<a class="sourceLine" id="cb3-15" data-line-number="15">    per &lt;-<span class="st"> </span>nom <span class="op">/</span><span class="st"> </span>denom</a>
+<a class="sourceLine" id="cb3-16" data-line-number="16">  }</a>
+<a class="sourceLine" id="cb3-17" data-line-number="17">  per</a>
+<a class="sourceLine" id="cb3-18" data-line-number="18">}</a>
+<a class="sourceLine" id="cb3-19" data-line-number="19"></a>
+<a class="sourceLine" id="cb3-20" data-line-number="20"></a>
+<a class="sourceLine" id="cb3-21" data-line-number="21">protein_prep3 &lt;-<span class="st"> </span>protein_prep2 <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb3-22" data-line-number="22"><span class="st">  </span><span class="kw">clean_names</span>(.) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb3-23" data-line-number="23"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">total_prod_corrected =</span> <span class="kw">ifelse</span>(</a>
+<a class="sourceLine" id="cb3-24" data-line-number="24">    total_production <span class="op">&lt;</span><span class="st"> </span><span class="dv">0</span>, <span class="dv">0</span>, total_production</a>
+<a class="sourceLine" id="cb3-25" data-line-number="25">  )) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb3-26" data-line-number="26"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">feed_used_kg =</span> <span class="kw">as.numeric</span>(feed_used_kg)) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb3-27" data-line-number="27"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">total_prod_corrected =</span> <span class="kw">as.numeric</span>(total_prod_corrected)) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb3-28" data-line-number="28"><span class="st">  </span><span class="kw">rowwise</span>() <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb3-29" data-line-number="29"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">protein_new =</span> <span class="kw">estimate_per</span>(</a>
+<a class="sourceLine" id="cb3-30" data-line-number="30">    total_prod_corrected, feed_used_kg</a>
+<a class="sourceLine" id="cb3-31" data-line-number="31">  ))</a></code></pre></div>
+</div>
+<div id="final-table-preparation" class="section level1">
+<h1><span class="header-section-number">3</span> Final table preparation</h1>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" data-line-number="1">protein_final &lt;-<span class="st"> </span>protein_prep3 <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb4-2" data-line-number="2"><span class="st">  </span><span class="kw">select</span>(<span class="kw">c</span>(<span class="dv">1</span><span class="op">:</span><span class="dv">7</span>,<span class="dv">35</span>)) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb4-3" data-line-number="3"><span class="st">  </span><span class="kw">filter_at</span>(<span class="kw">vars</span>(<span class="dv">8</span>), <span class="kw">all_vars</span>(<span class="op">!</span><span class="kw">is.na</span>(.)))</a>
+<a class="sourceLine" id="cb4-4" data-line-number="4"><span class="co">#write_csv(protein_final, &quot;data/protein_efficiency_ratio.csv&quot;)</span></a></code></pre></div>
 </div>
 
 
