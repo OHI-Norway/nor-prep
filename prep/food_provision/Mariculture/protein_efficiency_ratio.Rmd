@@ -67,8 +67,8 @@ protein_prep3 <- protein_prep2 %>%
 # Final table preparation
 ```{r}
 protein_final <- protein_prep3 %>%
-  select(c(1:7,35)) %>%
-  filter_at(vars(8), all_vars(!is.na(.)))
+  select(c(1:7,35))
+ # filter_at(vars(8), all_vars(!is.na(.)))
 #write_csv(protein_final, "data/protein_efficiency_ratio.csv")
 ```
 
