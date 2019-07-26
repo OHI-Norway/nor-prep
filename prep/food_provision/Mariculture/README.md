@@ -14,7 +14,8 @@ Below is the list of aquaculture data layers. For each layer, and index was aggr
 
 4. [Lice abundance](https://ohi-norway.github.io/nor-prep/prep/food_provision/Mariculture/lice_count_at_localities.html) 
 
-5. [Total sum of escapees](https://ohi-norway.github.io/nor-prep/prep/food_provision/Mariculture/escapees_data.html) 
+5. [Mom b environmental examinations of aquaculture localities](https://ohi-norway.github.io/nor-prep/prep/food_provision/Mariculture/momb_index_aquaculture_locs.html)
+6. [Total sum of escapees](https://ohi-norway.github.io/nor-prep/prep/food_provision/Mariculture/escapees_data.html) 
 
 
 
