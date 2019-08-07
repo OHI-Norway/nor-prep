@@ -9,7 +9,7 @@
 <meta name="generator" content="pandoc" />
 
 
-<meta name="author" content="Compiled on Mon Jul 22 15:28:13 2019 by marinaespinasse" />
+<meta name="author" content="Compiled on Wed Aug 7 15:14:54 2019 by marinaespinasse" />
 
 
 <title>Mom-b examination of aquaculture localities</title>
@@ -360,7 +360,7 @@ $(document).ready(function () {
 
 
 <h1 class="title toc-ignore">Mom-b examination of aquaculture localities</h1>
-<h4 class="author"><em><em>Compiled on Mon Jul 22 15:28:13 2019 by marinaespinasse</em></em></h4>
+<h4 class="author"><em><em>Compiled on Wed Aug 7 15:14:54 2019 by marinaespinasse</em></em></h4>
 
 </div>
 
@@ -371,6 +371,11 @@ $(document).ready(function () {
 <li><a href="#check-how-many-examined-aquaculture-localities-per-municipality-each-year-and-compare-to-total"><span class="toc-section-number">2.1</span> Check how many examined aquaculture localities per municipality each year and compare to total</a></li>
 </ul></li>
 <li><a href="#preparing-final-table-average-momb-per-municipality-and-year"><span class="toc-section-number">3</span> Preparing final table: average momb per municipality and year</a></li>
+<li><a href="#gapfilling-missing-year-of-momb-data"><span class="toc-section-number">4</span> Gapfilling missing year of momb data</a><ul>
+<li><a href="#creating-a-fucntion-to-gapfill"><span class="toc-section-number">4.1</span> Creating a fucntion to gapfill</a></li>
+<li><a href="#gapfilling-missing-years-per-municipality"><span class="toc-section-number">4.2</span> Gapfilling missing years per municipality</a></li>
+<li><a href="#compiling-final-dataframe"><span class="toc-section-number">4.3</span> Compiling final dataframe</a></li>
+</ul></li>
 </ul>
 </div>
 
@@ -394,7 +399,9 @@ $(document).ready(function () {
 <div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" data-line-number="1">akvareg &lt;-<span class="kw">load_by_sheet</span>(path, <span class="dt">page =</span> <span class="dv">4</span>) </a>
 <a class="sourceLine" id="cb4-2" data-line-number="2">akvareg &lt;-<span class="st"> </span>akvareg <span class="op">%&gt;%</span><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">LOK_NR =</span> <span class="kw">as.numeric</span>(LOK_NR))</a>
 <a class="sourceLine" id="cb4-3" data-line-number="3">licenses &lt;-<span class="kw">read.csv</span>(<span class="st">&quot;data/aquaculture_lisences_northnorway_2010_2018.csv&quot;</span>)</a>
-<a class="sourceLine" id="cb4-4" data-line-number="4">komlist &lt;-<span class="kw">read.csv</span>(<span class="st">&quot;../../administrative/komlist.csv&quot;</span>, <span class="dt">sep =</span> <span class="st">&quot;;&quot;</span>)</a></code></pre></div>
+<a class="sourceLine" id="cb4-4" data-line-number="4">komlist &lt;-<span class="kw">read.csv</span>(<span class="st">&quot;../../administrative/komlist.csv&quot;</span>, <span class="dt">sep =</span> <span class="st">&quot;;&quot;</span>)</a>
+<a class="sourceLine" id="cb4-5" data-line-number="5">komlist &lt;-<span class="kw">filter</span>(komlist, <span class="op">!</span>Name<span class="op">==</span><span class="st">&quot;NonCoast&quot;</span>) <span class="op">%&gt;%</span><span class="st">  </span></a>
+<a class="sourceLine" id="cb4-6" data-line-number="6"><span class="st">    </span><span class="kw">mutate</span>(<span class="dt">Name =</span> <span class="kw">fct_drop</span>(<span class="kw">as.character</span>(Name)))</a></code></pre></div>
 </div>
 <div id="further-preparation-of-momb-data" class="section level1">
 <h1><span class="header-section-number">2</span> Further preparation of momb data</h1>
@@ -450,13 +457,14 @@ $(document).ready(function () {
 <a class="sourceLine" id="cb8-15" data-line-number="15"><span class="st">  </span><span class="kw">left_join</span>(totlocs_mp, <span class="dt">by =</span> <span class="kw">c</span>(<span class="st">&quot;Year&quot;</span>, <span class="st">&quot;Komnum&quot;</span>))</a>
 <a class="sourceLine" id="cb8-16" data-line-number="16"></a>
 <a class="sourceLine" id="cb8-17" data-line-number="17"><span class="co">#Compare the number of examinations to the total number of registered localities</span></a>
-<a class="sourceLine" id="cb8-18" data-line-number="18">examinations_filtered &lt;-<span class="st"> </span><span class="kw">filter</span>(examinations_year, <span class="op">!</span><span class="kw">is.na</span>(nlocs))</a>
-<a class="sourceLine" id="cb8-19" data-line-number="19">examinations &lt;-examinations_filtered<span class="op">$</span>examinations</a>
-<a class="sourceLine" id="cb8-20" data-line-number="20">totals &lt;-examinations_filtered<span class="op">$</span>nlocs</a>
-<a class="sourceLine" id="cb8-21" data-line-number="21"></a>
-<a class="sourceLine" id="cb8-22" data-line-number="22"><span class="cf">for</span> (i <span class="cf">in</span> <span class="kw">length</span>(examinations)) {</a>
-<a class="sourceLine" id="cb8-23" data-line-number="23"> <span class="kw">print</span>(examinations[examinations <span class="op">==</span><span class="st"> </span>totals])</a>
-<a class="sourceLine" id="cb8-24" data-line-number="24">  }</a></code></pre></div>
+<a class="sourceLine" id="cb8-18" data-line-number="18"><span class="co">#There are no cases when all registered localities were examined.</span></a>
+<a class="sourceLine" id="cb8-19" data-line-number="19">examinations_filtered &lt;-<span class="st"> </span><span class="kw">filter</span>(examinations_year, <span class="op">!</span><span class="kw">is.na</span>(nlocs))</a>
+<a class="sourceLine" id="cb8-20" data-line-number="20">examinations &lt;-examinations_filtered<span class="op">$</span>examinations</a>
+<a class="sourceLine" id="cb8-21" data-line-number="21">totals &lt;-examinations_filtered<span class="op">$</span>nlocs</a>
+<a class="sourceLine" id="cb8-22" data-line-number="22"></a>
+<a class="sourceLine" id="cb8-23" data-line-number="23"><span class="cf">for</span> (i <span class="cf">in</span> <span class="kw">length</span>(examinations)) {</a>
+<a class="sourceLine" id="cb8-24" data-line-number="24"> <span class="kw">print</span>(examinations[examinations <span class="op">==</span><span class="st"> </span>totals])</a>
+<a class="sourceLine" id="cb8-25" data-line-number="25">  }</a></code></pre></div>
 <pre><code>## integer(0)</code></pre>
 </div>
 </div>
@@ -471,9 +479,67 @@ $(document).ready(function () {
 <a class="sourceLine" id="cb10-7" data-line-number="7">  )) <span class="op">%&gt;%</span></a>
 <a class="sourceLine" id="cb10-8" data-line-number="8"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">mombtrans =</span> <span class="kw">as.numeric</span>(mombtrans)) <span class="op">%&gt;%</span></a>
 <a class="sourceLine" id="cb10-9" data-line-number="9"><span class="st">  </span><span class="kw">group_by</span>(Year, Komnum, Kommune) <span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb10-10" data-line-number="10"><span class="st">  </span><span class="kw">summarize</span>(<span class="dt">momb_mean =</span> <span class="kw">mean</span>(mombtrans))</a>
-<a class="sourceLine" id="cb10-11" data-line-number="11"></a>
-<a class="sourceLine" id="cb10-12" data-line-number="12"><span class="kw">write.csv2</span>(momb_prep4, <span class="st">&quot;data/mean_momb_mp_yr.csv&quot;</span>)</a></code></pre></div>
+<a class="sourceLine" id="cb10-10" data-line-number="10"><span class="st">  </span><span class="kw">summarize</span>(<span class="dt">momb_mean =</span> <span class="kw">mean</span>(mombtrans))</a></code></pre></div>
+</div>
+<div id="gapfilling-missing-year-of-momb-data" class="section level1">
+<h1><span class="header-section-number">4</span> Gapfilling missing year of momb data</h1>
+<div id="creating-a-fucntion-to-gapfill" class="section level2">
+<h2><span class="header-section-number">4.1</span> Creating a fucntion to gapfill</h2>
+<p>The idea is to take an average of the 5 recent years witn data. Often, there will only be 5 years with data - then we just take average of those.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb11-1" data-line-number="1">gapfill &lt;-<span class="st"> </span><span class="cf">function</span>(df, id_col, miss_col) {</a>
+<a class="sourceLine" id="cb11-2" data-line-number="2">    <span class="cf">if</span> (<span class="kw">all</span>(<span class="kw">is.na</span>(df[, miss_col]))) {</a>
+<a class="sourceLine" id="cb11-3" data-line-number="3">    <span class="kw">warning</span>(<span class="st">&quot;there are no numeric values in the data&quot;</span>, <span class="dt">call. =</span> <span class="ot">FALSE</span>)</a>
+<a class="sourceLine" id="cb11-4" data-line-number="4">    finaldf &lt;-df </a>
+<a class="sourceLine" id="cb11-5" data-line-number="5">    } <span class="cf">else</span> <span class="cf">if</span> (<span class="kw">sum</span>(<span class="kw">is.na</span>(df[,miss_col])) <span class="op">&lt;=</span><span class="st"> </span><span class="dv">5</span>) {</a>
+<a class="sourceLine" id="cb11-6" data-line-number="6">      cleandat &lt;-<span class="st"> </span><span class="kw">drop_na</span>(df, miss_col)</a>
+<a class="sourceLine" id="cb11-7" data-line-number="7">      cleandat_sort &lt;-<span class="st"> </span><span class="kw">arrange</span>(cleandat, cleandat[,id_col])</a>
+<a class="sourceLine" id="cb11-8" data-line-number="8">      replacement &lt;-<span class="st"> </span><span class="kw">mean</span>(<span class="kw">tail</span>(cleandat, <span class="dv">3</span>)[,miss_col], <span class="dt">na.rm =</span> T)</a>
+<a class="sourceLine" id="cb11-9" data-line-number="9">      replaced &lt;-<span class="st"> </span><span class="kw">replace_na</span>(df[,miss_col], replacement)</a>
+<a class="sourceLine" id="cb11-10" data-line-number="10">      finaldf &lt;-<span class="st"> </span><span class="kw">cbind</span>(df, replaced)</a>
+<a class="sourceLine" id="cb11-11" data-line-number="11">   </a>
+<a class="sourceLine" id="cb11-12" data-line-number="12">    } <span class="cf">else</span> {</a>
+<a class="sourceLine" id="cb11-13" data-line-number="13">      cleandat &lt;-<span class="st"> </span><span class="kw">drop_na</span>(df, miss_col)</a>
+<a class="sourceLine" id="cb11-14" data-line-number="14">      cleandat_sort &lt;-<span class="st"> </span><span class="kw">arrange</span>(cleandat, cleandat[,id_col])</a>
+<a class="sourceLine" id="cb11-15" data-line-number="15">      replacement &lt;-<span class="st"> </span><span class="kw">mean</span>(<span class="kw">tail</span>(cleandat, <span class="dv">5</span>)[,miss_col], <span class="dt">na.rm =</span> T)</a>
+<a class="sourceLine" id="cb11-16" data-line-number="16">      replaced &lt;-<span class="st"> </span><span class="kw">replace_na</span>(df[,miss_col], replacement)</a>
+<a class="sourceLine" id="cb11-17" data-line-number="17">      finaldf &lt;-<span class="st"> </span><span class="kw">cbind</span>(df, replaced)</a>
+<a class="sourceLine" id="cb11-18" data-line-number="18"> </a>
+<a class="sourceLine" id="cb11-19" data-line-number="19">    }</a>
+<a class="sourceLine" id="cb11-20" data-line-number="20"></a>
+<a class="sourceLine" id="cb11-21" data-line-number="21">  finaldf</a>
+<a class="sourceLine" id="cb11-22" data-line-number="22">}</a></code></pre></div>
+</div>
+<div id="gapfilling-missing-years-per-municipality" class="section level2">
+<h2><span class="header-section-number">4.2</span> Gapfilling missing years per municipality</h2>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb12-1" data-line-number="1">municips &lt;-<span class="st"> </span><span class="kw">split</span>(momb_prep4, momb_prep4<span class="op">$</span>Kommune)</a>
+<a class="sourceLine" id="cb12-2" data-line-number="2"></a>
+<a class="sourceLine" id="cb12-3" data-line-number="3"><span class="co">#check if there are municipalities with empty rows.</span></a>
+<a class="sourceLine" id="cb12-4" data-line-number="4"><span class="co">#There are 14 of such municipalities</span></a>
+<a class="sourceLine" id="cb12-5" data-line-number="5">empties&lt;-<span class="st"> </span><span class="kw">map</span>(municips, <span class="op">~</span><span class="st"> </span><span class="kw">isTRUE</span>(<span class="kw">length</span>(.x<span class="op">$</span>momb_mean)<span class="op">==</span><span class="dv">0</span>))</a>
+<a class="sourceLine" id="cb12-6" data-line-number="6">empty_municips &lt;-<span class="kw">unlist</span>(empties) </a>
+<a class="sourceLine" id="cb12-7" data-line-number="7"></a>
+<a class="sourceLine" id="cb12-8" data-line-number="8"><span class="co">#the list of municipalities that did not have any momb data</span></a>
+<a class="sourceLine" id="cb12-9" data-line-number="9">empties_list &lt;-<span class="st"> </span><span class="kw">unlist</span>(empties) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb12-10" data-line-number="10"><span class="st"> </span><span class="kw">stack</span>(.) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb12-11" data-line-number="11"><span class="st"> </span><span class="kw">filter</span>(values<span class="op">==</span><span class="ot">TRUE</span>)</a>
+<a class="sourceLine" id="cb12-12" data-line-number="12"></a>
+<a class="sourceLine" id="cb12-13" data-line-number="13">municips_cleaned &lt;-municips[<span class="op">!</span>empty_municips]</a></code></pre></div>
+</div>
+<div id="compiling-final-dataframe" class="section level2">
+<h2><span class="header-section-number">4.3</span> Compiling final dataframe</h2>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb13-1" data-line-number="1">allyears &lt;-<span class="kw">data.frame</span>(<span class="dt">Year =</span> <span class="kw">seq</span>(<span class="dv">2004</span>, <span class="dv">2019</span>, <span class="dt">by =</span> <span class="dv">1</span>))</a>
+<a class="sourceLine" id="cb13-2" data-line-number="2"></a>
+<a class="sourceLine" id="cb13-3" data-line-number="3">municip_prep &lt;-<span class="st"> </span><span class="kw">map</span>(municips_cleaned, <span class="op">~</span><span class="st"> </span><span class="kw">as.data.frame</span>(.x)) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb13-4" data-line-number="4"><span class="st">  </span><span class="kw">map</span>(., <span class="op">~</span><span class="st"> </span><span class="kw">full_join</span>(.x, allyears, <span class="dt">by =</span> <span class="st">&quot;Year&quot;</span>)) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb13-5" data-line-number="5"><span class="st">  </span><span class="kw">map</span>(., <span class="op">~</span><span class="st"> </span><span class="kw">mutate</span>(.x, <span class="dt">Komnum_new =</span> <span class="kw">rep</span>(Komnum[<span class="dv">1</span>], <span class="kw">length</span>(Komnum)))) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb13-6" data-line-number="6"><span class="st">  </span><span class="kw">map</span>(., <span class="op">~</span><span class="st"> </span><span class="kw">mutate</span>(.x, <span class="dt">Kommune_new =</span> <span class="kw">rep</span>(Kommune[<span class="dv">1</span>], <span class="kw">length</span>(Kommune)))) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb13-7" data-line-number="7"><span class="st">  </span><span class="kw">map</span>(., <span class="op">~</span><span class="st"> </span><span class="kw">select</span>(.x,<span class="op">-</span><span class="kw">c</span>(Komnum, Kommune))) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb13-8" data-line-number="8"><span class="st">  </span><span class="kw">map</span>(., <span class="op">~</span><span class="st"> </span><span class="kw">gapfill</span>(.x, <span class="dv">1</span>,<span class="dv">2</span>)) </a>
+<a class="sourceLine" id="cb13-9" data-line-number="9"></a>
+<a class="sourceLine" id="cb13-10" data-line-number="10">momb_gapfilled &lt;-<span class="st"> </span><span class="kw">do.call</span>(<span class="st">&quot;rbind&quot;</span>, municip_prep) </a>
+<a class="sourceLine" id="cb13-11" data-line-number="11"></a>
+<a class="sourceLine" id="cb13-12" data-line-number="12"><span class="co">#write_csv(momb_gapfilled, &quot;data/mean_momb_mpyr.csv&quot;)</span></a></code></pre></div>
+</div>
 </div>
 
 
