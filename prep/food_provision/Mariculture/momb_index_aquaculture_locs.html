@@ -9,7 +9,7 @@
 <meta name="generator" content="pandoc" />
 
 
-<meta name="author" content="Compiled on Wed Aug 7 15:14:54 2019 by marinaespinasse" />
+<meta name="author" content="Compiled on Thu Aug 8 15:08:11 2019 by marinaespinasse" />
 
 
 <title>Mom-b examination of aquaculture localities</title>
@@ -360,7 +360,7 @@ $(document).ready(function () {
 
 
 <h1 class="title toc-ignore">Mom-b examination of aquaculture localities</h1>
-<h4 class="author"><em><em>Compiled on Wed Aug 7 15:14:54 2019 by marinaespinasse</em></em></h4>
+<h4 class="author"><em><em>Compiled on Thu Aug 8 15:08:11 2019 by marinaespinasse</em></em></h4>
 
 </div>
 
@@ -371,7 +371,7 @@ $(document).ready(function () {
 <li><a href="#check-how-many-examined-aquaculture-localities-per-municipality-each-year-and-compare-to-total"><span class="toc-section-number">2.1</span> Check how many examined aquaculture localities per municipality each year and compare to total</a></li>
 </ul></li>
 <li><a href="#preparing-final-table-average-momb-per-municipality-and-year"><span class="toc-section-number">3</span> Preparing final table: average momb per municipality and year</a></li>
-<li><a href="#gapfilling-missing-year-of-momb-data"><span class="toc-section-number">4</span> Gapfilling missing year of momb data</a><ul>
+<li><a href="#gapfilling-missing-years-of-momb-data"><span class="toc-section-number">4</span> Gapfilling missing years of momb data</a><ul>
 <li><a href="#creating-a-fucntion-to-gapfill"><span class="toc-section-number">4.1</span> Creating a fucntion to gapfill</a></li>
 <li><a href="#gapfilling-missing-years-per-municipality"><span class="toc-section-number">4.2</span> Gapfilling missing years per municipality</a></li>
 <li><a href="#compiling-final-dataframe"><span class="toc-section-number">4.3</span> Compiling final dataframe</a></li>
@@ -481,8 +481,8 @@ $(document).ready(function () {
 <a class="sourceLine" id="cb10-9" data-line-number="9"><span class="st">  </span><span class="kw">group_by</span>(Year, Komnum, Kommune) <span class="op">%&gt;%</span></a>
 <a class="sourceLine" id="cb10-10" data-line-number="10"><span class="st">  </span><span class="kw">summarize</span>(<span class="dt">momb_mean =</span> <span class="kw">mean</span>(mombtrans))</a></code></pre></div>
 </div>
-<div id="gapfilling-missing-year-of-momb-data" class="section level1">
-<h1><span class="header-section-number">4</span> Gapfilling missing year of momb data</h1>
+<div id="gapfilling-missing-years-of-momb-data" class="section level1">
+<h1><span class="header-section-number">4</span> Gapfilling missing years of momb data</h1>
 <div id="creating-a-fucntion-to-gapfill" class="section level2">
 <h2><span class="header-section-number">4.1</span> Creating a fucntion to gapfill</h2>
 <p>The idea is to take an average of the 5 recent years witn data. Often, there will only be 5 years with data - then we just take average of those.</p>
@@ -538,7 +538,7 @@ $(document).ready(function () {
 <a class="sourceLine" id="cb13-9" data-line-number="9"></a>
 <a class="sourceLine" id="cb13-10" data-line-number="10">momb_gapfilled &lt;-<span class="st"> </span><span class="kw">do.call</span>(<span class="st">&quot;rbind&quot;</span>, municip_prep) </a>
 <a class="sourceLine" id="cb13-11" data-line-number="11"></a>
-<a class="sourceLine" id="cb13-12" data-line-number="12"><span class="co">#write_csv(momb_gapfilled, &quot;data/mean_momb_mpyr.csv&quot;)</span></a></code></pre></div>
+<a class="sourceLine" id="cb13-12" data-line-number="12"><span class="co">#write_csv(momb_gapfilled, &quot;data/mean_momb_mp_yr_gapfilled.csv&quot;)</span></a></code></pre></div>
 </div>
 </div>
 

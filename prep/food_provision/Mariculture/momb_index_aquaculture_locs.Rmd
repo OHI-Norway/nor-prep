@@ -109,34 +109,34 @@ momb_prep4 <- momb_prep3 %>%
 ```
 
 
-# Gapfilling missing year of momb data
+# Gapfilling missing years of momb data
 ## Creating a fucntion to gapfill
 The idea is to take an average of the 5 recent years witn data. 
 Often, there will only be 5 years with data - then we just take average of those.
 ```{r include = FALSE}
 #Just another version of the funciton
-gapfill <- function(df) {
-  if (all(is.na(df[, 2]))) {
-    warning("there are no numeric values in the data", call. = FALSE)
-    finaldf <-df
-  } else if (sum(is.na(df[, 2])) <= 5) {
-    cleandat <- drop_na(df)
-    cleandat_sort <- arrange(cleandat, cleandat[, 1])
-    replacement <- mean(tail(cleandat, 3)[, 2], na.rm = T)
-    replaced <- replace_na(df[, 2], replacement)
-    finaldf <- cbind(df[, 1], replaced)
-    colnames(finaldf) <- names(df)
-  } else {
-    cleandat <- drop_na(df)
-    cleandat_sort <- arrange(cleandat, cleandat[, 1])
-    replacement <- mean(tail(cleandat, 5)[, 2], na.rm = T)
-    replaced <- replace_na(df[, 2], replacement)
-    finaldf <- cbind(df[, 1], replaced)
-    colnames(finaldf) <- names(df)
-  }
-
-  finaldf
-}
+# gapfill <- function(df) {
+#   if (all(is.na(df[, 2]))) {
+#     warning("there are no numeric values in the data", call. = FALSE)
+#     finaldf <-df
+#   } else if (sum(is.na(df[, 2])) <= 5) {
+#     cleandat <- drop_na(df)
+#     cleandat_sort <- arrange(cleandat, cleandat[, 1])
+#     replacement <- mean(tail(cleandat, 3)[, 2], na.rm = T)
+#     replaced <- replace_na(df[, 2], replacement)
+#     finaldf <- cbind(df[, 1], replaced)
+#     colnames(finaldf) <- names(df)
+#   } else {
+#     cleandat <- drop_na(df)
+#     cleandat_sort <- arrange(cleandat, cleandat[, 1])
+#     replacement <- mean(tail(cleandat, 5)[, 2], na.rm = T)
+#     replaced <- replace_na(df[, 2], replacement)
+#     finaldf <- cbind(df[, 1], replaced)
+#     colnames(finaldf) <- names(df)
+#   }
+# 
+#   finaldf
+# }
 ```
 
 
@@ -198,7 +198,7 @@ municip_prep <- map(municips_cleaned, ~ as.data.frame(.x)) %>%
 
 momb_gapfilled <- do.call("rbind", municip_prep) 
 
-#write_csv(momb_gapfilled, "data/mean_momb_mpyr.csv")
+#write_csv(momb_gapfilled, "data/mean_momb_mp_yr_gapfilled.csv")
 ```
 
 
