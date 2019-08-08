@@ -1,5 +1,5 @@
 ---
-title: "Proporiton of localities with above-thresholdp lice count"
+title: "Proporiton of localities with above-threshold lice count"
 author: "Marina Espinasse"
 date: "`r Sys.Date()`"
 output:
@@ -45,7 +45,7 @@ lus_prep <- lus %>%
 
 # Further data cleaning: remove inactive localities and those that did not count lice
 ## How many localities are there in total per municipality per year
-We may want to know how many locations were active per municiality, year and week to be aware how many locations actually report lice count.
+We may want to know how many locations were active per municiality, year and week, to be aware how many locations actually report lice count.
 ```{r}
 total_locations <- lus_prep %>%
   group_by(Kommune, Kommunenummer,Ar, Uke) %>%
@@ -72,33 +72,46 @@ lus_final <- lus_prep %>%
 
 # Estimate total number and proportion of locaitons above lice threshold per week
 ```{r}
-above_threshold_locs <- lus_final %>%
+abovebelow_threshold_locs <- lus_final %>%
   mutate(Above_thr_new = case_when(
     Above_threshold == "Nei" ~ "0",
     Above_threshold == "Ja" ~ "1"
   )) %>%
-  mutate(Above_thr_new = as.numeric(as.character(Above_thr_new))) %>% 
+  mutate(Above_thr_new = as.numeric(as.character(Above_thr_new))) %>%
+  mutate(Below_thr_new = (1 - Above_thr_new)) %>%
   group_by(Week, Year, Municip_number, Municip_name) %>%
-  summarize(locs_above_thr_count = sum(Above_thr_new), locs_active = n(), locs_above_thr_prop = locs_above_thr_count / locs_active) 
+  summarize(locs_above_thr_count = sum(Above_thr_new), 
+            locs_below_thr_count = sum(Below_thr_new),
+            locs_active = n(), 
+            locs_above_thr_prop = locs_above_thr_count / locs_active,
+            locs_below_thr_prop = locs_below_thr_count / locs_active)
   
-#write.csv(above_threshold_locs, "data/count_locations_above_lice_threshold_weekly.csv")
 ```
 
 # Estimate average number of localities with high lice count per municipality*year
 ```{r}
-above_threshold_yearly_average <- above_threshold_locs %>%
+abovebelow_threshold_yearly_average <- abovebelow_threshold_locs %>%
   group_by(Municip_number, Municip_name, Year) %>%
-  summarize(average_locs_above_thr = mean(locs_above_thr_count), average_prop_locs_above_thr = mean(locs_above_thr_prop))
+  summarize(average_locs_above_thr = mean(locs_above_thr_count), 
+            average_prop_locs_above_thr = mean(locs_above_thr_prop),
+            average_locs_below_thr = mean(locs_below_thr_count),
+            average_prop_locs_below_thr = mean(locs_below_thr_prop))
 
-#write.csv(above_threshold_yearly_average, "data/locs_above_thr_yearly_averages.csv")
+#write.csv(abovebelow_threshold_yearly_average, "data/locations_above_below_lice_thr_yearly_averages.csv")
 ```
 
 # Add the column of total number of localities (including inactive that did not count lice)
 ```{r}
-above_threhold_locs_tototal <- above_threshold_locs %>%
+abovebelow_threhold_locs_tototal <- abovebelow_threshold_locs %>%
   mutate(key = paste(Municip_name, "_", Year, "_", Week)) %>%
   left_join(total_locations[, c(5, 6)], by = "key")
 
-#write.csv(above_threhold_locs_tototal, "data/locations_above_lice_thr_compare_tototal.csv")
+write.csv(abovebelow_threhold_locs_tototal, "data/locations_above_below_lice_thr_compare_tototal.csv")
+```
+
+# Checking for missing data in the lice counts 
+!!!CONTINUE HERE!!
+```{r}
+write.csv(abovebelow_threhold_locs_tototal, "data/locations_above_below_lice_thr_compare_tototal.csv")
 ```
 
