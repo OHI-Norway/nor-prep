@@ -8,6 +8,7 @@
 |lice_locs_below_thr_gapfilled.csv|Average number of locations that had low lice over all weeks in a year per municipality. Missing data gapfilled |  
 |total_mariculture_production|Total  mariculture (salmon and trout) production per municiaplity and year|
 |protein_efficiency_ratio|Protein efficiency based on total annual production and protein conten in feed and produced fish filets (based on _T.Ytrestøyl et al 2014, Nofima_ |
+|mean_momb_mp_yr_gapfilled.csv |Average momb score per year and municipality, with a column of gapfilled missing data|
 
 
 
