@@ -28,6 +28,7 @@ library(stringr)
 # lice counts
 lus <- read.csv(file.path(dir_M[2], "Aquaculture/Lice/lakselus_per_fisk_utf8.csv"), header = TRUE, encoding = "UTF-8")
 municip <- read.table("../../administrative/komlist.csv", header = TRUE, sep = ";")
+municip <-filter(municip, !Name == "NonCoast")
 ```
 
 # Preliminary data cleaning
@@ -106,12 +107,53 @@ abovebelow_threhold_locs_tototal <- abovebelow_threshold_locs %>%
   mutate(key = paste(Municip_name, "_", Year, "_", Week)) %>%
   left_join(total_locations[, c(5, 6)], by = "key")
 
-write.csv(abovebelow_threhold_locs_tototal, "data/locations_above_below_lice_thr_compare_tototal.csv")
+#write.csv(abovebelow_threhold_locs_tototal, "data/locations_above_below_lice_thr_compare_tototal.csv")
 ```
 
-# Checking for missing data in the lice counts 
-!!!CONTINUE HERE!!
+# Gapfilling missing data for lice
+## Function to gapfill missing data
 ```{r}
-write.csv(abovebelow_threhold_locs_tototal, "data/locations_above_below_lice_thr_compare_tototal.csv")
+gapfill <- function(df, miss_col) {
+    if (all(is.na(df[, miss_col]))) {
+    warning("there are no numeric values in the data", call. = FALSE)
+    finaldf <-df 
+    } else {
+      cleandat <- drop_na(df, miss_col)
+      replacement <- mean(cleandat[,miss_col], na.rm = T)
+      replaced <- replace_na(df[,miss_col], replacement)
+      finaldf <- cbind(df, replaced)
+    }
+  finaldf
+}
+
 ```
 
+## Replacing missing years of data
+```{r warning=FALSE} 
+lice_municips <- abovebelow_threshold_yearly_average %>% 
+  mutate(Komname = droplevels(Municip_name)) %>% 
+  split(., .$Komname)
+```
+
+
+## Compiling final dataframe
+```{r}
+allyears <-data.frame(Year = seq(2004, 2019, by = 1))
+
+lice_replaced_prep <- map(lice_municips, ~ as.data.frame(.x)) %>%
+  map(., ~ full_join(.x, allyears, by = "Year")) %>% 
+  map(., ~ mutate(.x, Komnum_new = rep(Municip_number[1], length(Municip_number)))) %>% 
+  map(., ~ mutate(.x, Kommune_new = rep(Komname[1], length(Komname)))) %>% 
+  map(., ~ select(.x,-c(Municip_number, 
+                        Municip_name, 
+                        Komname, 
+                        average_locs_above_thr,
+                        average_prop_locs_above_thr,
+                        average_locs_below_thr
+                        ))) %>% 
+  map(., ~ gapfill(.x,2)) 
+
+lice_gapfilled <- do.call("rbind", lice_replaced_prep) 
+
+#write_csv(lice_gapfilled, "data/lice_locs_below_thr_gapfilled.csv")
+```
