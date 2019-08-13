@@ -30,7 +30,7 @@ library(zoo)
 
 # Load the data tables
 ```{r}
-final_scores <-read.csv("data/fishery_final_area.csv")
+final_scores <-read.csv("data/fishery_final_score_smoothed_by_area.csv")
 ```
 
 # Hourse keeping: prepcodes for plotting

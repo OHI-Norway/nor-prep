@@ -130,7 +130,7 @@ coloredplot3
 no_classes <- 5
 
 # intervals based on quantiles
-quantiles <-plot_fishscore %>% 
+quantiles <-plot_fishscore95 %>% 
   filter(!is.na(fish_score)) %>% 
   pull("fish_score") %>%
   quantile(probs = seq(0, 1, length.out = no_classes + 1)) %>%
@@ -159,6 +159,8 @@ plot_fishscore95  <- plot_fishscore95 %>%
 
 ################################################################
 ##Custom labels version2, based on intervals by 14.
+ foo <- cut(plot_fishscore95$fish_score, 5) #to find the breakpoints
+ intervals <-c(0,14, 28, 42,56,70)
 
 labels2 <- imap_chr(intervals, function(., id){
   return(paste0(round(intervals[id], 0),
@@ -195,9 +197,9 @@ theme_map <- function(...) {
     #plot.margin = unit(c(.2, .2, .2, .2), "cm"),
     panel.border = element_blank(),
     # titles
-    legend.text = element_text(size = 15, hjust = 0, color = "#4e4d47"),
+    legend.text = element_text(size = 17, hjust = 0, color = "#4e4d47"),
     #plot.title = element_blank(),
-    legend.title = element_text(size = 12)
+    legend.title = element_text(size = 15)
   )
 }
 ```
@@ -384,9 +386,11 @@ norway.layer5 <- ggplot() +
    coord_sf(xlim = c(10, 32), ylim = c(65, 72)
     ) +
   theme(axis.text = element_text(size = 17),
+        legend.text = element_text(size = 15),
+        legend.title = element_text(size = 15),
         panel.background = element_rect(fill = "aliceblue") ,
         panel.grid.major = element_line(color = "#dbdbd9", linetype = "dashed"),
-        plot.title = element_text(hjust = 0.5, vjust = 0.5, size = 15, face = "bold")
+        plot.title = element_text(hjust = 0.5, vjust = 0.5, size = 17, face = "bold")
   ) +
   geom_sf(
     data = plot_fishscore95_2,
@@ -416,16 +420,15 @@ norway.layer5 <- ggplot() +
     x = NULL,
     y = NULL,
     title = "1995"
-  )
-# add theme
-theme_map()
+  ) 
+
   
 norway.layer6 <- norway.layer5  + geom_sf(data = world, fill = "antiquewhite1", color = "gray") +
    coord_sf(xlim = c(10, 32), ylim = c(65, 72)) 
 ```
 
 # Adding municipalities borders on land
-```{r}
+```{r dpi = 250}
 norway.layer7 <- norway.layer6 +geom_path(kommuner.pol, mapping = aes(x = long, y = lat, group = id), color = 'dimgray',  size = .4)
 norway.layer7
   
