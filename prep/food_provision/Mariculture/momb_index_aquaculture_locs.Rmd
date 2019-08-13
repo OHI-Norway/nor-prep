@@ -197,9 +197,16 @@ municip_prep <- map(municips_cleaned, ~ as.data.frame(.x)) %>%
   map(., ~ gapfill(.x, 1,2)) 
 
 momb_gapfilled <- do.call("rbind", municip_prep) 
+  
+momb_gapfilled <- momb_gapfilled %>% 
+  mutate(gapfilled = case_when(
+    is.na(momb_mean)  ~ "y",
+    TRUE ~ "n"
+  ))
 
 #write_csv(momb_gapfilled, "data/mean_momb_mp_yr_gapfilled.csv")
 ```
+
 
 
 
