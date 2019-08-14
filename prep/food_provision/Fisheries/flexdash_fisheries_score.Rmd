@@ -1,0 +1,110 @@
+---
+title: "Fisheries score"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+    theme: cerulean
+    css: "~/github/nor-prep/prep/templates/flexdash.css"
+runtime: shiny    
+---
+
+```{r global, include=FALSE}
+library(flexdashboard)
+library(readr)
+library(leaflet)
+library(DT)
+library(tidyverse)
+library(lubridate)
+library(plotly)
+library(shiny)
+library(shinyWidgets)
+
+#LOAD THE DATA HERE
+# trips_df <- read_csv('http://s3.amazonaws.com/assets.datacamp.com/production/course_6961/datasets/sanfran_bikeshare_joined_oneday.csv') %>%
+#   mutate(duration_min = duration_sec / 60,
+#          start_hour = hour(start_date)) %>%
+#   filter(duration_min <= 8 * 60) # remove trips longer than 8 hours as suspicious data quality
+```
+
+Fisheries score per municipality and year
+=======================================================================
+
+Column {data-width=250 .sidebar }
+-----------------------------------------------------------------------
+```{r}
+sliderInput("year_slider", 
+            label = "Select year",
+            min = 1995, 
+            max = 2012, 
+            value = 1995)
+
+ sliderInput("integer", "Integer:",
+                  min = 1995, max = 2012,
+                  value = 1996)
+ 
+  selectInput("daterange1", "Date range:",
+            choices =1995:2012)
+  
+sliderTextInput(
+  inputId = "year_slider", 
+  label = "Select year:", 
+  grid = TRUE, 
+  force_edges = TRUE,
+  choices =  as.character(seq(1995, 2012, by = 1))
+)
+  
+  
+  
+
+show_trips_df <- reactive({
+
+  trips_df %>%
+    filter(start_hour >= input$start_slider[1] &
+             start_hour <= input$start_slider[2])
+
+})
+
+
+```
+
+
+
+Column {data-width=350 .bgred }
+-----------------------------------------------------------------------
+
+### Box 1 {.first-chart}
+
+```{r}
+
+```
+
+### Chart C
+
+```{r}
+
+```
+
+### Chart D
+
+```{r}
+
+```
+
+Trends in fisheries score
+=======================================================================
+Column {data-width=250}
+-----------------------------------------------------------------------
+
+### Chart A
+```{r sidebar}
+
+```
+
+Column {data-width=550}
+-----------------------------------------------------------------------
+### Chart B
+```{r}
+
+```
+
