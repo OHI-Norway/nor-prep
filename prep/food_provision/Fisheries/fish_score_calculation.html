@@ -11,7 +11,7 @@
 
 <meta name="author" content="Marina Espinasse" />
 
-<meta name="date" content="2019-05-13" />
+<meta name="date" content="2019-08-20" />
 
 <title>Calculation of fisheries sustainability score</title>
 
@@ -362,7 +362,7 @@ $(document).ready(function () {
 
 <h1 class="title toc-ignore">Calculation of fisheries sustainability score</h1>
 <h4 class="author"><em>Marina Espinasse</em></h4>
-<h4 class="date"><em>2019-05-13</em></h4>
+<h4 class="date"><em>2019-08-20</em></h4>
 
 </div>
 
@@ -370,7 +370,7 @@ $(document).ready(function () {
 <ul>
 <li><a href="#importing-formatted-catches-and-stocks-data"><span class="toc-section-number">1</span> Importing formatted catches and stocks data</a></li>
 <li><a href="#merging-catch-data-with-ices-stocks-data"><span class="toc-section-number">2</span> Merging catch data with ICES stocks data</a></li>
-<li><a href="#further-data-cleaning-removing-and-re-arranging-locaitons"><span class="toc-section-number">3</span> Further data cleaning: removing and re-arranging locaitons</a></li>
+<li><a href="#further-data-cleaning-removing-and-re-arranging-locations"><span class="toc-section-number">3</span> Further data cleaning: removing and re-arranging locations</a></li>
 <li><a href="#estimating-sustainability-score-for-each-of-the-fish-stocks"><span class="toc-section-number">4</span> Estimating sustainability score for each of the fish stocks</a></li>
 <li><a href="#estimating-catch-weighted-score-and-final-fisheries-score-in-northern-norway"><span class="toc-section-number">5</span> Estimating catch weighted score and final fisheries score in Northern Norway</a></li>
 </ul>
@@ -387,7 +387,8 @@ $(document).ready(function () {
 <div id="importing-formatted-catches-and-stocks-data" class="section level1">
 <h1><span class="header-section-number">1</span> Importing formatted catches and stocks data</h1>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" data-line-number="1">ices &lt;-<span class="st"> </span><span class="kw">read.csv</span>(<span class="st">&quot;data/ices_stock_stats.csv&quot;</span>)</a>
-<a class="sourceLine" id="cb2-2" data-line-number="2">catch &lt;-<span class="st"> </span><span class="kw">read.csv</span>(<span class="st">&quot;data/fish_catch_by_municipality.csv&quot;</span>)</a></code></pre></div>
+<a class="sourceLine" id="cb2-2" data-line-number="2">catch &lt;-<span class="st"> </span><span class="kw">read.csv</span>(<span class="st">&quot;data/fish_catch_by_municipality.csv&quot;</span>)</a>
+<a class="sourceLine" id="cb2-3" data-line-number="3">seaarea &lt;-<span class="kw">read_excel</span>(<span class="st">&quot;/Volumes/ftp.imr.no/Fishery/DeliveryDataFiskDir/KommArea.xlsx&quot;</span>)</a></code></pre></div>
 </div>
 <div id="merging-catch-data-with-ices-stocks-data" class="section level1">
 <h1><span class="header-section-number">2</span> Merging catch data with ICES stocks data</h1>
@@ -412,17 +413,19 @@ $(document).ready(function () {
 ## 5 Kingcrab    88
 ## 6 Saithe    1512</code></pre>
 </div>
-<div id="further-data-cleaning-removing-and-re-arranging-locaitons" class="section level1">
-<h1><span class="header-section-number">3</span> Further data cleaning: removing and re-arranging locaitons</h1>
+<div id="further-data-cleaning-removing-and-re-arranging-locations" class="section level1">
+<h1><span class="header-section-number">3</span> Further data cleaning: removing and re-arranging locations</h1>
 <p>Deleting municipalities that are not in the study (Beiarn county and Guovdageaidnu-Kautokeino) Re-estimating landings for the municipalities that were merged (Bodo + Skjerstad_2005, Bjarkoy_2013 + Harstad_2013) - I sum the landings for these pairs of municipalities for the years before they’ve merged.</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb6-1" data-line-number="1">fish_nor_prep &lt;-<span class="st"> </span>fish_nor <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb6-2" data-line-number="2"><span class="st">                  </span><span class="kw">mutate</span>(<span class="dt">Municip_name =</span> <span class="kw">as.character</span>(Municip_name)) <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb6-3" data-line-number="3"><span class="st">                  </span><span class="kw">filter</span>(<span class="op">!</span>Municip_name <span class="op">%in%</span><span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;Beiarn&quot;</span>, <span class="st">&quot;Guovdageaidnu-Kautokeino&quot;</span>)) <span class="op">%&gt;%</span><span class="st"> </span><span class="co">#mind the correct spelling of Guo... county</span></a>
-<a class="sourceLine" id="cb6-4" data-line-number="4"><span class="st">                  </span><span class="kw">mutate</span>(<span class="dt">newid =</span> <span class="kw">case_when</span>(Municip_name <span class="op">%in%</span><span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;Harstad_2013&quot;</span>, <span class="st">&quot;Bjarkoy_2013&quot;</span>) <span class="op">~</span><span class="st"> &quot;1&quot;</span>,</a>
-<a class="sourceLine" id="cb6-5" data-line-number="5">                                           Municip_name <span class="op">%in%</span><span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;Bodo&quot;</span>, <span class="st">&quot;Skjerstad_2005&quot;</span>) <span class="op">~</span><span class="st"> &quot;2&quot;</span>,</a>
-<a class="sourceLine" id="cb6-6" data-line-number="6">                                           <span class="ot">TRUE</span> <span class="op">~</span><span class="st"> </span>Municip_name)) <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb6-7" data-line-number="7"><span class="st">                  </span><span class="kw">group_by</span>(newid, Year, Species) <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb6-8" data-line-number="8"><span class="st">                  </span><span class="kw">mutate</span>(<span class="dt">Total_catch_new =</span> <span class="kw">sum</span>(Total_catch))</a></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb6-1" data-line-number="1">fish_nor_prep &lt;-<span class="st"> </span>fish_nor <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb6-2" data-line-number="2"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">Municip_name =</span> <span class="kw">as.character</span>(Municip_name)) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb6-3" data-line-number="3"><span class="st">  </span><span class="kw">filter</span>(<span class="op">!</span>Municip_name <span class="op">%in%</span><span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;Beiarn&quot;</span>, <span class="st">&quot;Guovdageaidnu-Kautokeino&quot;</span>)) <span class="op">%&gt;%</span><span class="st"> </span><span class="co"># mind the correct spelling of Guo... county</span></a>
+<a class="sourceLine" id="cb6-4" data-line-number="4"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">newid =</span> <span class="kw">case_when</span>(</a>
+<a class="sourceLine" id="cb6-5" data-line-number="5">    Municip_name <span class="op">%in%</span><span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;Harstad_2013&quot;</span>, <span class="st">&quot;Bjarkoy_2013&quot;</span>) <span class="op">~</span><span class="st"> &quot;1&quot;</span>,</a>
+<a class="sourceLine" id="cb6-6" data-line-number="6">    Municip_name <span class="op">%in%</span><span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;Bodo&quot;</span>, <span class="st">&quot;Skjerstad_2005&quot;</span>) <span class="op">~</span><span class="st"> &quot;2&quot;</span>,</a>
+<a class="sourceLine" id="cb6-7" data-line-number="7">    <span class="ot">TRUE</span> <span class="op">~</span><span class="st"> </span>Municip_name</a>
+<a class="sourceLine" id="cb6-8" data-line-number="8">  )) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb6-9" data-line-number="9"><span class="st">  </span><span class="kw">group_by</span>(newid, Year, Species) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb6-10" data-line-number="10"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">Total_catch_new =</span> <span class="kw">sum</span>(Total_catch))</a></code></pre></div>
 <p>And now update the whole table, aggregate landings over counties that were merged, remove Skjerstad_2005 and Bjarkoy_2013. In this table, <em>Municip_name_new</em> are the names of the municipalities after they’ve merged. <em>Total_catch_new</em> is the total fish landings after municipalities merging.</p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" data-line-number="1">fish_nor_prep2&lt;-<span class="st"> </span>fish_nor_prep <span class="op">%&gt;%</span><span class="st"> </span></a>
 <a class="sourceLine" id="cb7-2" data-line-number="2"><span class="st">                  </span><span class="kw">select</span>(<span class="op">-</span><span class="kw">c</span>(<span class="st">&quot;Municip_name&quot;</span>, <span class="st">&quot;Total_catch&quot;</span>)) <span class="op">%&gt;%</span><span class="st"> </span></a>
@@ -454,7 +457,7 @@ $(document).ready(function () {
 <a class="sourceLine" id="cb9-3" data-line-number="3"><span class="st">                   </span><span class="kw">mutate</span>(<span class="dt">total_tons =</span> <span class="kw">sum</span>(Total_catch_new)) <span class="op">%&gt;%</span></a>
 <a class="sourceLine" id="cb9-4" data-line-number="4"><span class="st">                   </span><span class="kw">ungroup</span>() <span class="op">%&gt;%</span></a>
 <a class="sourceLine" id="cb9-5" data-line-number="5"><span class="st">                   </span><span class="kw">mutate</span>(<span class="dt">catch_prop =</span> Total_catch_new<span class="op">/</span>total_tons,</a>
-<a class="sourceLine" id="cb9-6" data-line-number="6">                   <span class="dt">catch_weighted_score =</span> catch_prop<span class="op">*</span>stock_score)</a>
+<a class="sourceLine" id="cb9-6" data-line-number="6">                   <span class="dt">catch_weighted_score =</span> catch_prop<span class="op">*</span>stock_score) </a>
 <a class="sourceLine" id="cb9-7" data-line-number="7"></a>
 <a class="sourceLine" id="cb9-8" data-line-number="8"><span class="kw">write_csv</span>(fish_nor_weight, <span class="st">&quot;catch_weighted_score.csv&quot;</span>)</a>
 <a class="sourceLine" id="cb9-9" data-line-number="9"></a>

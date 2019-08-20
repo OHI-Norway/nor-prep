@@ -53,7 +53,7 @@ fish_nor %>% group_by(Species) %>%
 ```
 
 
-# Further data cleaning: removing and re-arranging locaitons
+# Further data cleaning: removing and re-arranging locations
 
 Deleting municipalities that are not in the study (Beiarn county and Guovdageaidnu-Kautokeino)
 Re-estimating landings for the municipalities that were merged (Bodo + Skjerstad_2005, Bjarkoy_2013 + Harstad_2013) - I sum the landings for these pairs of municipalities for the years before they've merged. 
