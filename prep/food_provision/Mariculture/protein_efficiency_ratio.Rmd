@@ -23,7 +23,7 @@ library(ggthemes)
 library(janitor)
 ```
 
-# Loading aquaculture production data and calculating protein efficiency based on average constant for trout and salmon
+# Loading aquaculture production data 
 ```{r}
 akva_raw<-read_excel(file.path(dir_M[2],"Aquaculture/Akvadataut.xlsx")) 
 ```
@@ -35,6 +35,10 @@ colnames(protein_prep) <- akva_raw[3, ]
 
 # Deleting duplicated columns 
 protein_prep2 <- protein_prep[!duplicated(names(protein_prep), fromLast = TRUE)]
+```
+
+# Calculating protein efficiency 
+```{r}
 
 estimate_per <- function(arg1, arg2) {
   if (any(is.na(c(arg1, arg2)))) {
@@ -42,8 +46,8 @@ estimate_per <- function(arg1, arg2) {
   } else if (arg1 == 0 | arg2 == 0) {
     return(NA)
   } else {
-    nom <- arg1 * 0.60 * 0.191
-    denom <- arg2 * 0.938 * 0.354
+    nom <- arg1 * 0.60 * 0.186
+    denom <- arg2 * 0.934 * 0.356
     per <- nom / denom
   }
   per
@@ -52,24 +56,19 @@ estimate_per <- function(arg1, arg2) {
 
 protein_prep3 <- protein_prep2 %>%
   clean_names(.) %>%
-  mutate(total_prod_corrected = ifelse(
-    total_production < 0, 0, total_production
-  )) %>%
-  mutate(feed_used_kg = as.numeric(feed_used_kg)) %>%
-  mutate(total_prod_corrected = as.numeric(total_prod_corrected)) %>%
+  select(c(1,2,3,4,5,6,7,8,9, 14)) %>% 
+  mutate_at(c(5,6,7,8,9,10), as.numeric) %>%     #mutate all the columns that have to be numeric but are character!
   rowwise() %>%
-  mutate(protein_new = estimate_per(
-    total_prod_corrected, feed_used_kg
+  mutate(total_prod =  sum(trout_prod_kg, salmo_prod_kg, na.rm = T)) %>%
+  mutate(protein_eff = estimate_per(
+    total_prod, feed_used_kg
   ))
 
 ```
 
-# Final table preparation
+# Save final table 
 ```{r}
-protein_final <- protein_prep3 %>%
-  select(c(1:7,35))
- # filter_at(vars(8), all_vars(!is.na(.)))
-#write_csv(protein_final, "data/protein_efficiency_ratio.csv")
+#write_csv(protein_prep3, "data/protein_efficiency_ratio.csv")
 ```
 
 
