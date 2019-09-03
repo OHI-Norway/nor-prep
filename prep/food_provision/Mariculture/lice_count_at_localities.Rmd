@@ -1,5 +1,5 @@
 ---
-title: "Proporiton of localities with above-threshold lice count"
+title: "Lice counts per week and municipality"
 author: "Marina Espinasse"
 date: "`r Sys.Date()`"
 output:
@@ -23,18 +23,22 @@ source("~/github/nor-prep/prep/src/common.R")
 library(varhandle)
 library(stringr)
 ```
+
 # Load data
 ```{r}
 # lice counts
 lus <- read.csv(file.path(dir_M[2], "Aquaculture/Lice/lakselus_per_fisk_utf8.csv"), header = TRUE, encoding = "UTF-8")
 municip <- read.table("../../administrative/komlist.csv", header = TRUE, sep = ";")
 municip <-filter(municip, !Name == "NonCoast")
+lus_2005 <-read.csv("./data/lice_vers2_2005_2011_formatted.csv", sep = ",")
+lisences <-read.csv("./data/aquaculture_lisences_northnorway_2010_2018.csv")
 ```
 
 # Preliminary data cleaning
 ```{r}
 colnames(lus)[c(2, 19, 20)] <- c("Ar", "ProduksjonsomradeID", "Produksjonsomrade")
 lus_prep <- lus %>%
+  mutate(Kommunenummer = replace(Kommunenummer, Lokalitetsnummer == "10893", "1835" )) %>% 
   filter(Kommunenummer >= 1800 & Kommunenummer < 2100) %>%
   mutate(Kommunenummer = replace(Kommunenummer, Kommunenummer == "1915", "1903")) %>%
   mutate(Kommunenummer = replace(Kommunenummer, Kommunenummer == "1901", "1903")) %>%
@@ -44,21 +48,104 @@ lus_prep <- lus %>%
   select(-Name)
 ```
 
+# Finding municipality and lice threshold info for some of the locations
+There are 80 locations for which no municipality and region specified, also the lice threshold is missing for those.
+I will check if the Aquaculture registry have information on these locaitons ("lisences" dataframe).
+
+```{r}
+#list of the locaitons with missing info:
+missing_mppinfo <-lus %>% 
+  filter(is.na(Kommunenummer)) 
+
+foo <-lus_prep %>% group_by(Ar) %>% 
+  mutate(lusegrense = as.numeric(as.character(Lusegrense.uke)))
+
+
+foo %>%  
+  group_by(Ar) %>% 
+  summarize(grensemin = min(lusegrense),
+            grensemax = max(lusegrense))
+```
+
+
+Merging lus_prep with lisences dataframe - to find municipaities where they are missing. 
+I could find info only for 2 out of 89 locations with missing municipality.
+
+```{r}
+locsmpp <- lisences  %>% 
+  group_by(Year, LOK_NR, LOK_KOMNR, LOK_KOM) %>% 
+  summarize(count=n()) 
+
+missing_mppinfo_filled <- missing_mppinfo %>% 
+  group_by(Ar,Lokalitetsnummer) %>% 
+  summarize(locscount = n()) %>% 
+  left_join(locsmpp[,c("Year","LOK_NR", "LOK_KOMNR", "LOK_KOM")], by = c("Lokalitetsnummer" = "LOK_NR","Ar"="Year"))
+
+map(missing_mppinfo_filled, ~ sum(is.na(.)))
+```
+
+
+
+```{r}
+#Lice threshold is 0.2 from week 21 to week 26 in Northern Norway since 2017.
+replace_licethr <- function(num, year, week=NULL) {
+  if (year < 2017) {
+    if (num < 0.5) {
+      overgrense <- "Nei"
+    } else {
+      overgrense <- "Ja"
+    }
+  } else if (year >= 2017 & week < 21|week > 26 ) {
+    if (num < 0.5 ) {
+      overgrense <- "Nei"
+    } else {
+      overgrense <- "Ja"
+    }
+  } else {
+    if (num < 0.2) {
+      overgrense <- "Nei"
+    } else {
+      overgrense <- "Ja"
+    }
+  }
+  overgrense
+}
+
+```
+
+
+```{r}
+#filter out rows where lice threshold is unknown:
+foo2 <-filter(lus_prep, Over.lusegrense.uke == "Ukjent")
+foo2 <- foo2 %>% 
+  mutate(Over.lusegrense.uke = pmap_chr(list(Lus.i.bevegelige.stadier, Ar, Uke), ~ replace_licethr(..1, ..2, ..3)))
+
+
+#and rbind with the other:
+lus_prep2 <-lus_prep %>% 
+  filter(!is.na(Lus.i.bevegelige.stadier)) %>%
+  filter(Over.lusegrense.uke != "Ukjent") %>% 
+  bind_rows(foo2)
+```
+
+
 # Further data cleaning: remove inactive localities and those that did not count lice
-## How many localities are there in total per municipality per year
+How many localities are there in total per municipality per year?
 We may want to know how many locations were active per municiality, year and week, to be aware how many locations actually report lice count.
 ```{r}
 total_locations <- lus_prep %>%
   group_by(Kommune, Kommunenummer,Ar, Uke) %>%
   summarize(tot_loc = n_distinct(Lokalitetsnummer)) %>%
   mutate(key = paste(Kommune,"_" , Ar, "_", Uke))
+
+#write.csv(total_locations,"data/number_lice_obersvations_per_mpp.csv") 
 ```
 
-# Prepare final dataset with total number of localities with over-threshold lice count
-Select only locations that were counting lice. I do not filter out inactive locaitons, because obviously, they did not count lice.
+
+Select only locations that were counting lice. 
 Change column names to English.
 ```{r}
-lus_final <- lus_prep %>%
+lus_prep3 <- lus_prep2 %>%
   filter(Har.telt.lakselus == "Ja") %>%
   select(-c(
     "Voksne.hunnlus", "Lus.i.bevegelige.stadier", "Fastsittende.lus", "Brakklagt", "Sj.temperatur",
@@ -71,48 +158,134 @@ lus_final <- lus_prep %>%
   )
 ```
 
-# Estimate total number and proportion of locaitons above lice threshold per week
+
+
+# Estimate average % of weeks localities are below lice threshold (new data)
 ```{r}
-abovebelow_threshold_locs <- lus_final %>%
+below_threshold_new <- lus_prep3 %>%
   mutate(Above_thr_new = case_when(
-    Above_threshold == "Nei" ~ "0",
-    Above_threshold == "Ja" ~ "1"
+    Above_threshold == "Nei" ~ "1",
+    Above_threshold == "Ja" ~ "0"
   )) %>%
-  mutate(Above_thr_new = as.numeric(as.character(Above_thr_new))) %>%
-  mutate(Below_thr_new = (1 - Above_thr_new)) %>%
-  group_by(Week, Year, Municip_number, Municip_name) %>%
-  summarize(locs_above_thr_count = sum(Above_thr_new), 
-            locs_below_thr_count = sum(Below_thr_new),
-            locs_active = n(), 
-            locs_above_thr_prop = locs_above_thr_count / locs_active,
-            locs_below_thr_prop = locs_below_thr_count / locs_active)
+   mutate(Above_thr_new = as.numeric(as.character(Above_thr_new))) %>%
+  group_by(Year, Locality_number, Municip_number, Municip_name) %>% 
+  summarise(totweeks = n(),
+            below_weeks = sum(Above_thr_new),
+            prop_weeks_below = below_weeks/totweeks)
+```
+About halth of the locations reported salmon lice only once a year. Barentswatch.no explains that missing lice count maybe because the locality did not have fish in the pens that weeks or they just did not report. I will select only the locations that reported at least 25 weeks over a year (about half of all locations).
+
+```{r}
+below_threshold_new2 <- below_threshold_new %>% 
+  filter(totweeks >= 25) 
+
+#check how many locations left per municipality: most of municipalities had 1-5 locations,
+#counting lice at least 25 weeks a year.
+locs_counted_25weeks <- below_threshold_new2 %>% 
+  group_by(Year, Municip_name) %>% 
+  summarize(locscount = n())
+
+#Final table
+below_lice_mpp_new <-below_threshold_new2 %>% 
+  group_by(Year, Municip_number, Municip_name) %>% 
+  summarize(below_lice = mean(prop_weeks_below))
+```
+
+# Cleaning older lice data (2005-2011)
+```{r}
+lus_old_prep <- lus_2005 %>% 
+  select(-c("Farmname", "Sitting_lice"))
+
+#the list of locaitons with no municipality info
+lus_old_missinglocs <-lus_old_prep %>% 
+  filter(Latlon == "(-999.0,-999.0)") %>% 
+  group_by(Location) %>% 
+  summarize(count = n())
+
+#count the number of locations in the new data that have lice counts
+lus_new_locs <-lus %>% 
+  group_by(Lokalitetsnummer, Lokalitetsnavn, Lat, Lon) %>% 
+  summarise(count = n())
+
+#merge the old and new datasets to see for which locations I can find lat and lon info - only for 63 (extra check - for another colleague)
+locnames_merged <-lus_old_missinglocs %>% 
+  left_join(lus_new_locs, by = c("Location" = "Lokalitetsnummer")) %>% 
+  filter(!is.na(Lokalitetsnavn)) %>% 
+  select(-c("count.x", "count.y"))
+```
+
+```{r}
+#location 10933 had no municipality info, it is not in the Aquaculture registry
+lus_old_prep2 <- lus_old_prep %>% 
+  filter(!is.na(Municipality)) %>% 
+  select(-c(What, Latlon))
+```
+
+# Estimate average % of weeks when localities are below lice threshold (old data)
+```{r}
+#check NAs in the old data
+map(lus_old_prep2, ~sum(is.na(.)))
+
+#delete all rows where count of adult females is NA,
+#remove duplicated rows 
+#summarize per location months below lice threshold (0.5)
+
+below_thr_old <-lus_old_prep2 %>% 
+  filter(!is.na(Adult_females)) %>% 
+  filter(!duplicated(.)) %>% 
+  mutate(Avobe_threshold = ifelse(Adult_females >= 0.5, 0, 1)) %>% 
+  group_by(Year, Municipality, Location) %>% 
+   summarise(totmonths = n(),
+            below_months = sum(Avobe_threshold),
+            prop_months_below = below_months/totmonths)
   
 ```
 
-# Estimate average number of localities with high lice count per municipality*year
-```{r}
-abovebelow_threshold_yearly_average <- abovebelow_threshold_locs %>%
-  group_by(Municip_number, Municip_name, Year) %>%
-  summarize(average_locs_above_thr = mean(locs_above_thr_count), 
-            average_prop_locs_above_thr = mean(locs_above_thr_prop),
-            average_locs_below_thr = mean(locs_below_thr_count),
-            average_prop_locs_below_thr = mean(locs_below_thr_prop))
+Again, about halth of the locations reported lice less than 6 times a year (once a month).
+I will select only the locations that reported at least 6 times a year.
 
-#write.csv(abovebelow_threshold_yearly_average, "data/locations_above_below_lice_thr_yearly_averages.csv")
+```{r}
+below_thr_old2 <- below_thr_old %>%
+  filter(totmonths >= 6)
+
+# check how many locations left per municipality: most of municipalities had 1-6 locations,
+# counting lice at least 6 months in a year.
+
+locs_counted_6months <- below_thr_old2 %>%
+  group_by(Year, Municipality) %>%
+  summarize(locscount = n())
+
+# Final table
+below_lice_mpp_old <- below_thr_old2 %>%
+  group_by(Year, Municipality) %>%
+  summarize(below_lice = mean(prop_months_below)) %>%
+  left_join(municip[, c(1, 2)], by = c("Municipality" = "Komnum")) %>%
+  rename(Municip_number = Municipality, Municip_name = Name) %>%
+  select(Year, Municip_number, Municip_name, below_lice)
 ```
 
-# Add the column of total number of localities (including inactive that did not count lice)
-```{r}
-abovebelow_threhold_locs_tototal <- abovebelow_threshold_locs %>%
-  mutate(key = paste(Municip_name, "_", Year, "_", Week)) %>%
-  left_join(total_locations[, c(5, 6)], by = "key")
 
-#write.csv(abovebelow_threhold_locs_tototal, "data/locations_above_below_lice_thr_compare_tototal.csv")
+# Merge old and new data tables
+```{r}
+below_lice_full <- bind_rows(below_lice_mpp_old, below_lice_mpp_new)
+#check how many observations per municipality we get:
+years_per_mpp <- below_lice_full %>%  group_by(Municip_name) %>% summarize(count = n())
+#none of the municipalities had data for all 2005-2018 years, at most we get observations for 14 years. That makes sense since some of the industries came into existince after 2005.
 ```
 
-# Gapfilling missing data for lice
+
+# Gapfilling missing data in lice dataseet
+## Check which counties did not have lice data at all
+```{r}
+anti_join(municip, below_lice_full, by = c("Name" = "Municip_name")) %>% 
+  arrange(Name)
+#13 counties 
+```
+All these municipalities have 0 produciton in the Akvadatut Per's table but I found that indeed most of these municipalities had aquaculture licenses in the 2005-2018 period. Is there a mistake? Did they produce something or not? Need to check wiht Per.
+
+## Define a function to gapfill
+```{r inlcude=FALSE}
 ## Function to gapfill missing data
-```{r}
 gapfill <- function(df, miss_col) {
     if (all(is.na(df[, miss_col]))) {
     warning("there are no numeric values in the data", call. = FALSE)
@@ -130,7 +303,7 @@ gapfill <- function(df, miss_col) {
 
 ## Replacing missing years of data
 ```{r warning=FALSE} 
-lice_municips <- abovebelow_threshold_yearly_average %>% 
+lice_municips <- below_lice_full %>% 
   mutate(Komname = droplevels(Municip_name)) %>% 
   split(., .$Komname)
 ```
@@ -146,14 +319,15 @@ lice_replaced_prep <- map(lice_municips, ~ as.data.frame(.x)) %>%
   map(., ~ mutate(.x, Kommune_new = rep(Komname[1], length(Komname)))) %>% 
   map(., ~ select(.x,-c(Municip_number, 
                         Municip_name, 
-                        Komname, 
-                        average_locs_above_thr,
-                        average_prop_locs_above_thr,
-                        average_locs_below_thr
+                        Komname
                         ))) %>% 
   map(., ~ gapfill(.x,2)) 
 
-lice_gapfilled <- do.call("rbind", lice_replaced_prep) 
+lice_gapfilled <- do.call("rbind", lice_replaced_prep) %>%
+  rename(Municip_number = Komnum_new, Municip = Kommune_new, momb_gapfilled = replaced) %>%
+  mutate(gf = ifelse(is.na(below_lice), "y", "n"))
 
-#write_csv(lice_gapfilled, "data/lice_locs_below_thr_gapfilled.csv")
+#write_csv(lice_gapfilled, "data/lice_below_thr_gapfilled.csv")
 ```
+
+Final table compiled, now need to check with the 13 mpp with no data and comfirm that my methods of gapfillig is ok.
