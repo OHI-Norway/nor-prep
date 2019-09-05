@@ -1,5 +1,5 @@
 ---
-title: "Protein efficiency ratio"
+title: "Protein retention ratio"
 author: "*Compiled on `r date()` by `r Sys.info()['user']`*"
 output: 
   html_document:
@@ -37,10 +37,10 @@ colnames(protein_prep) <- akva_raw[3, ]
 protein_prep2 <- protein_prep[!duplicated(names(protein_prep), fromLast = TRUE)]
 ```
 
-# Calculating protein efficiency 
+# Calculating protein retention
 ```{r}
 
-estimate_per <- function(arg1, arg2) {
+estimate_prr <- function(arg1, arg2) {
   if (any(is.na(c(arg1, arg2)))) {
     return(NA)
   } else if (arg1 == 0 | arg2 == 0) {
@@ -57,18 +57,18 @@ estimate_per <- function(arg1, arg2) {
 protein_prep3 <- protein_prep2 %>%
   clean_names(.) %>%
   select(c(1,2,3,4,5,6,7,8,9, 14)) %>% 
-  mutate_at(c(5,6,7,8,9,10), as.numeric) %>%     #mutate all the columns that have to be numeric but are character!
+  mutate_at(c(5,6,7,8,9,10), as.numeric) %>%     #mutate all the columns that have to be numeric 
   rowwise() %>%
   mutate(total_prod =  sum(trout_prod_kg, salmo_prod_kg, na.rm = T)) %>%
-  mutate(protein_eff = estimate_per(
+  mutate(protein_eff = estimate_prr(
     total_prod, feed_used_kg
   ))
 
 ```
 
-# Save final table 
+
 ```{r}
-#write_csv(protein_prep3, "data/protein_efficiency_ratio.csv")
+#write_csv(protein_prep3, "data/protein_retention_ratio.csv")
 ```
 
 
