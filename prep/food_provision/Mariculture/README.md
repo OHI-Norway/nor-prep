@@ -10,7 +10,7 @@ Below is the list of aquaculture data layers. For each layer, and index was aggr
 
 1. [Total aquaculture production](https://ohi-norway.github.io/nor-prep/prep/food_provision/Mariculture/total_aquaculture_production.html)
 
-3. [Protein retention ratio](https://ohi-norway.github.io/nor-prep/prep/food_provision/Mariculture/protein_efficiency_ratio.html)
+3. [Protein retention ratio](https://ohi-norway.github.io/nor-prep/prep/food_provision/Mariculture/protein_retention_ratio.html)
 
 4. [Lice abundance](https://ohi-norway.github.io/nor-prep/prep/food_provision/Mariculture/lice_count_at_localities.html) 
 
