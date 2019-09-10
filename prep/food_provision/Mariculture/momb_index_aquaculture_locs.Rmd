@@ -21,6 +21,8 @@ source('~/github/nor-prep/prep/src/common.R')
 ```{r libraries, results="hide"}
 library(ggthemes)
 library(janitor)
+library(DT)
+library(zoo)
 ```
 
 # Load mom-b examination data and municipalities names
@@ -58,7 +60,7 @@ momb_prep2 <-  momb_prep %>%
   select(-Name)
   
 
-map(momb_prep2, ~sum(is.na(.x))) #Still 93 locations did not have info on the municipality where they are located.
+map(momb_prep2, ~sum(is.na(.x))) #Still 93 observations with missing info on the municipality 
 
 momb_prep3 <- momb_prep2 %>% 
   filter(!is.na(Kommune)) 
@@ -68,8 +70,8 @@ Regarding localities with no municipality info: they are either shut down or hav
 ## Check how many examined aquaculture localities per municipality each year and compare to total
 ```{r}
 names(licenses) <- gsub("Ø", names(licenses), replacement = "O") %>%
-  gsub("Å", ., replacement = "A") %>%
-  str_to_lower(.)
+    gsub("Å", ., replacement = "A") %>%
+    str_to_lower(.)
 
 totlocs_mp <- licenses %>%
   filter(vannmiljo == "SALTVANN") %>%
@@ -91,7 +93,31 @@ totals <-examinations_filtered$nlocs
 
 for (i in length(examinations)) {
  print(examinations[examinations == totals])
-  }
+}
+
+#write.csv(examinations_filtered, "data/number_momb_examinations_per_mpp.csv")
+
+```
+
+# Which counties are not in the momb data?
+```{r}
+anti_join(komlist[,c(1,2)], momb_prep3, by="Komnum") %>% 
+            datatable(. , options=list(pageLength=15), rownames = FALSE,
+                      class = 'cell-border stripe compact')
+```
+
+# How many years of momb obsersvations per municipality?
+```{r}
+momb_prep3 %>% 
+  group_by(Kommune) %>% 
+  summarize(nyears = n_distinct(Year)) %>% 
+  datatable(.rownames = FALSE,  class =  "stripe compact")
+```
+
+Also checking data density for municipality and year in a dataframe
+```{r}
+bympp <-split(momb_prep3, momb_prep3$Kommune) 
+ datatable(bympp[["Vevelstad"]])
 ```
 
 # Preparing final  table: average momb per municipality and year
@@ -108,9 +134,68 @@ momb_prep4 <- momb_prep3 %>%
   summarize(momb_mean = mean(mombtrans))
 ```
 
+# Estimating running mean of the mean momb per municipality
+Remove municipalities with no data
+```{r}
+momb_bymp <- split(momb_prep4, momb_prep4$Kommune) 
+
+#rollapply(df.mp$total_prod_corrected, width = 3, FUN = mean,  fill=NA))
+
+#check if there are municipalities with empty rows.
+#There are 13 of such municipalities
+empties<- map(momb_bymp, ~ isTRUE(length(.x$momb_mean)==0))
+empty_municips <-unlist(empties) 
+
+#the list of municipalities that did not have any momb data
+empties_list <- unlist(empties) %>% 
+ stack(.) %>% 
+ filter(values==TRUE)
+
+momb_bymp_cleaned <-momb_bymp[!empty_municips]
+```
+
+Filter out municipalities with more than 5 years of data
+```{r}
+long_data <- map(momb_bymp_cleaned, ~ length(.x$momb_mean)) %>% 
+  unlist(.) %>% 
+  stack(.) %>% 
+  filter(values >= 5) %>% 
+  select(-values) %>% 
+  mutate(ind = as.character(ind))
+
+short_data <- map(momb_bymp_cleaned, ~ length(.x$momb_mean)) %>% 
+  unlist(.) %>% 
+  stack(.) %>% 
+  filter(values < 5) %>% 
+  select(-values) %>% 
+  mutate(ind = as.character(ind))
+
+long_momb_data <-momb_bymp_cleaned[long_data$ind]
+short_momb_data <-momb_bymp_cleaned[short_data$ind]
+```
+
+Apply 3-year rolling mean to municipalities with at least 5 years of data
+```{r}
+smooth_df <-function(df, colnum){
+  col <- df[,colnum]
+  smoothed <-rollapply(col, width = 3, FUN = mean,  fill=NA)
+  df_smoothed <-cbind(df, smoothed)
+  df_smoothed
+}
+
+
+long_momb_smoothed <- long_momb_data %>% 
+  map(.,~ as.data.frame(.x)) %>% 
+  map(., ~ smooth_df(.x, 4)) %>% 
+  map(., ~ mutate(.x, momb_mean=smoothed)) %>% 
+  map(., ~ select(.x, -smoothed))
+
+short_momb_data <-map(short_momb_data,~ as.data.frame(.x))
+momb_smoothed <- c(long_momb_smoothed, short_momb_data)
+```
 
 # Gapfilling missing years of momb data
-## Creating a fucntion to gapfill
+## Creating a function to gapfill
 The idea is to take an average of the 5 recent years witn data. 
 Often, there will only be 5 years with data - then we just take average of those.
 ```{r include = FALSE}
@@ -164,39 +249,21 @@ gapfill <- function(df, id_col, miss_col) {
   finaldf
 }
 
-
 ```
 
-
-## Gapfilling missing years per municipality
-```{r}
-municips <- split(momb_prep4, momb_prep4$Kommune)
-
-#check if there are municipalities with empty rows.
-#There are 14 of such municipalities
-empties<- map(municips, ~ isTRUE(length(.x$momb_mean)==0))
-empty_municips <-unlist(empties) 
-
-#the list of municipalities that did not have any momb data
-empties_list <- unlist(empties) %>% 
- stack(.) %>% 
- filter(values==TRUE)
-
-municips_cleaned <-municips[!empty_municips]
-```
 
 ## Compiling final dataframe
 ```{r}
 allyears <-data.frame(Year = seq(2004, 2019, by = 1))
 
-municip_prep <- map(municips_cleaned, ~ as.data.frame(.x)) %>%
+gapfilled_prep <- momb_smoothed %>%
   map(., ~ full_join(.x, allyears, by = "Year")) %>% 
   map(., ~ mutate(.x, Komnum_new = rep(Komnum[1], length(Komnum)))) %>% 
   map(., ~ mutate(.x, Kommune_new = rep(Kommune[1], length(Kommune)))) %>% 
   map(., ~ select(.x,-c(Komnum, Kommune))) %>% 
   map(., ~ gapfill(.x, 1,2)) 
 
-momb_gapfilled <- do.call("rbind", municip_prep) 
+momb_gapfilled <- do.call("rbind", gapfilled_prep) 
   
 momb_gapfilled <- momb_gapfilled %>% 
   mutate(gapfilled = case_when(
