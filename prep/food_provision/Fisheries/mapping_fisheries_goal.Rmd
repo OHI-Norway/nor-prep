@@ -138,7 +138,7 @@ quantiles <-plot_fishscore95 %>%
 
 
 #create custom labels
-labels <- imap_chr(quantiles, function(., id){
+labels <- imap_chr(quantilesi, function(., id){
   return(paste0(round(quantiles[id], 0),
                              "",
                              " – ",
