@@ -25,7 +25,7 @@ library(janitor)
 
 # Load catch data
 ```{r}
-catch <- read.csv("data/fish_catch_by_municipality.csv")
+catch <- read.csv("data/fish_catch_by_municipality_newcrab.csv")
 ```
 
 # Filtering out the six municipalities (Vardo, Hammerfest,Skervoy,Tromso, Vega, Vagan)
@@ -37,10 +37,39 @@ visitedmp <-catch %>%
 
 http://yutannihilation.github.io/allYourFigureAreBelongToUs/ggthemes/theme_stata/
 
+# Translate English fish names to Norwegian
+```{r}
+
+visitedmp_prep <-visitedmp %>% 
+  mutate(English = trimws(English, "b")) %>% 
+  mutate(English = replace(English, English == "Atlantic cod", "Torsk")) %>%
+  mutate(English = replace(English, English == "Atlantic herring", "Sild")) %>%
+  mutate(English = replace(English, English == "Capelin", "Lodde")) %>%
+  mutate(English = replace(English, English == "Haddock", "Hyse")) %>%
+  mutate(English= replace(English, English == "Saithe", "Sei")) %>%
+  mutate(English= replace(English, English %in% c("Kongekrabbe", "Red king crab"), "Kongekrabbe")) %>%
+  filter(Year != 2018) 
+  
+
+```
+
+## Add Norwegian municipality names
+```{r}
+visitedmp_final <- visitedmp_prep %>% 
+  mutate(Municip_name = trimws(Municip_name, "b")) %>% 
+  mutate(Municip_name = replace(Municip_name, Municip_name == "Skjervoy", "Skjervøy")) %>% 
+  mutate(Municip_name = replace(Municip_name, Municip_name == "Tromso", "Tromsø")) %>% 
+  mutate(Municip_name = replace(Municip_name, Municip_name == "Vagan", "Vågan")) %>% 
+  mutate(Municip_name = replace(Municip_name, Municip_name == "Vardo", "Vardø"))
+  
+```
+
 ## Creating ggplot theme and additional functionalities for plots
 ```{r}
-#breaks1 <- seq(1994, 2018, by = 2) 
-#labels1 <- as.character(breaks1) 
+breaks1 <- seq(1994, 2018, by = 2) 
+labels1 <- as.character(breaks1) 
+
+catch_mpp <- split(visitedmp_final, visitedmp_final$Municip_name)
 
 find_breaks <-function(x){
   rng <- range(x, na.rm = TRUE)
@@ -72,9 +101,9 @@ theme_map <- function(...) {
 # Plots per municipality and specues (just for examination)
 ##  Plot1: all species at once in a line plot
 ```{r}
-catch_mpp <- split(visitedmp, visitedmp$Municip_name)
 
-catch_mpp[[2]] <- filter(catch_mpp[[2]], !English == "Atlantic herring")#filter out the single landing of Atlantic herring in Skervoy, it will not be visible on plots anyway
+
+catch_mpp[[2]] <- filter(catch_mpp[[2]], !English == "Sild")#filter out the single landing of Atlantic herring in Skervoy, it will not be visible on plots anyway
 
 plots1 <- map2(
   catch_mpp,
@@ -86,9 +115,6 @@ plots1 <- map2(
     scale_x_continuous(breaks = breaks1, labels = labels1) +
     labs(y = "Fangst, tonn", x = "") +
     theme_map())
-
-
-               
 ```
 
 ## Just another version
@@ -98,6 +124,7 @@ plots2 <- pmap(
    list(catch_mpp, names(catch_mpp), nice_breaks),
   ~ ggplot( data = ..1, mapping = aes(x = Year, y = Total_catch)) +
     geom_line(color = "darkseagreen", size = 2) +
+    #geom_point(color = "darkseagreen", size = 2) +
     ggtitle(..2) +
     facet_wrap(English ~ .) +
     scale_x_continuous(breaks = breaks1, labels = labels1) +
@@ -114,13 +141,14 @@ file_names <- paste0("figs/municipality_catch", "_", names(catch_mpp), ".pdf")
 library(wesanderson)
 breaks2 <- seq(0, 320000, by = 50000)
 
-plot3 <- ggplot( data = visitedmp, mapping = aes(x = Year, y = Total_catch)) +
+plot3 <- ggplot(data = visitedmp_final, mapping = aes(x = Year, y = Total_catch)) +
     geom_line(aes(color = English),size = 1.5) +
+    #geom_point(aes(color = English), size = 2) +
     scale_color_brewer(type = qual, palette = "RdYlGn", direction = -1, name = "Species") +
     facet_wrap(Municip_name ~ .) +
     scale_x_continuous(breaks = breaks1, labels = labels1) +
     scale_y_continuous(breaks = breaks2) +
-    labs(y = "Catch, tonn", x = "") +
+    labs(y = "Fangst, tonn", x = "") +
        theme_stata(scheme = "s2color") + 
     theme(
       axis.text.x = element_text(

@@ -21,33 +21,84 @@ source('~/github/nor-prep/prep/src/common.R')
 ```{r libraries, results="hide"}
 library(ggthemes)
 library(janitor)
+library(DT)
 ```
 
-# Loading aquaculture production data
+# Loading aquaculture produciton data: total biomass produced, feed used, and biomass change per month.
 ```{r}
-akva_raw<-read_excel(file.path(dir_M[2],"Aquaculture/Akvadataut.xlsx")) 
+biomass <-read.csv(file.path(dir_M[2],"Aquaculture/Production/Production_data_unlocked/akva_biomass_2005_2016_preformatted.csv")) 
+feed <-read.csv(file.path(dir_M[2],"Aquaculture/Production/Production_data_unlocked/akva_feed_2005_2016_preformatted.csv")) 
+uttak <-read.csv(file.path(dir_M[2],"Aquaculture/Production/Production_data_unlocked/akva_uttak_2005_2016_preformatted.csv")) 
+municip <- read.table("../../administrative/komlist.csv", header = TRUE, sep = ";")
 ```
 
-# Cleaning aquaculture production data
-```{r data}
-akva_prep <- akva_raw[-c(1:3), ]
-colnames(akva_prep) <- akva_raw[3, ]
-
-# Some columns got similar names (those are eutropfication data, which we don't need now)
-names_freq <- as.data.frame(table(names(akva_prep)))
-duplicated(names(akva_prep)) # columns 27,31,26,37,38,39 are duplicated (all about phoshorus and nitrogen)
-
-#  I delete duplicated columns because they don't allow to clean data fully
-akva_prep2 <- akva_prep[!duplicated(names(akva_prep), fromLast = TRUE)]
-
-akva_final <- akva_prep2 %>%
-  clean_names(.) %>%
-  select(-c(14, 16:33)) %>%
-  filter_at(vars(c(8:14)), all_vars(!is.na(.))) %>%
-  mutate(total_prod_corrected = ifelse(total_production < 0, 0, total_production))
-  
-#write_csv(akva_final, "data/total_mariculture_production.csv")
+# Cleaning and formatting the data
+## Pre-clean standing biomass table
+```{r}
+biomass_prep <- biomass %>% 
+  clean_names() %>% 
+  rename(year = aar) %>% 
+  mutate(biomchange_salmon = (laks_des_beh_kg-laks_jan_beh_kg)) %>% 
+  mutate(biomchange_trout = (regnb_des_beh_kg-regnb_jan_beh_kg)) %>% 
+  select(c(year,kommunenr,kommune,biomchange_salmon, biomchange_trout)) %>% 
+  left_join(municip[,c(1,2)], by = c("kommunenr"="Komnum")) %>% 
+  mutate(kommune = Name) %>% 
+  select(-Name) %>% 
+  filter(!is.na(kommune))
 ```
+Grane kommune is in aquaculture table but not in the komlist. I assume we do not inlcude Grane kommune in the project.
+Anyway Grane has aquaculture only in 2006 and 2007. 
+
+Which municipalities did not have aquaculture?
+```{r}
+anti_join(municip, biomass[,c(4,5)], municip, by = c("Komnum"="KOMMUNENR")) %>% 
+  arrange(Name) %>% 
+  filter(Name != "NonCoast") %>% 
+  datatable()
+```
+
+## Pre-clean uttak (executed fish) table
+```{r}
+uttak_prep <- uttak %>% 
+  clean_names() %>% 
+  rename(year = aar) %>% 
+  select(-c(fylkesnr, fylke, kommune)) 
+```
+
+## Pre-clean feed table
+```{r}
+feed_prep <- feed %>% 
+  clean_names() %>% 
+  rename(year = aar) %>% 
+  select(-c(fylkesnr, fylke, kommune)) 
+```
+
+# Merging the three tables
+```{r}
+production_prep <- biomass_prep %>% 
+  full_join(uttak_prep, feed_prep, by = c("year", "kommunenr")) %>% 
+  filter(kommunenr != 1825) #remove Grane municipality
+```
+
+How many years of data per municipality?
+In 50 observations, there were data for biomass change but no data for executed fish.
+```{r}
+production_prep %>%  
+  group_by(kommunenr) %>% 
+  summarize(nyears = n()) %>% 
+  datatable()
+```
+
+ FISKEDIR commented that no record of uttak (executed fish) in a given year, is likely zero uttak.
+ Thus, I will replace NA of uttak with 0. 
+```{r}
+production_prep2 <-production_prep %>% 
+  mutate_at(c("uttak_laks_kg", "uttak_regnb_kg"), ~ ifelse(is.na(.), 0, .))
+```
+
+NOW, add utkast data from FISKEDIR.
+Add data on years 2017-2018.
+
 
 # Check the overall distribution of aquaculture production
 ```{r}
@@ -73,65 +124,6 @@ dens_plot
 ```
 
 
-# Estimate difference in the total production year to year - yearly produciton growth rate
-```{r}
-prod_growth <- akva_final %>%
-  group_by(knr2017, kname) %>%
-  mutate(previous_prod = lag(total_prod_corrected)) %>%
-  filter(!is.na(previous_prod)) %>%
-  mutate(total_prod_corrected = as.numeric(total_prod_corrected)) %>% 
-  mutate(previous_prod = as.numeric(previous_prod)) %>% 
-  mutate(growth = (total_prod_corrected - previous_prod) /previous_prod) 
-
-average_growth <- prod_growth %>%
-  filter(!is.infinite(growth) & growth >= 0) %>%
-  group_by(knr2017, kname) %>%
-  summarize(average_growth = mean(growth),
-    mingrowth = min(growth),
-    maxgrowth = max(growth)
-  )
-
-```
-
-
-# Plot log(total aquaculture production)
-```{r plot total production, message =FALSE}
-breaks1 <- seq(2004, 2014, by = 2) # decide where to write label on x-labels
-labels1 <- as.character(breaks1) 
-#labels1[!breaks1%%2==0]<- "" 
-
-counties <- unique(akva_final$county)
-
-for (i in 1:length(counties)) {
-  ct1 <- akva_final[akva_final$county == counties[i], ]
-
-  plot <- ggplot(ct1) +
-    geom_col(aes(x = as.numeric(yrs), y = as.numeric(total_prod_corrected)), fill = "dodgerblue4") +
-    facet_wrap(kname ~ .) +
-    scale_x_continuous(breaks = breaks1, labels = labels1) +
-    scale_y_continuous(trans = "log10") +
-    labs(y = "Log(Total Mariculture prod (tons))", x = "") +
-    ggtitle(counties[i]) +
-    theme_stata(scheme = "s1color") +
-    theme(
-      legend.position = "none",
-      axis.text.x = element_text(
-        size = 6, angle = 90, hjust = 1, vjust = 0.5,
-        face = "bold"
-      ),
-      axis.text.y = element_text(size = 7, angle = 0),
-      axis.title.y = element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)),
-      plot.title = element_text(hjust = 0.5, vjust = 0.5),
-      axis.ticks.x = element_line(size = 0.5),
-      axis.ticks.length = unit(0.2, "cm"),
-      strip.text = element_text(size = 12)
-    )
-
-  ggsave(paste0("figs/tot_prod", "_", counties[i], ".pdf"), plot)
-}
-
-```
-
 ## Creating ggplot theme
 ```{r}
 theme_map <- function(...) {
@@ -153,7 +145,7 @@ theme_map <- function(...) {
 ```
 
 
-## Plotting total acquaculture production using purrr
+## Plotting total acquaculture production 
 ```{r}
 county_names <- list("Finnmark", "Nordland", "Troms")
 

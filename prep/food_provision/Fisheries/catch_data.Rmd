@@ -24,13 +24,14 @@ library(stringr)
 library(kableExtra)
 ```
 
-# Loading fish landings data (1994 - 2017) for  in Northern Norway 
+# Loading fish landings data (1994 - 2017) for Northern Norway 
 ```{r}
 #/Volumes/ftp.imr.no/Fishery/DeliveryDataFiskDir/Fisk0017.csv
 temp_catch17 <- read.csv("/Volumes/ftp.imr.no/Fishery/DeliveryDataFiskDir/Fisk0017.csv", sep = ";")
 temp_catch99 <- read.csv("/Volumes/ftp.imr.no/Fishery/DeliveryDataFiskDir/Fisk9499.csv", sep = ";")
 names<-read.csv("/Volumes/ftp.imr.no/Fishery/DeliveryDataFiskDir/Fiskid.csv", sep = ";")#fish species names in English and Norwegian
 komlist<-read.csv("/Volumes/ftp.imr.no/Administrative/komlist.csv", sep = ";")#list of municipalities names and codes
+krabnew <- read_excel("/Volumes/ftp.imr.no/Fishery/DeliveryDataFiskDir/krabbefangst_2013_2018.xlsx")
 ```
 
 # Cleaning and formatting fish landings data: cheking species names
@@ -88,5 +89,47 @@ catch_final <- catch_clean %>%
              group_by(Year,Municip_number,Municip_name,English) %>% 
              summarize(Total_catch = sum(Catch_weight))
 
-write_csv(catch_final,"data/fish_catch_by_municipality.csv")
+#write_csv(catch_final,"data/fish_catch_by_municipality.csv")
 ```
+
+# Cleaning new crab catch data (2015-2017)
+```{r}
+#names(krabnew) <-str_replace(names(krabnew), "[:punct:]{2,}", "_")
+names(krabnew) <-str_replace(names(krabnew), "-", "_") %>% 
+  gsub(" ","",.) %>% 
+  gsub("/","",.)
+
+  
+
+krabnew_prep <- krabnew %>%
+  mutate(Art_gruppe = trimws(Art_gruppe, "b")) %>%
+  mutate(English = replace(Art_gruppe, Art_gruppe %in% c("Kongekrabbe, han", "Kongekrabbe, annen"), "Kongekrabbe")) %>%
+  mutate(Municip_name = str_to_title(gsub("Å", Landingskommune, replacement = "A"))) %>%
+  mutate(Municip_name = str_to_title(gsub("ø", Municip_name, replacement = "o"))) %>%
+  mutate(Municip_name = str_to_title(gsub("æ", Municip_name, replacement = "ae"))) %>%
+  mutate(Total_catch = gsub(",", MeasureValues, replacement = ".")) %>%
+  left_join(komlist[, c(1, 2)], by = c("Municip_name" = "Name")) %>%
+  mutate(Municip_name = replace(Municip_name, Municip_name == "Deatnu-Tana", "Tana")) %>%
+  mutate(Municip_name = replace(Municip_name, Municip_name == "Unjargga-Nesseby", "Nesseby")) %>%
+  rename(Municip_number = Komnum, Year = Fangstår) %>%
+  mutate(Municip_number = replace(Municip_number, Municip_name == "Nesseby", 2027)) %>%
+  mutate(Municip_number = replace(Municip_number, Municip_name == "Tana", 2025)) %>%
+  mutate(Total_catch = as.numeric(Total_catch)) %>% 
+  select(-c(
+    "Art_gruppe", "Landingsfylke_kommune",
+    "Landingskommune",
+    "Lengdegruppe",
+    "MeasureNames", "Redskap_hovedgruppe",
+    "MeasureValues"
+  )) %>% 
+  select(Year,Municip_number,Municip_name, English, Total_catch)
+
+```
+
+
+# Mering old and new catch data
+```{r}
+catch_merged <- bind_rows(catch_final, krabnew_prep)
+#write_csv(catch_merged,"data/fish_catch_by_municipality_newcrab.csv")
+```
+
