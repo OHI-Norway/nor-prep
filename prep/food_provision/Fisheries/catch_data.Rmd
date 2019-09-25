@@ -47,31 +47,40 @@ str_view(fishnames, regex("torsk", ignore_case = TRUE))#Annen Torsk, Nordostarkt
 str_view(fishnames, regex("hyse", ignore_case = TRUE))#Hyse, Nordostarktisk hyse , Annen hyse
 str_view(fishnames, regex("lodde", ignore_case = TRUE))#Lodde,Barentshavslodde, Lodde - Island/O Gronl./Jan M
 str_view(fishnames, regex("sei", ignore_case = TRUE))#Sei, Sei (oppdrett)
-str_view(fishnames, regex("sild", ignore_case = TRUE))#Sild, Feitsild, Nordsjosild,Norsk vaargytende sild, Skagerraksild
+str_view(fishnames, regex("sild", ignore_case = TRUE))#Sild, Feitsild, Nordsjosild,Norsk vaargytende sild, Skagerraksild, Strom-/Vassild, Stromsild/Vassild
 str_view(fishnames, regex("kongekrabbe", ignore_case = TRUE))#Kongekrabbe, han-, Kongekrabbe, hun-, Kongegrabbe
 ```
 
 # Creating clean catches data: unifying species names and municipalities names.
 ```{r }
-#I assume that we don't need maricultured cod and saithe (oppdrett torsk, oppdrett sild), and capeling from Iceland and Greenalnd, Skagerraksild, Nordsjosild
-catch_clean <- temp_catch %>% 
-              select(-c(7,10)) %>% #remove columns "Region" and "Payed_NOK", we don't need them for now 
-              filter(Coast_ocean == "8") %>% #%>% #select only coastal areas
-              filter(!Species %in% c("Torsk (oppdrett)", "Polartorsk", "Lodde - Island/O Gronl./Jan M", 
-                                     "Sei (oppdrett)", "Skagerraksild" )) %>% 
-              filter(Species %in% c("Annen Torsk","Annen torsk","Nordostarktisk torsk","Skrei","Hyse","Nordostarktisk hyse", 
-                                    "Annen hyse", "Sei", "Lodde","Barentshavslodde","Sild","Feitsild", "Kongekrabbe", "Norsk vaargytende sild")) %>% 
-              mutate(Species = replace(Species, Species %in% c("Annen Torsk","Annen torsk" , "Nordostarktisk torsk", "Skrei"), "Torsk")) %>% 
-              mutate(Species = replace(Species, Species %in% c("Nordostarktisk hyse", "Annen hyse"), "Hyse")) %>% 
-              mutate(Species = replace(Species, Species == "Barentshavslodde", "Lodde")) %>% 
-              mutate(Species = replace(Species, Species %in% c("Kongekrabbe, hun-", "Kongekrabbe, han-"), "Kongekrabbe")) %>%   
-              mutate(Species = replace(Species, Species %in% c("Feitsild", "Norsk vaargytende sild"), "Sild")) %>% 
-              left_join(names[,c(4,6)], by = c("Species" = "Common..Norw.")) %>% 
-              rename("English" = "Common..Eng.") %>% 
-              left_join(komlist[,c(1,2)], c("Municip_number" = "Komnum")) %>% 
-              select(-4) %>% 
-              rename("Municip_name" = "Name") %>% 
-              select(c(1,2,3,9,8,7,6))
+# I assume that we don't need maricultured cod and saithe (oppdrett torsk, oppdrett sild), and capeling from Iceland and Greenalnd, Skagerraksild, Nordsjosild
+catch_clean <- temp_catch %>%
+  select(-c(7, 10)) %>% # remove columns "Region" and "Payed_NOK", we don't need them for now
+  filter(Coast_ocean == "8") %>% # %>% #select only coastal areas
+  filter(!Species %in% c(
+    "Torsk (oppdrett)", "Polartorsk", "Lodde - Island/O Gronl./Jan M",
+    "Sei (oppdrett)", "Skagerraksild", "Strom-/Vassild", "Stromsild/Vassild"
+  )) %>%
+  filter(Species %in% c(
+    "Annen Torsk", "Annen torsk", "Nordostarktisk torsk",
+    "Skrei", 
+    "Hyse", "Nordostarktisk hyse","Annen hyse", 
+    "Sei", 
+    "Lodde", "Barentshavslodde",
+    "Sild", "Feitsild", "Norsk vaargytende sild", 
+    "Kongekrabbe","Kongekrabbe, hun-", "Kongekrabbe, han-"
+  )) %>%
+  mutate(Species = replace(Species, Species %in% c("Annen Torsk", "Annen torsk", "Nordostarktisk torsk", "Skrei"), "Atlantic cod")) %>%
+  mutate(Species = replace(Species, Species %in% c("Nordostarktisk hyse", "Annen hyse", "Hyse"), "Haddock")) %>%
+  mutate(Species = replace(Species, Species %in% c("Barentshavslodde", "Lodde"), "Capelin")) %>%
+  mutate(Species = replace(Species, Species %in% c("Kongekrabbe, hun-", "Kongekrabbe, han-", "Kongekrabbe"), "Kingcrab")) %>%
+  mutate(Species = replace(Species, Species %in% c("Feitsild", "Norsk vaargytende sild", "Sild"), "Atlantic herring")) %>%
+  mutate(Species = replace(Species, Species == "Sei", "Saithe")) %>%
+  rename("English" = "Species") %>%
+  left_join(komlist[, c(1, 2)], c("Municip_number" = "Komnum")) %>%
+  select(-4) %>% # remove the first column with municipalities names
+  rename("Municip_name" = "Name") %>%
+  select(c(1, 2, 3, 8, 4, 7, 6))
   
 kable(head(catch_clean, 5)) %>% 
   kable_styling(bootstrap_options = c("striped", "hover"), full_width = F)
@@ -100,21 +109,20 @@ names(krabnew) <-str_replace(names(krabnew), "-", "_") %>%
   gsub("/","",.)
 
   
-
 krabnew_prep <- krabnew %>%
   mutate(Art_gruppe = trimws(Art_gruppe, "b")) %>%
-  mutate(English = replace(Art_gruppe, Art_gruppe %in% c("Kongekrabbe, han", "Kongekrabbe, annen"), "Kongekrabbe")) %>%
+  mutate(English = replace(Art_gruppe, Art_gruppe %in% c("Kongekrabbe, han", "Kongekrabbe, annen"), "Kingcrab")) %>%
   mutate(Municip_name = str_to_title(gsub("Å", Landingskommune, replacement = "A"))) %>%
   mutate(Municip_name = str_to_title(gsub("ø", Municip_name, replacement = "o"))) %>%
   mutate(Municip_name = str_to_title(gsub("æ", Municip_name, replacement = "ae"))) %>%
-  mutate(Total_catch = gsub(",", MeasureValues, replacement = ".")) %>%
+  mutate(Catch = gsub(",", MeasureValues, replacement = ".")) %>%
   left_join(komlist[, c(1, 2)], by = c("Municip_name" = "Name")) %>%
   mutate(Municip_name = replace(Municip_name, Municip_name == "Deatnu-Tana", "Tana")) %>%
   mutate(Municip_name = replace(Municip_name, Municip_name == "Unjargga-Nesseby", "Nesseby")) %>%
   rename(Municip_number = Komnum, Year = Fangstår) %>%
   mutate(Municip_number = replace(Municip_number, Municip_name == "Nesseby", 2027)) %>%
   mutate(Municip_number = replace(Municip_number, Municip_name == "Tana", 2025)) %>%
-  mutate(Total_catch = as.numeric(Total_catch)) %>% 
+  mutate(Catch = as.numeric(Catch)) %>% 
   select(-c(
     "Art_gruppe", "Landingsfylke_kommune",
     "Landingskommune",
@@ -122,14 +130,20 @@ krabnew_prep <- krabnew %>%
     "MeasureNames", "Redskap_hovedgruppe",
     "MeasureValues"
   )) %>% 
-  select(Year,Municip_number,Municip_name, English, Total_catch)
+  select(Year,Municip_number,Municip_name, English, Catch)
 
+```
+```{r}
+krabnew_final <- krabnew_prep %>% 
+   group_by(Year,Municip_number,Municip_name,English) %>% 
+             summarize(Total_catch = sum(Catch)) 
+  
 ```
 
 
 # Mering old and new catch data
 ```{r}
-catch_merged <- bind_rows(catch_final, krabnew_prep)
+catch_merged <- bind_rows(catch_final, krabnew_final)
 #write_csv(catch_merged,"data/fish_catch_by_municipality_newcrab.csv")
 ```
 
