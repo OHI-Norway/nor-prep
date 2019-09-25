@@ -124,7 +124,7 @@ plots2 <- pmap(
    list(catch_mpp, names(catch_mpp), nice_breaks),
   ~ ggplot( data = ..1, mapping = aes(x = Year, y = Total_catch)) +
     geom_line(color = "darkseagreen", size = 2) +
-    #geom_point(color = "darkseagreen", size = 2) +
+    geom_point(color = "darkseagreen", size = 2) +
     ggtitle(..2) +
     facet_wrap(English ~ .) +
     scale_x_continuous(breaks = breaks1, labels = labels1) +
@@ -142,9 +142,9 @@ library(wesanderson)
 breaks2 <- seq(0, 320000, by = 50000)
 
 plot3 <- ggplot(data = visitedmp_final, mapping = aes(x = Year, y = Total_catch)) +
-    geom_line(aes(color = English),size = 1.5) +
-    #geom_point(aes(color = English), size = 2) +
-    scale_color_brewer(type = qual, palette = "RdYlGn", direction = -1, name = "Species") +
+    geom_line(aes(color = English),size = 0.7) +
+    geom_point(aes(color = English), size = 1) +
+    scale_color_brewer(type = qual, palette = "RdYlGn", direction = -1, name = "Art") +
     facet_wrap(Municip_name ~ .) +
     scale_x_continuous(breaks = breaks1, labels = labels1) +
     scale_y_continuous(breaks = breaks2) +
