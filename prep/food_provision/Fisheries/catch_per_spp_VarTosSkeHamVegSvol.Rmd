@@ -80,7 +80,7 @@ find_breaks <-function(x){
 # Use map() to iterate over find_breaks() : nice_breaks
 nice_breaks <-map(catch_mpp, ~ find_breaks(.$Total_catch))
 
-theme_map <- function(...) {
+theme_fisk <- function(...) {
    theme_stata(scheme = "s2color") + 
     theme(
       legend.position = "none",
@@ -114,7 +114,7 @@ plots1 <- map2(
     facet_wrap(English ~ .) +
     scale_x_continuous(breaks = breaks1, labels = labels1) +
     labs(y = "Fangst, tonn", x = "") +
-    theme_map())
+    theme_fisk())
 ```
 
 ## Just another version
@@ -163,4 +163,90 @@ plot3 <- ggplot(data = visitedmp_final, mapping = aes(x = Year, y = Total_catch)
     )
  ggsave("figs/catch_in_workshop_municipalities.pdf", plot3)
 ```
+# Log-transformed y-axis and modified theme
+## Modify theme
+```{r}
+theme_fisk2 <- function(...) {
+   theme_stata(scheme = "s1color") + 
+    theme(
+      legend.position = "none",
+      axis.text.x = element_text(
+        size = 8, angle = 90, hjust = 1, vjust = 0.5,
+        face = "bold"
+      ),
+      axis.text.y = element_text(size = 10, angle = 0, face = "bold"),
+      axis.title.y = element_text(margin = margin(t = 0, r = 15, b = 0, l = 0), face = "bold", size = 12),
+      plot.title = element_text(hjust = 0.5, vjust = 0.5, face = "bold"),
+      axis.ticks.x = element_line(size = 0.5),
+      axis.ticks.length = unit(0.2, "cm"),
+      strip.text = element_text(size = 12, face = "bold"),
+      strip.background = element_rect(fill = "antiquewhite3", color ="antiquewhite3"),
+      panel.background = element_rect(fill = "white"),
+      plot.background = element_rect(fill = "floralwhite"),
+      # panel.grid.major.x = element_line(color = "grey97", size = 0.7),
+      panel.grid.major.y = element_line(color = "floralwhite", size = 0.7)
+    )
+}
+```
 
+## Log-transformed catch figures: prepare  data and cosmetics
+```{r}
+catch_mpp_log <- catch_mpp %>% 
+  map(., ~ mutate(.x, log_catch = log(Total_catch + 1)))
+
+breaksfcatch <-seq(0, 12, by = 2)
+
+breaksfyears <-seq(1994, 2018, by = 1)
+labelsfyears <- as.character(breaksfyears)
+labelsfyears[!breaksfyears%%2==0]<- ""
+
+catch_mpp_log[[2]] <- filter(catch_mpp_log[[2]], !English == "Sild")#filter out the single landing of Atlantic herring in Skervoy, it will not be visible on plots anyway
+```
+
+
+
+```{r}
+plots3 <- pmap(
+   list(catch_mpp_log, names(catch_mpp_log), rep(list(breaksfcatch), 6)),
+  ~ ggplot( data = ..1, mapping = aes(x = Year, y = log_catch)) +
+    geom_line(color = "coral4", size = 1.5) +
+    geom_point(color = "coral4", size = 2) +
+    ggtitle(..2) +
+    facet_wrap(English ~ .) +
+    scale_x_continuous(breaks = breaksfyears, labels = labelsfyears) +
+    scale_y_continuous(limits = c(0,12), breaks = ..3) +
+    labs(y = "Log(Fangst), tonn", x = "") +
+    theme_fisk2())
+
+file_names <- paste0("figs/municipality_logcatch", "_", names(catch_mpp), ".pdf")
+ map2(file_names, plots3, ggsave)
+```
+## All species and all 6 municipalities
+```{r}
+visitedmp_final_log <- visitedmp_final %>% 
+  mutate(log_catch = log(Total_catch+ 1))
+
+library(wesanderson)
+
+plot4 <- ggplot(data = visitedmp_final_log, mapping = aes(x = Year, y = log_catch)) +
+    geom_line(aes(color = English),size = 0.7) +
+    geom_point(aes(color = English), size = 1) +
+    scale_color_brewer(type = qual, palette = "RdYlGn", direction = -1, name = "Art") +
+    facet_wrap(Municip_name ~ .) +
+    scale_x_continuous(breaks = breaksfyears, labels = labelsfyears) +
+    scale_y_continuous(breaks = breaksfcatch) +
+    labs(y = "Log(Fangst), tonn", x = "") +
+       theme_stata(scheme = "s2color") + 
+    theme(
+      axis.text.x = element_text(
+        size = 8, angle = 90, hjust = 1, vjust = 0.5,
+        face = "bold"),
+      axis.text.y = element_text(size = 10, angle = 0, face = "bold"),
+      axis.title.y = element_text(margin = margin(t = 0, r = 15, b = 0, l = 0), face = "bold", size = 12),
+      plot.title = element_text(hjust = 0.5, vjust = 0.5, face = "bold"),
+      axis.ticks.x = element_line(size = 0.5),
+      axis.ticks.length = unit(0.2, "cm"),
+      strip.text = element_text(size = 12, face = "bold") 
+    )
+ ggsave("figs/logcatch_in_workshop_municipalities.pdf", plot4)
+```

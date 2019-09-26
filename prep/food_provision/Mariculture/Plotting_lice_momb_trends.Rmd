@@ -1,0 +1,25 @@
+---
+title: "Plotting trends in lice and momb"
+author: "*Compiled on `r date()` by `r Sys.info()['user']`*"
+output: 
+  html_document:
+    css: '~/github/nor-prep/prep/templates/style.css'
+    toc: true
+    number_sections: true
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: '~/github/nor-prep/prep/templates/norway_banner.html'
+  pdf_document:
+    toc: true
+---
+
+```{r message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(message = FALSE, warning= FALSE, message = FALSE)
+source('~/github/nor-prep/prep/src/common.R')
+```
+
+```{r libraries, results="hide"}
+library(ggthemes)
+library(ghibli)
+```
