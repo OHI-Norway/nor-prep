@@ -198,6 +198,6 @@ catch2018_final <- catch2018_prep2 %>%
 # Mering old and new catch data
 ```{r}
 catch_merged <- bind_rows(catch_final, catch2018_final, krabnew_final)
-#write_csv(catch_merged,"data/fish_catch_by_municipality_newcrab.csv")
+#write_csv(catch_merged,"data/fish_catch_by_municipality_update2018.csv")
 ```
 
