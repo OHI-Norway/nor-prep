@@ -151,6 +151,9 @@ names(catch2018_prep) <-str_replace(names(krabnew), "-", "_") %>%
   gsub(" ","",.) %>% 
   gsub("/","",.)
 
+```
+
+```{r include=FALSE}
 #Check if names of fishes were writen differently
 str_view(catch2018_prep$Art_gruppe, regex("torsk", ignore_case = TRUE))#Torsk
 str_view(catch2018_prep$Art_gruppe, regex("sild", ignore_case = TRUE))#Sild, norsk vårgytende
@@ -158,6 +161,7 @@ str_view(catch2018_prep$Art_gruppe, regex("hyse", ignore_case = TRUE))# Hyse
 str_view(catch2018_prep$Art_gruppe, regex("sei", ignore_case = TRUE))#Sei
 str_view(catch2018_prep$Art_gruppe, regex("lodde", ignore_case = TRUE))#Lodde
 ```
+
 
 ```{r}
 
