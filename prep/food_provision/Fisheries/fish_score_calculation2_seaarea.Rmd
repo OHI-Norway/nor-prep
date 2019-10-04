@@ -30,8 +30,8 @@ library(kableExtra)
 
 # Importing formatted catches and stocks data
 ```{r }
-ices <- read.csv("data/ices_stock_stats.csv")
-catch <- read.csv("data/fish_catch_by_municipality.csv")
+ices <- read.csv("data/ices_updated_2018.csv")
+catch <- read.csv("data/fish_catch_by_municipality_update2018.csv")
 seaarea <-read_excel(file.path(dir_M[2], "Fishery/DeliveryDataFiskDir/KommArea.xlsx"))
 ```
 
@@ -97,15 +97,14 @@ fish_nor_score <-fish_nor_estim %>% #estimating sustainability score for each st
                                     ))
 ```
 
-# Examing the distribution of total catch by species regardless of municipality
+# Examining the distribution of total catch by species regardless of municipality
 ```{r}
-catch_dist <-ggplot(data =fish_nor_score)+
-   geom_density_ridges(aes(y = Species, x = Year, fill = Species))+
-  scale_x_continuous(breaks = seq(1992,2018,4))+
-  labs(x = "")+
-   scale_fill_viridis_d(option = "D", alpha = 0.6)+
-  
-    theme_igray()
+catch_dist <- ggplot(data = fish_nor_score) +
+  geom_density_ridges(aes(y = Species, x = Year, fill = Species)) +
+  scale_x_continuous(breaks = seq(1994, 2018, 4)) +
+  labs(x = "") +
+  scale_fill_viridis_d(option = "D", alpha = 0.6) +
+  theme_igray()
 catch_dist
 ```
 
@@ -117,7 +116,7 @@ seaarea <- seaarea %>%
           mutate(Komnum = as.character(Komnum))   
 
 weighted_biomass_score <- fish_nor_score %>% #biomass per area weighted by maximal biomass per area
-                          left_join(seaarea[,c("Havflate", "Komnum")], by = c("Municip_number" = "Komnum")) %>% 
+                        left_join(seaarea[,c("Havflate", "Komnum")], by = c("Municip_number" = "Komnum")) %>% 
                          rename("Seaarea" = "Havflate") %>% 
                          mutate(biomass.area = Total_catch_new/Seaarea) %>% 
                          group_by(Species) %>% 
@@ -125,6 +124,11 @@ weighted_biomass_score <- fish_nor_score %>% #biomass per area weighted by maxim
                          ungroup() %>% 
                          mutate(weighted.biomass = biomass.area/max.biomass.area) %>% 
                          mutate(weighted.biomass.sc = weighted.biomass*stock_score)
+
+#Check the basic stats for weighted biomass score:
+mosaic::fav_stats(weighted_biomass_score$biomass.area)
+# min     Q1 median   Q3  max mean   sd    n missing
+#  0.000000578 0.0397  0.227 1.03 64.1 1.35 3.67 5563  0
 ```
 
 
@@ -188,7 +192,7 @@ plot2<- ggplot(smoothed_weighted_biomass_score) +
 #And a trucnated version
 plot3<- ggplot(smoothed_weighted_biomass_score) +
   geom_boxplot(aes(Species, biomass.area), color = "darkgreen", alpha = 0.7, fill = "transparent", outlier.color = "red") +
-  scale_y_continuous(limits = c(0,50))+
+  scale_y_continuous(limits = c(0,30))+
   labs(x = "")
   
 plot2
@@ -227,7 +231,7 @@ newtable
 ```
 
 
-# Calculate final fisheries scores based smoothed weighted catches per area
+# Calculate final fisheries scores based on smoothed weighted catches per area
 ```{r}
 final_scores_smoothed_area <- smoothed_weighted_biomass_score %>%
                   group_by(Year, Municip_number, Municip_name_new) %>% 
@@ -244,27 +248,6 @@ mosaic::fav_stats(final_scores_smoothed_area$fish_score)
 plot<- ggplot(final_scores_smoothed_area) +
         geom_density(aes(fish_score), fill = "blue", color = "navy", alpha = 0.7)
 plot 
-```
-
-
-# Option: applying rolling mean to the final fisheries score based on non-smoothed catches
-(if not applying rolling mean already on catches)
-```{r}
-municipalities <-unique(fish_nor_score$Municip_name_new)
-
-finallist2 <- list()
-for (i in 1:length(municipalities))
-{
-  mp <- municipalities[i]
-  dfmp <- final_scores_area %>%
-    filter(Municip_name_new == mp)
-  runmean <- data.frame(runmean = rollapply(dfmp$fish_score, width = 5, FUN = mean, fill = NA)) # 5 steps rolling mean has a better effect than 3-steps
-  dfall <- bind_cols(dfmp, runmean)
-  finallist2[[i]] <- dfall
-}
-smoothed_final_scores <- do.call("rbind", finallist2)
-colSums(is.na(smoothed_final_scores)) 
-
 ```
 
 # Using 0.75th quartile of catch per area as a target
@@ -289,6 +272,8 @@ final_scores_smoothed_area_q75 <- smoothed_weighted_biomass_score_quantile %>%
                   mutate(total_tons = sum(catch_runmean)) %>%
                   mutate(catch_prop = catch_runmean/total_tons) %>% 
                   summarize(fish_score = sum(weighted.biomass.sc*catch_prop*100))
+
+write.csv(final_scores_smoothed_area_q75, "data/fish_score_smoothed_seaarea.csv")
 ```
 
 # Quick-check of the distribution of area-weighted final score based on 0.75th qunatile
