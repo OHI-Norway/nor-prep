@@ -24,9 +24,9 @@ library(zoo)
 ###Load the data tables
 ```{r}
 fish_nor_weight <- read.csv("data/catch_weighted_score.csv")
-fish_nor_score <-read.csv ("data/sustain_score.csv")
-ices_clean <- read.csv("data/ices_stock_stats")
-final_scores <-read.csv("data/fishery_final_score.csv")
+# fish_nor_score <-read.csv ("data/sustain_score.csv")
+ices_clean <- read.csv("data/ices_updated_2018.csv")
+final_scores <-read.csv("data/fish_score_smoothed_seaarea.csv")
 ```
 
 ###Overview of fisheries data and scores with ggplots:
@@ -60,7 +60,7 @@ ggplot(plot_catches, aes(x = Year, y = catch_prop, fill= Species))+
 
 ###Total catch per species and municipality (figures are uploaded as pdf) 
 ```{r message=FALSE} 
-stocks_bycounty <-fish_nor_score %>% 
+stocks_bycounty <-fish_nor_weight %>% 
              mutate(county = case_when(
                                     Municip_number >= 1800 &  Municip_number < 1900 ~ "Nordland",
                                     Municip_number >= 1900 &  Municip_number < 2000 ~ "Troms",
@@ -93,14 +93,14 @@ for(i in 1:length(counties))
   plot <- ggplot(df2)+
       geom_col(aes(x = Year, y = log_catch), fill = "dodgerblue4")+
       facet_wrap(Municip_name_new  ~ .) +
-     # scale_y_continuous(limits = c(0,10))+
       scale_x_continuous(breaks = breaks1, labels = labels1)+
+      scale_y_continuous(limits = c(0,12), breaks = seq(0, 12, by = 2)) +
       labs(y = "log(Total catch)", x = "") +
       ggtitle(paste(cty, "_", sp))+
       theme_stata(scheme = "s1color") +
       theme(legend.position = "none", 
-            axis.text.x = element_text(size = 6, angle = 90, hjust = 1, vjust = 0.5, face = "bold"),
-            axis.text.y = element_text(size = 7, face = "bold", margin = margin(t = 0, r = 5, b = 0, l = 0)),
+            axis.text.x = element_text(size = 5, angle = 90, hjust = 0.5, vjust = 0.5, face = "bold"),
+            axis.text.y = element_text(size = 6, face = "bold", hjust = 0.5, vjust = 0.5, margin = margin(t = 0, r = 2, b = 0, l = 0)),
             plot.title = element_text(hjust=0.5, vjust=0.5),
             axis.ticks.x = element_line(size = 0.5),
             axis.ticks.length = unit(0.2, "cm"))
@@ -124,7 +124,7 @@ ggsave(paste0("figs/catch_", cty, "_", sp, ".pdf"), plot)
 ices_spp <-unique(ices_clean$Species)
 
  ices_plotprep <- ices_clean %>% 
-       filter(Year == c("1994":"2017")) %>% 
+       filter(Year >= 1994) %>% 
        select(Year, Species, SSB, Bmsy, Blim) %>% 
        mutate(SSB = as.numeric(as.character(SSB))) %>% 
        mutate(Year = as.numeric(as.character(Year)))
@@ -205,8 +205,9 @@ ggsave(paste0("figs/fishery_score","_", cty, ".pdf"), plot)
 
 ```
 
-###Re-estimating fisheries sustainability score by smoothing it with a rolling average (zoo package)
-```{r}
+
+```{r inlcude = FALSE}
+#Re-estimating fisheries sustainability score by smoothing it with a rolling average (zoo package)
 municipalities <-unique(final_scores$Municip_name_new)
 
 finallist <-list()
