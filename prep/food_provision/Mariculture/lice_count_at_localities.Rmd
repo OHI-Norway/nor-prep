@@ -324,7 +324,7 @@ lice_replaced_prep <- map(lice_municips, ~ as.data.frame(.x)) %>%
   map(., ~ gapfill(.x,2)) 
 
 lice_gapfilled <- do.call("rbind", lice_replaced_prep) %>%
-  rename(Municip_number = Komnum_new, Municip = Kommune_new, momb_gapfilled = replaced) %>%
+  rename(Municip_number = Komnum_new, Municip = Kommune_new, gapfilled = replaced) %>%
   mutate(gf = ifelse(is.na(below_lice), "y", "n"))
 
 #write_csv(lice_gapfilled, "data/lice_below_thr_gapfilled.csv")
