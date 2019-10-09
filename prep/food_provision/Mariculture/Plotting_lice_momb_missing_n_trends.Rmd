@@ -1,0 +1,102 @@
+---
+title: "Plotting lice and momb data per municipality"
+author: "*Compiled on `r date()` by `r Sys.info()['user']`*"
+output: 
+  html_document:
+    css: '~/github/nor-prep/prep/templates/style.css'
+    toc: true
+    number_sections: true
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: '~/github/nor-prep/prep/templates/norway_banner.html'
+  pdf_document:
+    toc: true
+---
+
+```{r message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(message = FALSE, warning= FALSE, message = FALSE)
+source('~/github/nor-prep/prep/src/common.R')
+```
+
+```{r libraries, results="hide"}
+library(ggthemes)
+library(ghibli)
+library(gridExtra)
+```
+
+# Visualize proporitons of missing data in lice
+```{r}
+lice <-read.csv("data/lice_below_thr_gapfilled.csv") 
+momb <-read.csv("data/mean_momb_mp_yr_gapfilled.csv")
+#produciton <-read.csv(..)
+```
+
+
+# Visualize proporitons of missing data in momb
+## Merge the tables
+```{r}
+akva_data <- full_join(lice,momb, by = c("Year", "Municip_number" = "Komnum_new", "Municip"="Kommune_new")) %>% 
+  select(Year, Municip_number,Municip, below_lice,momb_mean) %>% 
+  rename(lice = below_lice, momb = momb_mean)
+```
+```{r}
+plotmissing1 <- akva_data %>% 
+  gather(c(lice, momb), key = "variable", value = "value") %>% 
+  mutate(isna = is.na(value)) %>% 
+  group_by(variable) %>%
+  mutate(total = n()) %>%
+  group_by(variable, total, isna) %>%
+  summarise(num.isna = n()) %>%
+  mutate(pct = num.isna / total * 100)
+
+levels <- (plotmissing1  %>% filter(isna == T) %>%     
+           arrange(desc(pct)))$variable
+  
+```
+
+```{r}
+percentage.plot <- plotmissing1 %>%
+      ggplot() +
+        geom_bar(aes(x = reorder(variable, desc(pct)), 
+                     y = pct, fill=isna), 
+                  stat = 'identity', alpha=0.8) +
+        scale_x_discrete(limits = levels) +
+        scale_fill_manual(name = "", 
+                          values = c('steelblue', 'tomato3'), 
+                          labels = c("Present data", "Missing data")) +
+        coord_flip() +
+        labs(title = "Percentage of missing values", 
+             x = 'Variable', y = "% of missing values") +
+      theme_bw() +
+      theme(panel.border = element_rect(color = "white"),
+            axis.text =  element_text(size = 12),
+            legend.text = element_text(size = 12))
+percentage.plot
+```
+
+```{r}
+row.plot <- akva_data %>%
+  mutate(id = row_number()) %>%
+  gather(c(lice, momb), key = "variable", value = "value") %>%
+  mutate(isna = is.na(value)) %>%
+  ggplot(aes(variable, id, fill = isna)) +
+    geom_raster(alpha=0.8) +
+    scale_fill_manual(name = "",
+        values = c('steelblue', 'tomato3'),
+        labels = c("Present", "Missing")) +
+    scale_x_discrete(limits = levels) +
+    labs(x = "Variable",
+           y = "Row Number", title = "Missing values in rows") +
+    coord_flip() +
+   theme_bw() +
+      theme(panel.border = element_rect(color = "white"),
+            axis.text =  element_text(size = 12),
+            legend.text = element_text(size = 12))
+row.plot
+```
+
+```{r fig.width=9, fig.height=5}
+grid.arrange(percentage.plot, row.plot, ncol = 2)
+```
+
