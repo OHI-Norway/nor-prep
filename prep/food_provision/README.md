@@ -15,7 +15,7 @@ Stock parameters: SSB, Blim, Bmsy | International Council of The Exploration of 
 
 
 ### 2.  Aquaculture
-Aquacultue index measures sustainability and efficiency of aquaculture produciton in Northern Norway.
+Aquacultue index measures sustainability and efficiency of aquaculture production in Northern Norway.
  
   **Data souces**
   
