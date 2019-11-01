@@ -1,0 +1,239 @@
+---
+title: "Escapees counts per municipality"
+author: "*Compiled on `r date()` by `r Sys.info()['user']`*"
+output: 
+  html_document:
+    css: '~/github/nor-prep/prep/templates/style.css'
+    toc: true
+    number_sections: true
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: '~/github/nor-prep/prep/templates/norway_banner.html'
+  pdf_document:
+    toc: true
+---
+
+# Loading libraries
+```{r message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(message = FALSE, warning= FALSE)
+source('~/github/nor-prep/prep/src/common.R')
+```
+
+```{r include=FALSE}
+library(readr)
+library(janitor)
+library(stringr)
+library(qdap)
+library(kableExtra)
+library(docxtractr)
+```
+
+# Reading escapees data tables from Word document
+```{r}
+escap_docx <-read_docx(file.path(dir_M[2], "Aquaculture/Escapees/Rømninger2006-2016.docx"))
+escap_tbl <- docx_extract_all_tbls(escap_docx)
+komlist<- read.csv("../../administrative/komlist.csv", sep = ";")
+licenses <-read.csv("data/aquaculture_lisences_northnorway_2010_2018.csv")
+```
+
+
+```{r}
+selected_tables <- map_lgl(escap_tbl, ~ nrow(.x) >= 10) 
+escap_tbl_prep <- escap_tbl[selected_tables]
+
+escap_tbl_prep2 <-  escap_tbl_prep[map_lgl(escap_tbl_prep, ~ ncol(.x) == 9)]
+escap_tbl_prep2_gjenfangst <-  escap_tbl_prep[map_lgl(escap_tbl_prep, ~ ncol(.x) == 10)]
+```
+
+```{r}
+
+escap_tbl_prep3 <- escap_tbl_prep2 %>%
+  map(., ~ setNames(.x, c(
+    "county", "company_name", "location_number",
+    "species", "size", "escape_date",
+    "escapees_count_prod1", "escapees_count_fishdir",
+    "escapees_count_prod2"
+  ))) %>%
+  map(., ~ mutate(.x, recatched_count = rep(NA, length(county))))
+```
+
+```{r}
+escap_tbl_prep3_gjenfangst <- escap_tbl_prep2_gjenfangst %>% 
+  map(.,  ~ setNames(.x, c("county", "company_name",  "location_number", 
+                           "species", "size", "escape_date",
+                           "escapees_count_prod1", "escapees_count_fishdir",
+                           "escapees_count_prod2", "recatched_count")))
+```
+
+
+```{r}
+escap_prep4 <- do.call("rbind", c(escap_tbl_prep3, escap_tbl_prep3_gjenfangst))
+```
+
+```{r}
+catch_year <- function(text) {
+  lastdig <- str_extract(text, "([:digit:]){2}$")
+  year = str_c("20", lastdig)
+  year
+}
+```
+
+```{r}
+escap_prep5 <- escap_prep4 %>%
+  filter(company_name != "" & county != "") %>%
+  filter(county != "Fylke") %>%
+  filter(county %in% c("N", "T", "F")) %>%
+  mutate(year = catch_year(escape_date)) %>%
+  filter(species %in% 
+           c(
+    str_extract("Laks", fixed(species, ignore_case = T)),
+    str_extract("Rb.ørret", fixed(species, ignore_case = T))
+    )) %>%
+  mutate_at(
+    .vars = vars(c(
+      "location_number",
+      "escapees_count_prod1",
+      "escapees_count_fishdir",
+      "escapees_count_prod2",
+      "recatched_count"
+    )),
+    .funs = ~ str_replace(., "\\s", "")
+  ) %>%
+  mutate_at(
+    .vars = vars(c(
+      "escapees_count_prod1",
+      "escapees_count_fishdir",
+      "escapees_count_prod2",
+      "recatched_count"
+    )),
+    .funs = funs(as.numeric)
+  ) %>%
+  rowwise() %>%
+  mutate(escap_final = sum(escapees_count_prod1,
+    escapees_count_prod2,
+    escapees_count_fishdir,
+    -recatched_count,
+    na.rm = T
+  ))
+```
+
+
+I used aquaculture registry to get the geogprahical locaiton of all the companies in the escapees data.
+However, when I tired to match aquaculture registry with escapees data by location numbers, I got 13 mismatches (locaitons, not occuring in aquaculture registry, one of them is transportation boat).
+All these locaitons have escapees data for 2006 - 2015. So, I assume that those are companies that shut down or were sold to other companies, or have moved to other locaitons.
+
+
+# Merge escapees data with lisences data
+I identified duplicates after merging escapees with municipalities in lice data: <span style="colour:blue">Håløy Havservice AS</span> (municipality must be 1903 - Harstad), 
+and <span style="color:blue">Nordlaks Oppdrett AS</span> (municipality must be 1903 - Harstad). In both cases duplicates were due to Harstad merged with Bjarkoy in 2013. 
+One of the <span style="color:blue">Jøkelfjord Laks AS</span> data rows did not have location and municipality, I will assume they are the same as in another data row (loc 10808 and municip 1943) 
+
+
+```{r}
+#get a list of unique location names
+names(licenses) <- gsub("Ø", names(licenses), replacement = "O") %>%
+    gsub("Å", ., replacement = "A") %>%
+    str_to_lower(.)
+
+totlocs_mp <- licenses %>%
+  filter(vannmiljo == "SALTVANN") %>%
+  group_by(lok_nr,lok_komnr, lok_kom) %>%
+  summarize(nlocs = n_distinct(lok_nr)) 
+
+escap_prep6 <- escap_prep5 %>% 
+  mutate(location_number = as.integer(location_number)) %>% 
+  left_join(totlocs_mp[,c(1,2,3)], by = c("location_number" = "lok_nr")) 
+  
+```
+There are duplicated rows after merging with liceses data frame. The duplicates are row 65 and 71 (Håløy Havservice AS and Nordlaks Oppdrett AS).
+Both companies are in Harstad which after 2013 was not merged with Bjarkoy municipality. That's why duplicates occured.
+```{r}
+foo <-escap_prep6[,-14]
+which(duplicated(foo) == 1) 
+#[1] 65 71
+```
+
+
+```{r}
+escap_prep7 <- escap_prep6 %>% 
+  select(-lok_kom) %>% 
+  distinct(., location_number, escape_date, .keep_all = T) %>% 
+  mutate(lok_komnr = replace(lok_komnr, location_number == 32257, "1903" )) %>% 
+  mutate(lok_komnr = replace(lok_komnr, location_number == 11378, "1903" )) %>% 
+  mutate(location_number = replace(location_number, company_name == "Jøkelfjord Laks AS", "10808")) %>% 
+  mutate(lok_komnr = replace(lok_komnr, company_name == "Jøkelfjord Laks AS", "1943"))
+```
+
+
+##  Exploring missing data: which companies did not have municipality number after merging escapees and lice data?
+```{r}
+nas <- filter(escap_prep7, is.na(lok_komnr)) %>% 
+      group_by(company_name, location_number) %>% 
+      summarize(n = n()) #12 companies did not have info on locaiton, I get info by  google serach.
+```
+
+##  Loading back the missing companies data 
+I have found the locations for these companies on internet.
+```{r}
+missing <-data.table::fread("./data/missing_companies.csv",select = c(2,3,5), encoding = "UTF-8")
+```
+
+## Getting municipality number for companies with no municipality location registered
+I remove  <span style="color:blue">Hammerfest Lakseslakteri</span> and  <span style="color:blue">Victoria Lady (brønnbåt)</span> and because they don't have location numbers. 
+```{r}
+missing_prep <-left_join(missing, komlist[,c(1,2)], by = c("municip" = "Name")) %>% 
+                mutate(location_number = as.character(location_number)) %>% 
+                mutate(company = as.character(company)) %>% 
+                filter(!company %in% c("Victoria Lady (brønnbåt)","Hammerfest Lakseslakteri")) 
+              
+          
+missing_final <-filter(escap_prep7, is.na(lok_komnr)) %>% 
+     group_by(company_name, location_number) %>% 
+     left_join(missing_prep, by = c("company_name" = "company", "location_number")) %>% 
+     ungroup() %>% 
+     mutate(lok_komnr = Komnum) %>% 
+     mutate(lok_komnr = as.character(lok_komnr)) %>% 
+     select(-c(municip, Komnum))
+```
+
+Merging did not work for <span style="color:blue">Sjølaks AS</span> ,I suspect due to special character ø which dplyr sometimes does not recognize
+```{r}
+
+#I delete Victoria Lady (brønnbåt) - it does not have municipality
+#I add Hammerfest municipality to the row of Hammerfest Lakseslakteri, but locaiton number for this company is unknown.
+komlist <- komlist %>% 
+  mutate(Komnum = as.character(Komnum))
+
+escap_fin <-bind_rows(filter(escap_prep7, !is.na(lok_komnr)), 
+                             missing_final) %>% 
+          mutate(lok_komnr = replace(lok_komnr, company_name == "Sjølaks AS", "1943")) %>% 
+          mutate(lok_komnr = replace(lok_komnr, company_name == "Hammerfest Lakseslakteri", "2004")) %>% 
+          filter(!company_name == "Victoria Lady (brønnbåt)") %>% 
+          left_join(komlist[,c(1,2)], by = c("lok_komnr"  = "Komnum")) %>% 
+          rename("kommunenavn" = "Name") 
+```
+
+## How many locations per municipality for each year  and what is the range of escapees count?
+```{r}
+#Most of the municipalities had just one ovservation from a single locaiton each year. 
+#Number of escapees within same municipality may vary considerabely, thus we should not average them.
+
+escap_range <-escap_fin  %>% 
+             group_by(year, lok_komnr, species) %>% 
+             summarize(locperyear = n(),min_escap = min(escap_final), max_escap = max(escap_final)) 
+
+kable(escap_range) %>% 
+    kable_styling("striped", full_width = T) %>% 
+     column_spec(1:6,bold = T) 
+```
+
+# Aggreagte escapees counts per municiaplity per year  
+```{r}
+escap_pmp <-escap_fin  %>% 
+             #mutate_at(c(8:12), as.numeric) %>% 
+             group_by(year, lok_komnr, kommunenavn) %>% 
+             summarize(escaped_permp = sum(escap_final))
+
+#write_csv(escap_pmp,"./data/escapees_per_yrmpspp.csv")
+```
