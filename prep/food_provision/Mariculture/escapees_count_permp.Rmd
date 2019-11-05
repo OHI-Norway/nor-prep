@@ -233,7 +233,8 @@ kable(escap_range) %>%
 escap_pmp <-escap_fin  %>% 
              #mutate_at(c(8:12), as.numeric) %>% 
              group_by(year, lok_komnr, kommunenavn) %>% 
-             summarize(escaped_permp = sum(escap_final))
+             summarize(escaped_permp = sum(escap_final)) %>% 
+             mutate(escaped_permp = as.integer(escaped_permp))
 
 #write_csv(escap_pmp,"./data/escapees_per_yrmpspp.csv")
 ```
