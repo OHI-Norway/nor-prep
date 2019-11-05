@@ -2,7 +2,7 @@
 title: "Fisheries score"
 output: 
   flexdashboard::flex_dashboard:
-    orientation: columns
+    orientation: rows
     vertical_layout: fill
     theme: cerulean
     css: "~/github/nor-prep/prep/templates/flexdash.css"
@@ -11,6 +11,7 @@ runtime: shiny
 
 ```{r global, include=FALSE}
 library(flexdashboard)
+library(sf)
 library(readr)
 library(leaflet)
 library(DT)
@@ -19,92 +20,198 @@ library(lubridate)
 library(plotly)
 library(shiny)
 library(shinyWidgets)
+library(mapdata)
+library(maptools)
+library(rgdal)
+library(maps)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(cowplot)
+library(scico)
+library(kableExtra)
+library(DT)
+
 
 #LOAD THE DATA HERE
-# trips_df <- read_csv('http://s3.amazonaws.com/assets.datacamp.com/production/course_6961/datasets/sanfran_bikeshare_joined_oneday.csv') %>%
-#   mutate(duration_min = duration_sec / 60,
-#          start_hour = hour(start_date)) %>%
-#   filter(duration_min <= 8 * 60) # remove trips longer than 8 hours as suspicious data quality
+fishscore <-read.csv("./data/fish_score_smoothed_seaarea.csv")
+
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+allkommuner <-readOGR(dsn = "/Users/marinaespinasse/github/nor-prep/prep/administrative/raw/shapefiles/NO_AdminOmrader")
+komlist <-read.csv("../../administrative/komlist.csv", sep = ";")
+komlist <-filter(komlist, !Name == "NonCoast")
+ohikom <-allkommuner[allkommuner$KOMM %in% komlist$Komnum,] 
+kommuner.pol <- spTransform(ohikom, CRS("+proj=longlat +ellps=GRS80"))
+kommunersf <- sf::st_as_sf(ohikom, coords= c("long", "lat"),crs = 4326, agr="identity")
+
+nordland <-filter(fishscore, Municip_number > 1800 & Municip_number < 1900)
+nordland_list <- nordland  %>%
+  distinct(Municip_name_new) %>% select(Municip_name_new) %>% pull()
+
 ```
+
+
 
 Fisheries score per municipality and year
 =======================================================================
 
-Column {data-width=250 .sidebar }
+Column {data-height=250 .sidebar }
 -----------------------------------------------------------------------
+### Choose year (map) and municipality (trends)
 ```{r}
-sliderInput("year_slider", 
-            label = "Select year",
-            min = 1995, 
-            max = 2012, 
-            value = 1995)
 
- sliderInput("integer", "Integer:",
-                  min = 1995, max = 2012,
-                  value = 1996)
+selectInput("daterange1", "Date range:",
+            choices = c(1995:2016))
+
+
+selectInput("municipality", "Select municipality:",
+                  list(`Nordland` = nordland_list,
+                      `Troms` = list("WA", "OR", "CA"),
+                       `Finnmarj` = list("MN", "WI", "IA"))
+                 )
+
+# sliderTextInput(
+#   inputId = "year_slider", 
+#   label = "Select year:", 
+#   grid = TRUE, 
+#   force_edges = TRUE,
+#   choices =  as.character(seq(1995, 2012, by = 1))
+# )
+  
+
+
+fishscore_oneyear <- reactive({
+  fishscore %>%
+    filter(Year == input$daterange1) 
+})
+
+fishscore_plot  <- reactive({
+  fishscore_oneyear() %>% 
+  left_join(kommunersf, by = c("Municip_number" = "KOMM")) %>% 
+  filter(!is.na(Municip_name_new)) %>% 
+  st_as_sf()
+}) 
  
-  selectInput("daterange1", "Date range:",
-            choices =1995:2012)
-  
-sliderTextInput(
-  inputId = "year_slider", 
-  label = "Select year:", 
-  grid = TRUE, 
-  force_edges = TRUE,
-  choices =  as.character(seq(1995, 2012, by = 1))
-)
-  
-  
-  
 
-show_trips_df <- reactive({
+```
 
-  trips_df %>%
-    filter(start_hour >= input$start_slider[1] &
-             start_hour <= input$start_slider[2])
+
+Column {data-hright=650 .bgred }
+-----------------------------------------------------------------------
+### Fishereis score map {.second-chart}
+```{r}
+plot1 <- ggplot(data = world) +
+  geom_sf()+
+   geom_sf(fill = "antiquewhite1", color = "grey")+
+   coord_sf(xlim = c(10, 32), ylim = c(65,72), expand = FALSE) +
+theme(panel.grid.major = element_line(color = gray(0.5), linetype = "dashed", 
+        size = 0.5), panel.background = element_rect(fill = "aliceblue"),
+        axis.ticks= element_line(size = 1),
+        axis.ticks.length = unit(0.2, "cm"),
+        axis.text = element_text(size = 15, colour = "black"),
+        plot.title = element_text(size = 15, hjust = 0.5, vjust = 0.5),
+        legend.text = element_text(face = "bold"),
+        legend.title = element_text(face = "bold"))
+
+
+renderPlot({plot1 +
+   ggtitle(fishscore_plot()$Year) +
+   geom_sf(data = fishscore_plot(), aes(fill = fish_score), color = "black", size = 0.3) + 
+  scale_fill_scico(palette = 'tokyo', alpha = 0.95, name = "Fisheries \n score ") +
+   #scale_fill_viridis_c(option = "C", alpha = 0.85, begin=0, end = 0.8, name= "Fisheries \n score ")+
+   coord_sf(xlim = c(10, 32), ylim = c(65,72), expand = FALSE)+
+   labs(x = "", y = "") +
+   geom_sf(data = world, fill = "antiquewhite1", color = "gray", size = 0.2) +
+   coord_sf(xlim = c(10, 32), ylim = c(65, 72)) +
+   geom_path(kommuner.pol, mapping = aes(x = long, y = lat, group = id), color = 'dimgray',  size = 0.2)
+}) 
+```
+
+
+
+
+Column {data-height=350 .bgred }
+-----------------------------------------------------------------------
+
+### Summary stats of the fishereis score {.second-chart}
+
+```{r}
+fishstat_oneyear <- reactive({
+  fishscore %>%
+    filter(Year == input$daterange1) 
+})
+
+#helpText("Summary stats for fisheries score in")
+
+
+renderTable({
+    mosaic::fav_stats(fishstat_oneyear()$fish_score,
+                      striped = TRUE,
+                      hover = TRUE,
+                      bordered = TRUE,
+                      align = "c",
+                      digits = 2) 
 
 })
 
 
+
+
 ```
 
 
 
-Column {data-width=350 .bgred }
------------------------------------------------------------------------
-
-### Box 1 {.first-chart}
-
+### Trends in score in one municipality {.third-chart}
 ```{r}
+#https://plotly-r.com/scatter-traces.html
+#http://127.0.0.1:3570/flexdash_fisheries_score.Rmd
+
+
+fishscore_onempp <- reactive({
+  fishscore %>%
+    filter(Municip_name_new == input$municipality) 
+})
+
+#Simple plot, good for practising!
+
+# renderPlot({
+# fishscore_onempp() %>%
+#   ggplot(aes(x = fish_score)) +
+#         theme_bw() +
+#         geom_histogram() +
+#     ggtitle(fishscore_onempp()$Municip_name_new)
+# })
+
+
+breaks <-seq(1994, 2018, by = 1)
+labels <- as.character(breaks)
+labels[!breaks%%2==0]<- ""
+
+renderPlotly({
+  p <- fishscore_onempp() %>%
+  ggplot(aes(x = Year, y = fish_score)) + 
+    geom_line(color  = "darkseagreen", size = 1.5) +
+    geom_point(shape = 21, color = "darkseagreen", size = 2) +
+    scale_x_continuous(breaks = breaks, labels = labels) +
+    labs(x = "", y = "Score") +
+    ggtitle(input$municipality) +
+    theme_minimal_hgrid(12) +
+    theme(
+      axis.text = element_text(size = 12, angle = 0, face = "bold"),
+      axis.title = element_text(margin = margin(t = 0, r = 15, b = 0, l = 0), face = "bold", size = 12),
+      axis.ticks = element_line(size = 0.5, color = "grey97"),
+      axis.ticks.length = unit(0.2, "cm"),
+      panel.background = element_rect(fill = "ghostwhite"))
+      # panel.grid.major.x = element_line(color = "seashell3", size = 0.7),
+      # panel.grid.major.y = element_line(color = "seashell3", size = 0.7),
+      # panel.grid.minor.y = element_line(color = "seashell3", size = 0))
+})
 
 ```
 
-### Chart C
 
-```{r}
 
-```
 
-### Chart D
 
-```{r}
 
-```
-
-Trends in fisheries score
-=======================================================================
-Column {data-width=250}
------------------------------------------------------------------------
-
-### Chart A
-```{r sidebar}
-
-```
-
-Column {data-width=550}
------------------------------------------------------------------------
-### Chart B
-```{r}
-
-```
 
