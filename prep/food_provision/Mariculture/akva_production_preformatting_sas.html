@@ -2,7 +2,7 @@
 <html>
 <head><meta charset="utf-8" />
 
-<title>aka_production</title>
+<title>Untitled1</title>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
@@ -12996,8 +12996,10 @@ ul.typeahead-list  > li > a.pull-right {
 .highlight .mh { color: #666666 } /* Literal.Number.Hex */
 .highlight .mi { color: #666666 } /* Literal.Number.Integer */
 .highlight .mo { color: #666666 } /* Literal.Number.Oct */
+.highlight .sa { color: #BA2121 } /* Literal.String.Affix */
 .highlight .sb { color: #BA2121 } /* Literal.String.Backtick */
 .highlight .sc { color: #BA2121 } /* Literal.String.Char */
+.highlight .dl { color: #BA2121 } /* Literal.String.Delimiter */
 .highlight .sd { color: #BA2121; font-style: italic } /* Literal.String.Doc */
 .highlight .s2 { color: #BA2121 } /* Literal.String.Double */
 .highlight .se { color: #BB6622; font-weight: bold } /* Literal.String.Escape */
@@ -13008,49 +13010,12 @@ ul.typeahead-list  > li > a.pull-right {
 .highlight .s1 { color: #BA2121 } /* Literal.String.Single */
 .highlight .ss { color: #19177C } /* Literal.String.Symbol */
 .highlight .bp { color: #008000 } /* Name.Builtin.Pseudo */
+.highlight .fm { color: #0000FF } /* Name.Function.Magic */
 .highlight .vc { color: #19177C } /* Name.Variable.Class */
 .highlight .vg { color: #19177C } /* Name.Variable.Global */
 .highlight .vi { color: #19177C } /* Name.Variable.Instance */
+.highlight .vm { color: #19177C } /* Name.Variable.Magic */
 .highlight .il { color: #666666 } /* Literal.Number.Integer.Long */
-    </style>
-<style type="text/css">
-    
-/* Temporary definitions which will become obsolete with Notebook release 5.0 */
-.ansi-black-fg { color: #3E424D; }
-.ansi-black-bg { background-color: #3E424D; }
-.ansi-black-intense-fg { color: #282C36; }
-.ansi-black-intense-bg { background-color: #282C36; }
-.ansi-red-fg { color: #E75C58; }
-.ansi-red-bg { background-color: #E75C58; }
-.ansi-red-intense-fg { color: #B22B31; }
-.ansi-red-intense-bg { background-color: #B22B31; }
-.ansi-green-fg { color: #00A250; }
-.ansi-green-bg { background-color: #00A250; }
-.ansi-green-intense-fg { color: #007427; }
-.ansi-green-intense-bg { background-color: #007427; }
-.ansi-yellow-fg { color: #DDB62B; }
-.ansi-yellow-bg { background-color: #DDB62B; }
-.ansi-yellow-intense-fg { color: #B27D12; }
-.ansi-yellow-intense-bg { background-color: #B27D12; }
-.ansi-blue-fg { color: #208FFB; }
-.ansi-blue-bg { background-color: #208FFB; }
-.ansi-blue-intense-fg { color: #0065CA; }
-.ansi-blue-intense-bg { background-color: #0065CA; }
-.ansi-magenta-fg { color: #D160C4; }
-.ansi-magenta-bg { background-color: #D160C4; }
-.ansi-magenta-intense-fg { color: #A03196; }
-.ansi-magenta-intense-bg { background-color: #A03196; }
-.ansi-cyan-fg { color: #60C6C8; }
-.ansi-cyan-bg { background-color: #60C6C8; }
-.ansi-cyan-intense-fg { color: #258F8F; }
-.ansi-cyan-intense-bg { background-color: #258F8F; }
-.ansi-white-fg { color: #C5C1B4; }
-.ansi-white-bg { background-color: #C5C1B4; }
-.ansi-white-intense-fg { color: #A1A6B2; }
-.ansi-white-intense-bg { background-color: #A1A6B2; }
-
-.ansi-bold { font-weight: bold; }
-
     </style>
 
 
@@ -13085,7 +13050,7 @@ div#notebook {
 
 <!-- Loading mathjax macro -->
 <!-- Load mathjax -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS_HTML"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS_HTML"></script>
     <!-- MathJax configuration -->
     <script type="text/x-mathjax-config">
     MathJax.Hub.Config({
@@ -13112,14 +13077,7 @@ div#notebook {
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="Concatenating-aquaculture-files">Concatenating aquaculture files<a class="anchor-link" href="#Concatenating-aquaculture-files">&#182;</a></h2>
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
-</div><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h3 id="Biomass">Biomass<a class="anchor-link" href="#Biomass">&#182;</a></h3>
+<h1 id="Concatenating-biomass,-slaughetered-fish-(uttak),-and-lost-fish-(tap-tables-for-2005-2018-using-SAS">Concatenating biomass, slaughetered fish (uttak), and lost fish (tap tables for 2005-2018 using SAS<a class="anchor-link" href="#Concatenating-biomass,-slaughetered-fish-(uttak),-and-lost-fish-(tap-tables-for-2005-2018-using-SAS">&#182;</a></h1>
 </div>
 </div>
 </div>
@@ -13128,243 +13086,197 @@ div#notebook {
 <div class="prompt input_prompt">In&nbsp;[&nbsp;]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-sas"><pre><span></span>*create library ohi and the path - shortcut to read files;
+<div class=" highlight hl-ipython3"><pre><span></span><span class="o">*</span><span class="n">create</span> <span class="n">library</span> <span class="n">ohi</span> <span class="ow">and</span> <span class="n">the</span> <span class="n">path</span> <span class="n">to</span> <span class="n">it</span>
 
-%let ohi_path=/folders/myshortcuts/ohi_raw;
-libname ohi base &quot;&amp;ohi_path/SAS_data_mining/Output_files&quot;;
+<span class="o">%</span><span class="k">let</span> ohi_path=/folders/myshortcuts/ohi_raw;
+<span class="n">libname</span> <span class="n">ohi</span> <span class="n">base</span> <span class="s2">&quot;&amp;ohi_path/SAS_data_mining/Output_files&quot;</span><span class="p">;</span>
 
-options validVarName=any;
+<span class="n">options</span> <span class="n">validVarName</span><span class="o">=</span><span class="nb">any</span><span class="p">;</span>
 
-libname xlbiom xlsx &quot;&amp;ohi_path/akva/biomass_feed_uttak_2005_2016/Production_data_unlocked/16_1687_PeFau_OHI_studie_GRLdata_kryptert_biom.xlsx&quot;;
-libname xlbiom2 xlsx &quot;&amp;ohi_path/akva/biomass_feed_uttak_2005_2016/Production_data_unlocked/18_6306_GRLdata_Biomasse_2015-2016_Kryptert.xlsx&quot;;
-libname xlbiom3 xlsx &quot;&amp;ohi_path/akva/akva_production_fiskedir_2018/biomass_feed_uttak_utkast_2018_unlocked/19_13709_Biomasse_2017-2018_kryptert.xlsx&quot;;
+<span class="n">libname</span> <span class="n">xlfeed</span> <span class="n">xlsx</span> <span class="s2">&quot;&amp;ohi_path/akva/biomass_feed_uttak_2005_2016/Production_data_unlocked/16_1687_PeFau_OHI_studie_GRLdata_kryptert_biom.xlsx&quot;</span><span class="p">;</span>
+<span class="n">libname</span> <span class="n">xlfeed2</span> <span class="n">xlsx</span> <span class="s2">&quot;&amp;ohi_path/akva/biomass_feed_uttak_2005_2016/Production_data_unlocked/18_6306_GRLdata_Biomasse_2015-2016_Kryptert.xlsx&quot;</span><span class="p">;</span>
+<span class="n">libname</span> <span class="n">xlbiom3</span> <span class="n">xlsx</span> <span class="s2">&quot;&amp;ohi_path/akva/akva_production_fiskedir_2018/biomass_feed_uttak_utkast_2018_unlocked/19_13709_Biomasse_2017-2018_kryptert.xlsx&quot;</span><span class="p">;</span>
  
 
 
-*Check the variables and their attributes;
-ods pdf file=&quot;&amp;ohi_path/akva_biomass_tables.pdf&quot;
-		startpage=no style=journal;
-proc contents data=xlfeed.2011;	
-run;
+<span class="o">*</span><span class="n">Check</span> <span class="n">the</span> <span class="n">variables</span> <span class="ow">and</span> <span class="n">their</span> <span class="n">attributes</span><span class="p">;</span>
+<span class="n">ods</span> <span class="n">pdf</span> <span class="n">file</span><span class="o">=</span><span class="s2">&quot;&amp;ohi_path/akva_biomass_tables.pdf&quot;</span>
+		<span class="n">startpage</span><span class="o">=</span><span class="n">no</span> <span class="n">style</span><span class="o">=</span><span class="n">journal</span><span class="p">;</span>
+<span class="n">proc</span> <span class="n">contents</span> <span class="n">data</span><span class="o">=</span><span class="n">xlfeed</span><span class="o">.</span><span class="mi">2011</span><span class="p">;</span>	
+<span class="n">run</span><span class="p">;</span>
 
-proc contents data=xlfeed2.2015;	
-run;
+<span class="n">proc</span> <span class="n">contents</span> <span class="n">data</span><span class="o">=</span><span class="n">xlfeed2</span><span class="o">.</span><span class="mi">2015</span><span class="p">;</span>	
+<span class="n">run</span><span class="p">;</span>
 
-proc contents data=xlfeed3.2018;
-run;
-ods pdf close;
+<span class="n">proc</span> <span class="n">contents</span> <span class="n">data</span><span class="o">=</span><span class="n">xlfeed3</span><span class="o">.</span><span class="mi">2018</span><span class="p">;</span>
+<span class="n">run</span><span class="p">;</span>
+<span class="n">ods</span> <span class="n">pdf</span> <span class="n">close</span><span class="p">;</span>
 
-***************************************************/;
-*Concatenate biomass tables for years 2005-2014 and 2015-2016;
-****************************************************/;
+<span class="o">***************************************************/</span><span class="p">;</span>
+<span class="o">*</span><span class="n">Concatenate</span> <span class="n">biomass</span> <span class="n">tables</span> <span class="k">for</span> <span class="n">years</span> <span class="mi">2005</span><span class="o">-</span><span class="mi">2014</span> <span class="ow">and</span> <span class="mi">2015</span><span class="o">-</span><span class="mi">2016</span><span class="p">;</span>
+<span class="o">****************************************************/</span><span class="p">;</span>
 
-data akva_biomass_2005_2016_formatted (rename=(laks_jan_mar_kg=LAKS_MAR_BEH_KG));
-	set xlbiom.&quot;2005&quot;n
-		xlbiom.&quot;2006&quot;n
-		xlbiom.&quot;2007&quot;n
-		xlbiom.&quot;2008&quot;n
-		xlbiom.&quot;2009&quot;n
-		xlbiom.&quot;2010&quot;n
-		xlbiom.&quot;2011&quot;n
-		xlbiom.&quot;2012&quot;n
-		xlbiom.&quot;2013&quot;n
-		xlbiom.&quot;2014&quot;n;
-	format LAKS: REGN: 20.3;
-run;		
+<span class="n">data</span> <span class="n">akva_biomass_2005_2016_formatted</span> <span class="p">(</span><span class="n">rename</span><span class="o">=</span><span class="p">(</span><span class="n">laks_jan_mar_kg</span><span class="o">=</span><span class="n">LAKS_MAR_BEH_KG</span><span class="p">));</span>
+	<span class="nb">set</span> <span class="n">xlbiom</span><span class="o">.</span><span class="s2">&quot;2005&quot;</span><span class="n">n</span>
+		<span class="n">xlbiom</span><span class="o">.</span><span class="s2">&quot;2006&quot;</span><span class="n">n</span>
+		<span class="n">xlfeed</span><span class="o">.</span><span class="s2">&quot;2007&quot;</span><span class="n">n</span>
+		<span class="n">xlbiom</span><span class="o">.</span><span class="s2">&quot;2008&quot;</span><span class="n">n</span>
+		<span class="n">xlbiom</span><span class="o">.</span><span class="s2">&quot;2009&quot;</span><span class="n">n</span>
+		<span class="n">xlbiom</span><span class="o">.</span><span class="s2">&quot;2010&quot;</span><span class="n">n</span>
+		<span class="n">xlbiom</span><span class="o">.</span><span class="s2">&quot;2011&quot;</span><span class="n">n</span>
+		<span class="n">xlbiom</span><span class="o">.</span><span class="s2">&quot;2012&quot;</span><span class="n">n</span>
+		<span class="n">xlbiom</span><span class="o">.</span><span class="s2">&quot;2013&quot;</span><span class="n">n</span>
+		<span class="n">xlbiom</span><span class="o">.</span><span class="s2">&quot;2014&quot;</span><span class="n">n</span><span class="p">;</span>
+	<span class="nb">format</span> <span class="n">LAKS</span><span class="p">:</span> <span class="n">REGN</span><span class="p">:</span> <span class="mf">20.3</span><span class="p">;</span>
+<span class="n">run</span><span class="p">;</span>		
 		
-data ohi.akva_biomass_2005_2018_formatted;
-	set akva_biomass_2005_2016_formatted		
-		xlbiom2.&quot;2015&quot;n
-		xlbiom2.&quot;2016&quot;n
-		xlbiom3.&quot;2017&quot;n
-		xlbiom3.&quot;2018&quot;n;
-	format LAKS: REGN: 20.3;
+<span class="n">data</span> <span class="n">ohi</span><span class="o">.</span><span class="n">akva_biomass_2005_2018_formatted</span><span class="p">;</span>
+	<span class="nb">set</span> <span class="n">akva_biomass_2005_2016_formatted</span>		
+		<span class="n">xlbiom2</span><span class="o">.</span><span class="s2">&quot;2015&quot;</span><span class="n">n</span>
+		<span class="n">xlbiom2</span><span class="o">.</span><span class="s2">&quot;2016&quot;</span><span class="n">n</span>
+		<span class="n">xlbiom3</span><span class="o">.</span><span class="s2">&quot;2017&quot;</span><span class="n">n</span>
+		<span class="n">xlbiom3</span><span class="o">.</span><span class="s2">&quot;2018&quot;</span><span class="n">n</span><span class="p">;</span>
+	<span class="nb">format</span> <span class="n">LAKS</span><span class="p">:</span> <span class="n">REGN</span><span class="p">:</span> <span class="mf">20.3</span><span class="p">;</span>
 	
 		
 
-*i see that there is a column called LAKS_JAN_MAR_BEH, which is mostl lily march biomass, incorrectlly written.
-i&#39;ll check in which year there is such problem, so I changed thhis columnd name above;
+<span class="o">*</span><span class="n">i</span> <span class="n">see</span> <span class="n">that</span> <span class="n">there</span> <span class="ow">is</span> <span class="n">a</span> <span class="n">column</span> <span class="n">called</span> <span class="n">LAKS_JAN_MAR_BEH</span><span class="p">,</span> <span class="n">which</span> <span class="ow">is</span> <span class="n">mostl</span> <span class="n">lily</span> <span class="n">march</span> <span class="n">biomass</span><span class="p">,</span> <span class="n">incorrectlly</span> <span class="n">written</span><span class="o">.</span>
+<span class="n">i</span><span class="s1">&#39;ll check in which year there is such problem, so I changed thhis columnd name above;</span>
 
-proc sort data=ohi.akva_biomass_2005_2018_formatted out = work.akva_sorted
-	nodupkey;
-	by aar;
-	where LAKS_JAN_MAR_KG is not missing;	
-run;
+<span class="n">proc</span> <span class="n">sort</span> <span class="n">data</span><span class="o">=</span><span class="n">ohi</span><span class="o">.</span><span class="n">akva_biomass_2005_2018_formatted</span> <span class="n">out</span> <span class="o">=</span> <span class="n">work</span><span class="o">.</span><span class="n">akva_sorted</span>
+	<span class="n">nodupkey</span><span class="p">;</span>
+	<span class="n">by</span> <span class="n">aar</span><span class="p">;</span>
+	<span class="n">where</span> <span class="n">LAKS_JAN_MAR_KG</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">missing</span><span class="p">;</span>	
+<span class="n">run</span><span class="p">;</span>
 
-proc export data=ohi.akva_biomass_2005_2018_formatted
-	outfile=&quot;&amp;ohi_path/akva_biomass_2005_2018_formatted.csv&quot; 
-	replace;
-run; 
+<span class="n">proc</span> <span class="n">export</span> <span class="n">data</span><span class="o">=</span><span class="n">ohi</span><span class="o">.</span><span class="n">akva_biomass_2005_2018_formatted</span>
+	<span class="n">outfile</span><span class="o">=</span><span class="s2">&quot;&amp;ohi_path/akva_biomass_2005_2018_formatted.csv&quot;</span> 
+	<span class="n">replace</span><span class="p">;</span>
+<span class="n">run</span><span class="p">;</span> 
 
-libname xlakva clear;
-libname xlakva2 clear;
-libname xlakva3 clear;
-*************************************************;
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-</div>
-<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
-</div><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h3 id="Feed-consumption">Feed consumption<a class="anchor-link" href="#Feed-consumption">&#182;</a></h3>
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[&nbsp;]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-sas"><pre><span></span>*******************************************;
-*Concatenate feed used tables for years 2005-2014 and 2015-2016;
-***********************************************;
-libname xlfeed xlsx &quot;&amp;ohi_path/akva/akva_production_fiskedir_2005_2016/Production_data_unlocked/16_1687_PeFau_OHI_studie_GRLdata_kryptert_forf.xlsx&quot;;
-libname xlfeed2 xlsx &quot;&amp;ohi_path/akva/akva_production_fiskedir_2005_2016/Production_data_unlocked/18_6306_GRLdata_Forforbruk_2015-2016_Kryptert.xlsx&quot;;
-libname xlfeed3 xlsx &quot;&amp;ohi_path/akva/akva_production_fiskedir_2018/biomass_feed_uttak_utkast_2018_unlocked/19_13709_Forforbruk_2017-2018_kryptert.xlsx&quot;;
+<span class="n">libname</span> <span class="n">xlakva</span> <span class="n">clear</span><span class="p">;</span>
+<span class="n">libname</span> <span class="n">xlakva2</span> <span class="n">clear</span><span class="p">;</span>
+<span class="n">libname</span> <span class="n">xlakva3</span> <span class="n">clear</span><span class="p">;</span>
+<span class="o">*************************************************</span><span class="p">;</span>
 
 
-proc contents data=xlfeed.2005;	
-run;
-
-proc contents data=xlfeed2.2016;	
-run;
 
 
-data ohi.akva_feed_2005_2018_formatted;
-	set xlfeed.&quot;2005&quot;n
-	xlfeed.&quot;2005&quot;n
-	xlfeed.&quot;2006&quot;n
-	xlfeed.&quot;2007&quot;n
-	xlfeed.&quot;2008&quot;n
-	xlfeed.&quot;2009&quot;n
-	xlfeed.&quot;2010&quot;n
-	xlfeed.&quot;2011&quot;n
-	xlfeed.&quot;2012&quot;n
-	xlfeed.&quot;2013&quot;n
-	xlfeed.&quot;2014&quot;n
-	xlfeed2.&quot;2015&quot;n
-	xlfeed2.&quot;2016&quot;n
-	xlfeed3.&quot;2017&quot;n
-	xlfeed3.&quot;2018&quot;n;
-	format F__RFORBRUK_KG 20.3;
-run;
 
-proc export data=ohi.akva_feed_2005_2018_formatted
-	outfile=&quot;&amp;ohi_path/akva_feed_2005_2018_formatted.csv&quot; 
-	replace;
-run;
-
-libname xlfeed clear;
-libname xlfeed2 clear;
-libname xlfeed3 clear;
-*********************************************;
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-</div>
-<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
-</div><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h3 id="Killed-fish">Killed fish<a class="anchor-link" href="#Killed-fish">&#182;</a></h3>
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[&nbsp;]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-sas"><pre><span></span>************************************************/;
-*Concatenate uttak tables for years 2005-2014 and 2015-2916;
-**********************************************************/;
-libname xluttak xlsx &quot;&amp;ohi_path/akva/akva_production_fiskedir_2005_2016/Production_data_unlocked/16_1687_PeFau_OHI_studie_GRLdata_kryptert_uttak.xlsx&quot;;
-libname xluttak2 xlsx &quot;&amp;ohi_path/akva/akva_production_fiskedir_2005_2016/Production_data_unlocked/18_6306_GRLdata_Uttak_2015-2016_Kryptert.xlsx&quot;;
-libname xluttak3 xlsx &quot;&amp;ohi_path/akva/akva_production_fiskedir_2018/biomass_feed_uttak_utkast_2018_unlocked/19_13709_Uttak_2017-2018-kryptert.xlsx&quot;;
+<span class="o">************************************************/</span><span class="p">;</span>
+<span class="o">*</span><span class="n">Concatenate</span> <span class="n">uttak</span> <span class="n">tables</span> <span class="k">for</span> <span class="n">years</span> <span class="mi">2005</span><span class="o">-</span><span class="mi">2014</span> <span class="ow">and</span> <span class="mi">2015</span><span class="o">-</span><span class="mi">2916</span><span class="p">;</span>
+<span class="o">**********************************************************/</span><span class="p">;</span>
+<span class="n">libname</span> <span class="n">xluttak</span> <span class="n">xlsx</span> <span class="s2">&quot;&amp;ohi_path/akva/akva_production_fiskedir_2005_2016/Production_data_unlocked/16_1687_PeFau_OHI_studie_GRLdata_kryptert_uttak.xlsx&quot;</span><span class="p">;</span>
+<span class="n">libname</span> <span class="n">xluttak2</span> <span class="n">xlsx</span> <span class="s2">&quot;&amp;ohi_path/akva/akva_production_fiskedir_2005_2016/Production_data_unlocked/18_6306_GRLdata_Uttak_2015-2016_Kryptert.xlsx&quot;</span><span class="p">;</span>
+<span class="n">libname</span> <span class="n">xluttak3</span> <span class="n">xlsx</span> <span class="s2">&quot;&amp;ohi_path/akva/akva_production_fiskedir_2018/biomass_feed_uttak_utkast_2018_unlocked/19_13709_Uttak_2017-2018-kryptert.xlsx&quot;</span><span class="p">;</span>
 
 
-data ohi.akva_uttak_2005_2018_formatted;
-	set xluttak.&quot;2005&quot;n 
-		xluttak.&quot;2006&quot;n
-		xluttak.&quot;2007&quot;n
-		xluttak.&quot;2008&quot;n
-		xluttak.&quot;2009&quot;n
-		xluttak.&quot;2010&quot;n
-		xluttak.&quot;2011&quot;n
-		xluttak.&quot;2012&quot;n
-		xluttak.&quot;2013&quot;n
-		xluttak.&quot;2014&quot;n
-		xluttak2.&quot;2015&quot;n
-		xluttak2.&quot;2016&quot;n (keep=AAR--UTTAK_REGNB_KG)	
-		xluttak3.&quot;2017&quot;n
-		xluttak3.&quot;2018&quot;n;
-	format UTTAK_LAKS_KG UTTAK_REGNB_KG 20.3;
-run;
+<span class="n">data</span> <span class="n">ohi</span><span class="o">.</span><span class="n">akva_uttak_2005_2018_formatted</span><span class="p">;</span>
+	<span class="nb">set</span> <span class="n">xluttak</span><span class="o">.</span><span class="s2">&quot;2005&quot;</span><span class="n">n</span> 
+		<span class="n">xluttak</span><span class="o">.</span><span class="s2">&quot;2006&quot;</span><span class="n">n</span>
+		<span class="n">xluttak</span><span class="o">.</span><span class="s2">&quot;2007&quot;</span><span class="n">n</span>
+		<span class="n">xluttak</span><span class="o">.</span><span class="s2">&quot;2008&quot;</span><span class="n">n</span>
+		<span class="n">xluttak</span><span class="o">.</span><span class="s2">&quot;2009&quot;</span><span class="n">n</span>
+		<span class="n">xluttak</span><span class="o">.</span><span class="s2">&quot;2010&quot;</span><span class="n">n</span>
+		<span class="n">xluttak</span><span class="o">.</span><span class="s2">&quot;2011&quot;</span><span class="n">n</span>
+		<span class="n">xluttak</span><span class="o">.</span><span class="s2">&quot;2012&quot;</span><span class="n">n</span>
+		<span class="n">xluttak</span><span class="o">.</span><span class="s2">&quot;2013&quot;</span><span class="n">n</span>
+		<span class="n">xluttak</span><span class="o">.</span><span class="s2">&quot;2014&quot;</span><span class="n">n</span>
+		<span class="n">xluttak2</span><span class="o">.</span><span class="s2">&quot;2015&quot;</span><span class="n">n</span>
+		<span class="n">xluttak2</span><span class="o">.</span><span class="s2">&quot;2016&quot;</span><span class="n">n</span> <span class="p">(</span><span class="n">keep</span><span class="o">=</span><span class="n">AAR</span><span class="o">--</span><span class="n">UTTAK_REGNB_KG</span><span class="p">)</span>	
+		<span class="n">xluttak3</span><span class="o">.</span><span class="s2">&quot;2017&quot;</span><span class="n">n</span>
+		<span class="n">xluttak3</span><span class="o">.</span><span class="s2">&quot;2018&quot;</span><span class="n">n</span><span class="p">;</span>
+	<span class="nb">format</span> <span class="n">UTTAK_LAKS_KG</span> <span class="n">UTTAK_REGNB_KG</span> <span class="mf">20.3</span><span class="p">;</span>
+<span class="n">run</span><span class="p">;</span>
 
-proc export data=ohi.akva_uttak_2005_2018_formatted
-	outfile=&quot;&amp;ohi_path/akva_uttak_2005_2018_formatted.csv&quot; 
-	replace;
-run;
+<span class="n">proc</span> <span class="n">export</span> <span class="n">data</span><span class="o">=</span><span class="n">ohi</span><span class="o">.</span><span class="n">akva_uttak_2005_2018_formatted</span>
+	<span class="n">outfile</span><span class="o">=</span><span class="s2">&quot;&amp;ohi_path/akva_uttak_2005_2018_formatted.csv&quot;</span> 
+	<span class="n">replace</span><span class="p">;</span>
+<span class="n">run</span><span class="p">;</span>
 
-libname xluttak clear;
-libname xluttak2 clear;
-libname xluttak3 clear;
-****************************************;
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-</div>
-<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
-</div><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h3 id="Lost-fish">Lost fish<a class="anchor-link" href="#Lost-fish">&#182;</a></h3>
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[&nbsp;]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-sas"><pre><span></span>**********************************;
-*Concatenate utkast data (dead fish);
-**********************************;
-libname xltap xlsx &quot;&amp;ohi_path/akva/akva_production_fiskedir_2018/biomass_feed_uttak_utkast_2018_unlocked/19_13709_Tap_2005-2018_kryptert.xlsx&quot;;
-
-data ohi.akva_tap_2005_2018_formatted;
-	set xltap.&quot;2005&quot;n
-	xltap.&quot;2005&quot;n
-	xltap.&quot;2006&quot;n
-	xltap.&quot;2007&quot;n
-	xltap.&quot;2008&quot;n
-	xltap.&quot;2009&quot;n
-	xltap.&quot;2010&quot;n
-	xltap.&quot;2011&quot;n
-	xltap.&quot;2012&quot;n
-	xltap.&quot;2013&quot;n
-	xltap.&quot;2014&quot;n
-	xltap.&quot;2015&quot;n
-	xltap.&quot;2016&quot;n
-	xltap.&quot;2017&quot;n;
-/* 	format */
-run;
+<span class="n">libname</span> <span class="n">xluttak</span> <span class="n">clear</span><span class="p">;</span>
+<span class="n">libname</span> <span class="n">xluttak2</span> <span class="n">clear</span><span class="p">;</span>
+<span class="n">libname</span> <span class="n">xluttak3</span> <span class="n">clear</span><span class="p">;</span>
+<span class="o">****************************************</span><span class="p">;</span>
 
 
-proc export data=ohi.akva_tap_2005_2018_formatted
-	outfile=&quot;&amp;ohi_path/akva_tap_formatted_2005_2018.csv&quot;
-	replace;
-run;	
+<span class="o">*******************************************</span><span class="p">;</span>
+<span class="o">*</span><span class="n">Concatenate</span> <span class="n">feed</span> <span class="n">used</span> <span class="n">tables</span> <span class="k">for</span> <span class="n">years</span> <span class="mi">2005</span><span class="o">-</span><span class="mi">2014</span> <span class="ow">and</span> <span class="mi">2015</span><span class="o">-</span><span class="mi">2016</span><span class="p">;</span>
+<span class="o">***********************************************</span><span class="p">;</span>
+<span class="n">libname</span> <span class="n">xlfeed</span> <span class="n">xlsx</span> <span class="s2">&quot;&amp;ohi_path/akva/akva_production_fiskedir_2005_2016/Production_data_unlocked/16_1687_PeFau_OHI_studie_GRLdata_kryptert_forf.xlsx&quot;</span><span class="p">;</span>
+<span class="n">libname</span> <span class="n">xlfeed2</span> <span class="n">xlsx</span> <span class="s2">&quot;&amp;ohi_path/akva/akva_production_fiskedir_2005_2016/Production_data_unlocked/18_6306_GRLdata_Forforbruk_2015-2016_Kryptert.xlsx&quot;</span><span class="p">;</span>
+<span class="n">libname</span> <span class="n">xlfeed3</span> <span class="n">xlsx</span> <span class="s2">&quot;&amp;ohi_path/akva/akva_production_fiskedir_2018/biomass_feed_uttak_utkast_2018_unlocked/19_13709_Forforbruk_2017-2018_kryptert.xlsx&quot;</span><span class="p">;</span>
 
-libname xltap clear;
+
+<span class="n">proc</span> <span class="n">contents</span> <span class="n">data</span><span class="o">=</span><span class="n">xlfeed</span><span class="o">.</span><span class="mi">2005</span><span class="p">;</span>	
+<span class="n">run</span><span class="p">;</span>
+
+<span class="n">proc</span> <span class="n">contents</span> <span class="n">data</span><span class="o">=</span><span class="n">xlfeed2</span><span class="o">.</span><span class="mi">2016</span><span class="p">;</span>	
+<span class="n">run</span><span class="p">;</span>
+
+
+<span class="n">data</span> <span class="n">ohi</span><span class="o">.</span><span class="n">akva_feed_2005_2018_formatted</span><span class="p">;</span>
+	<span class="nb">set</span> 
+	<span class="n">xlfeed</span><span class="o">.</span><span class="s2">&quot;2005&quot;</span><span class="n">n</span>
+	<span class="n">xlfeed</span><span class="o">.</span><span class="s2">&quot;2006&quot;</span><span class="n">n</span>
+	<span class="n">xlfeed</span><span class="o">.</span><span class="s2">&quot;2007&quot;</span><span class="n">n</span>
+	<span class="n">xlfeed</span><span class="o">.</span><span class="s2">&quot;2008&quot;</span><span class="n">n</span>
+	<span class="n">xlfeed</span><span class="o">.</span><span class="s2">&quot;2009&quot;</span><span class="n">n</span>
+	<span class="n">xlfeed</span><span class="o">.</span><span class="s2">&quot;2010&quot;</span><span class="n">n</span>
+	<span class="n">xlfeed</span><span class="o">.</span><span class="s2">&quot;2011&quot;</span><span class="n">n</span>
+	<span class="n">xlfeed</span><span class="o">.</span><span class="s2">&quot;2012&quot;</span><span class="n">n</span>
+	<span class="n">xlfeed</span><span class="o">.</span><span class="s2">&quot;2013&quot;</span><span class="n">n</span>
+	<span class="n">xlfeed</span><span class="o">.</span><span class="s2">&quot;2014&quot;</span><span class="n">n</span>
+	<span class="n">xlfeed2</span><span class="o">.</span><span class="s2">&quot;2015&quot;</span><span class="n">n</span>
+	<span class="n">xlfeed2</span><span class="o">.</span><span class="s2">&quot;2016&quot;</span><span class="n">n</span>
+	<span class="n">xlfeed3</span><span class="o">.</span><span class="s2">&quot;2017&quot;</span><span class="n">n</span>
+	<span class="n">xlfeed3</span><span class="o">.</span><span class="s2">&quot;2018&quot;</span><span class="n">n</span><span class="p">;</span>
+	<span class="nb">format</span> <span class="n">F__RFORBRUK_KG</span> <span class="mf">20.3</span><span class="p">;</span>
+<span class="n">run</span><span class="p">;</span>
+
+<span class="n">proc</span> <span class="n">export</span> <span class="n">data</span><span class="o">=</span><span class="n">ohi</span><span class="o">.</span><span class="n">akva_feed_2005_2018_formatted</span>
+	<span class="n">outfile</span><span class="o">=</span><span class="s2">&quot;&amp;ohi_path/akva_feed_2005_2018_formatted.csv&quot;</span> 
+	<span class="n">replace</span><span class="p">;</span>
+<span class="n">run</span><span class="p">;</span>
+
+<span class="n">libname</span> <span class="n">xlfeed</span> <span class="n">clear</span><span class="p">;</span>
+<span class="n">libname</span> <span class="n">xlfeed2</span> <span class="n">clear</span><span class="p">;</span>
+<span class="n">libname</span> <span class="n">xlfeed3</span> <span class="n">clear</span><span class="p">;</span>
+<span class="o">*********************************************</span><span class="p">;</span>
+
+<span class="o">**********************************</span><span class="p">;</span>
+<span class="o">*</span><span class="n">Concatenate</span> <span class="n">utkast</span> <span class="n">data</span> <span class="p">(</span><span class="n">dead</span> <span class="n">fish</span><span class="p">);</span>
+<span class="o">**********************************</span><span class="p">;</span>
+<span class="n">libname</span> <span class="n">xltap</span> <span class="n">xlsx</span> <span class="s2">&quot;&amp;ohi_path/akva/akva_production_fiskedir_2018/biomass_feed_uttak_utkast_2018_unlocked/19_13709_Tap_2005-2018_kryptert.xlsx&quot;</span><span class="p">;</span>
+
+<span class="n">data</span> <span class="n">ohi</span><span class="o">.</span><span class="n">akva_tap_2005_2018_formatted</span><span class="p">;</span>
+	<span class="nb">set</span> 
+	<span class="n">xltap</span><span class="o">.</span><span class="s2">&quot;2005&quot;</span><span class="n">n</span>
+	<span class="n">xltap</span><span class="o">.</span><span class="s2">&quot;2006&quot;</span><span class="n">n</span>
+	<span class="n">xltap</span><span class="o">.</span><span class="s2">&quot;2007&quot;</span><span class="n">n</span>
+	<span class="n">xltap</span><span class="o">.</span><span class="s2">&quot;2008&quot;</span><span class="n">n</span>
+	<span class="n">xltap</span><span class="o">.</span><span class="s2">&quot;2009&quot;</span><span class="n">n</span>
+	<span class="n">xltap</span><span class="o">.</span><span class="s2">&quot;2010&quot;</span><span class="n">n</span>
+	<span class="n">xltap</span><span class="o">.</span><span class="s2">&quot;2011&quot;</span><span class="n">n</span>
+	<span class="n">xltap</span><span class="o">.</span><span class="s2">&quot;2012&quot;</span><span class="n">n</span>
+	<span class="n">xltap</span><span class="o">.</span><span class="s2">&quot;2013&quot;</span><span class="n">n</span>
+	<span class="n">xltap</span><span class="o">.</span><span class="s2">&quot;2014&quot;</span><span class="n">n</span>
+	<span class="n">xltap</span><span class="o">.</span><span class="s2">&quot;2015&quot;</span><span class="n">n</span>
+	<span class="n">xltap</span><span class="o">.</span><span class="s2">&quot;2016&quot;</span><span class="n">n</span>
+	<span class="n">xltap</span><span class="o">.</span><span class="s2">&quot;2017&quot;</span><span class="n">n</span><span class="p">;</span>
+<span class="n">run</span><span class="p">;</span>
+
+
+<span class="n">proc</span> <span class="n">export</span> <span class="n">data</span><span class="o">=</span><span class="n">ohi</span><span class="o">.</span><span class="n">akva_tap_2005_2018_formatted</span>
+	<span class="n">outfile</span><span class="o">=</span><span class="s2">&quot;&amp;ohi_path/akva_tap_formatted_2005_2018.csv&quot;</span>
+	<span class="n">replace</span><span class="p">;</span>
+<span class="n">run</span><span class="p">;</span>	
+
+<span class="n">libname</span> <span class="n">xltap</span> <span class="n">clear</span><span class="p">;</span>
+
+
+<span class="n">proc</span> <span class="nb">print</span> <span class="n">data</span> <span class="o">=</span> <span class="n">pg1</span><span class="o">.</span><span class="n">np_final</span> <span class="p">(</span><span class="n">obs</span><span class="o">=</span><span class="mi">10</span><span class="p">);</span>
+<span class="n">run</span><span class="p">;</span>
 </pre></div>
 
     </div>
