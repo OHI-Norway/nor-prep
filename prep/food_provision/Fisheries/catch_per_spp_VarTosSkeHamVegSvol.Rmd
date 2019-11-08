@@ -224,7 +224,7 @@ file_names <- paste0("figs/municipality_logcatch", "_", names(catch_mpp), ".pdf"
 ## All species and all 6 municipalities
 ```{r}
 visitedmp_final_log <- visitedmp_final %>% 
-  mutate(log_catch = log(Total_catch+ 1))
+  mutate(log_catch = log(Total_catch + 1))
 
 library(wesanderson)
 
