@@ -1,0 +1,135 @@
+---
+title: "Total aquaculture production"
+author: "*Compiled on `r date()` by `r Sys.info()['user']`*"
+output: 
+  html_document:
+    css: '~/github/nor-prep/prep/templates/style.css'
+    toc: true
+    number_sections: true
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: '~/github/nor-prep/prep/templates/norway_banner.html'
+  pdf_document:
+    toc: true
+---
+```{r message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(message = FALSE, warning= FALSE, message = FALSE)
+source('~/github/nor-prep/prep/src/common.R')
+```
+
+```{r libraries, results="hide"}
+library(ggthemes)
+library(ggridges)
+library(janitor)
+library(DT)
+```
+
+# Loading lice larvae data
+```{r}
+municip <- read.table("../../administrative/komlist.csv", header = TRUE, sep = ";")
+```
+
+```{r}
+larva_prep <-list.files(path = file.path(dir_M[2],"Aquaculture/Lice/utslipp_luselarver/"),
+               pattern = "*.txt") %>% 
+      map_df(.,  ~ read.delim(file.path(dir_M[2],"Aquaculture/Lice/utslipp_luselarver/",.x)))
+```
+
+# Prepare the dataset
+```{r}
+catch_date <- function(text) {
+  lastdig <- str_extract(text, "([:digit:]){2}$")
+  year <- str_c("20", lastdig)
+  month <- str_sub(text, 4,5)
+  day <- str_sub(text,1,2)
+  date <- str_c(year,"-",month,"-" , day)
+  date
+}
+```
+
+ 
+```{r}
+larva_prep2 <- larva_prep %>% 
+  clean_names() %>% 
+  rename(temp_3m_reported = temp0, 
+         temp_3m_analysis = temp,
+         newlice_unsure = ch,
+         halfadult_lice_unsure = pa,
+         adult_lice_reported = af0,
+         lice_per_fish_interpolated = af,
+         lice_eggs_per_hour = release) %>% 
+  mutate(date_formatted = lubridate::ymd(catch_date(date))) %>% 
+  mutate(week = lubridate::week(date_formatted)) %>% 
+  mutate(year = lubridate::year(date_formatted)) %>% 
+  mutate(area_color  =  case_when(
+    zone %in% c("3", "4") ~ "Red",
+    zone %in% c("2", "5", "6") ~"Yellow",
+    TRUE ~ "Green"
+  ))
+```
+
+# Plot the damount of data per region
+```{r}
+plot1 <- ggplot(data = larva_prep2) +
+  geom_jitter(aes(x = week, y = lice_eggs_per_hour, color = area_color), size = 0.7 ) +
+  labs(y = "Larvae per hour") +
+  facet_wrap(. ~ area_color) +
+  scale_color_manual(values = c("#38ab15", "#eb4823", "#ffc935"), name = "Production area color") +
+  scale_x_continuous(breaks = seq(1, 53, by = 6)) +
+  scale_y_continuous(labels = scales::scientific) +
+  theme_stata(scheme = "s1rcolor") +
+  theme(axis.title.x = element_text(size = 14),
+        axis.title.y = element_text(size = 14, margin = margin(t = 0, r = 20, b = 0, l = 0)),
+        axis.text.x = element_text(size = 10),
+        axis.text.y = element_text(angle = 0, size = 10, ),
+        strip.text  = element_text(size = 12),
+        strip.background = element_rect(fill = "navyblue")
+  )
+plot1
+```
+
+# Check the density of total lice data
+```{r}
+plot2 <- ggplot(larva_prep2, aes(lice_eggs_per_hour, colour = area_color, fill = area_color)) +
+  geom_density(alpha = 0.2) +
+  labs(y = "Larvae per hour") +
+  facet_wrap(. ~ area_color) +
+  scale_fill_manual(values = c("#38ab15", "#eb4823", "#ffc935"), name = "Production area color") +
+  scale_color_manual(values = c("#38ab15", "#eb4823", "#ffc935"), name = "Production area color") +
+  scale_y_continuous(labels = scales::scientific) +
+  theme_stata(scheme = "s1rcolor") +
+  theme(axis.title.x = element_text(size = 14),
+        axis.title.y = element_text(size = 14, margin = margin(t = 0, r = 20, b = 0, l = 0)),
+        axis.text.x = element_text(size = 10),
+        axis.text.y = element_text(angle = 0, size = 10, ),
+        strip.text  = element_text(size = 12),
+        strip.background = element_rect(fill = "navyblue")
+  )
+plot2 
+```
+
+# Filter out lice release for weeks 16-26 and check the density
+```{r}
+plotdata3 <-larva_prep2 %>% 
+  filter(week >= 29 & week <=43)
+
+plot3 <- ggplot(plotdata3, aes(lice_eggs_per_hour, colour = area_color, fill = area_color)) +
+  geom_density(alpha = 0.2) +
+  labs(y = "Probability density") +
+  facet_wrap(. ~ area_color) +
+  scale_fill_manual(values = c("#38ab15", "#eb4823", "#ffc935"), name = "Production area color") +
+  scale_color_manual(values = c("#38ab15", "#eb4823", "#ffc935"), name = "Production area color") +
+  scale_y_continuous(labels = scales::scientific) +
+  scale_x_continuous(limits = c(0, 10000)) +
+  theme_stata(scheme = "s1rcolor") +
+  theme(axis.title.x = element_text(size = 14),
+        axis.title.y = element_text(size = 14, margin = margin(t = 0, r = 20, b = 0, l = 0)),
+        axis.text.x = element_text(size = 10),
+        axis.text.y = element_text(angle = 0, size = 10, ),
+        strip.text  = element_text(size = 12),
+        strip.background = element_rect(fill = "navyblue")
+  )
+plot3
+```
+
