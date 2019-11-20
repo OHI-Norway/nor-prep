@@ -34,22 +34,9 @@ lus_2005 <-read.csv("./data/lice_vers2_2005_2011_formatted.csv", sep = ",")
 lisences <-read.csv("./data/aquaculture_lisences_northnorway_2010_2018.csv")
 ```
 
-# Preliminary data cleaning
-```{r}
-colnames(lus)[c(2, 19, 20)] <- c("Ar", "ProduksjonsomradeID", "Produksjonsomrade")
-lus_prep <- lus %>%
-  mutate(Kommunenummer = replace(Kommunenummer, Lokalitetsnummer == "10893", "1835" )) %>% 
-  filter(Kommunenummer >= 1800 & Kommunenummer < 2100) %>%
-  mutate(Kommunenummer = replace(Kommunenummer, Kommunenummer == "1915", "1903")) %>%
-  mutate(Kommunenummer = replace(Kommunenummer, Kommunenummer == "1901", "1903")) %>%
-  mutate(Kommunenummer = as.numeric(Kommunenummer)) %>%
-  left_join(municip[, c(1, 2)], by = c("Kommunenummer" = "Komnum")) %>%
-  mutate(Kommune = Name) %>%
-  select(-Name)
-```
 
 # Finding municipality and lice threshold info for some of the locations
-There are 80 locations for which no municipality and region specified, also the lice threshold is missing for those.
+There are 89 locations for which no municipality and region specified, also the lice threshold is missing for those.
 I will check if the Aquaculture registry have information on these locaitons ("lisences" dataframe).
 
 ```{r}
@@ -57,19 +44,19 @@ I will check if the Aquaculture registry have information on these locaitons ("l
 missing_mppinfo <-lus %>% 
   filter(is.na(Kommunenummer)) 
 
-foo <-lus_prep %>% group_by(Ar) %>% 
+foo <-lus %>% group_by(Ar) %>% 
   mutate(lusegrense = as.numeric(as.character(Lusegrense.uke)))
 
-
-foo %>%  
+#cheking if lice threshold changed during 2012-2019: yes, since 2017 lice threshold is 0.2 (in spring) and 0.5 otherwise
+foo2 <- foo %>% 
   group_by(Ar) %>% 
-  summarize(grensemin = min(lusegrense),
-            grensemax = max(lusegrense))
+  summarize(grensemin = min(lusegrense, na.rm = T),
+            grensemax = max(lusegrense, na.rm = T))
 ```
 
 
 Merging lus_prep with lisences dataframe - to find municipaities where they are missing. 
-I could find info only for 2 out of 89 locations with missing municipality.
+I could find info only for 2 out of 89 locations with missing municipality and I add municipalities for them mannually in the code ""Preliminary data cleaning.
 
 ```{r}
 locsmpp <- lisences  %>% 
@@ -84,6 +71,20 @@ missing_mppinfo_filled <- missing_mppinfo %>%
 map(missing_mppinfo_filled, ~ sum(is.na(.)))
 ```
 
+# Preliminary data cleaning
+```{r}
+colnames(lus)[c(2, 19, 20)] <- c("Ar", "ProduksjonsomradeID", "Produksjonsomrade")
+lus_prep <- lus %>%
+  mutate(Kommunenummer = replace(Kommunenummer, Lokalitetsnummer == "10893", "1835" )) %>% 
+  mutate(Kommunenummer = replace(Kommunenummer, Lokalitetsnummer == "11087", "1836" )) %>% 
+  filter(Kommunenummer >= 1800 & Kommunenummer < 2100) %>%
+  mutate(Kommunenummer = replace(Kommunenummer, Kommunenummer == "1915", "1903")) %>%
+  mutate(Kommunenummer = replace(Kommunenummer, Kommunenummer == "1901", "1903")) %>%
+  mutate(Kommunenummer = as.numeric(Kommunenummer)) %>%
+  left_join(municip[, c(1, 2)], by = c("Kommunenummer" = "Komnum")) %>%
+  mutate(Kommune = Name) %>%
+  select(-Name)
+```
 
 
 ```{r}
@@ -115,9 +116,10 @@ replace_licethr <- function(num, year, week=NULL) {
 
 
 ```{r}
-#filter out rows where lice threshold is unknown:
-foo2 <-filter(lus_prep, Over.lusegrense.uke == "Ukjent")
-foo2 <- foo2 %>% 
+#filter out rows where lice threshold is unknown.
+#(the responsible engineer said it was probably a mistake in data logging)
+foo3 <-filter(lus_prep, Over.lusegrense.uke == "Ukjent" & !is.na(Lus.i.bevegelige.stadier))
+foo4 <- foo3 %>% 
   mutate(Over.lusegrense.uke = pmap_chr(list(Lus.i.bevegelige.stadier, Ar, Uke), ~ replace_licethr(..1, ..2, ..3)))
 
 
@@ -173,7 +175,7 @@ below_threshold_new <- lus_prep3 %>%
             below_weeks = sum(Above_thr_new),
             prop_weeks_below = below_weeks/totweeks)
 ```
-About halth of the locations reported salmon lice only once a year. Barentswatch.no explains that missing lice count maybe because the locality did not have fish in the pens that weeks or they just did not report. I will select only the locations that reported at least 25 weeks over a year (about half of all locations).
+About halth of the locations reported salmon lice only once a year. Barentswatch.no explains that missing lice count maybe because the locality did not have fish in the pens during those weeks or they just did not report. I will select only the locations that reported at least 25 weeks over a year (about half of all locations).
 
 ```{r}
 below_threshold_new2 <- below_threshold_new %>% 
@@ -190,6 +192,7 @@ below_lice_mpp_new <-below_threshold_new2 %>%
   group_by(Year, Municip_number, Municip_name) %>% 
   summarize(below_lice = mean(prop_weeks_below))
 ```
+
 
 # Cleaning older lice data (2005-2011)
 ```{r}
@@ -213,6 +216,7 @@ locnames_merged <-lus_old_missinglocs %>%
   filter(!is.na(Lokalitetsnavn)) %>% 
   select(-c("count.x", "count.y"))
 ```
+
 
 ```{r}
 #location 10933 had no municipality info, it is not in the Aquaculture registry
@@ -274,31 +278,54 @@ years_per_mpp <- below_lice_full %>%  group_by(Municip_name) %>% summarize(count
 ```
 
 
-# Gapfilling missing data in lice dataseet
+# Gapfilling missing data in lice dataset
 ## Check which counties did not have lice data at all
 ```{r}
 anti_join(municip, below_lice_full, by = c("Name" = "Municip_name")) %>% 
   arrange(Name)
 #13 counties 
 ```
-All these municipalities have 0 produciton in the Akvadatut Per's table but I found that indeed most of these municipalities had aquaculture licenses in the 2005-2018 period. Is there a mistake? Did they produce something or not? Need to check wiht Per.
+All these municipalities  had no information in lice, and they also did not have data on momb, so likely there was no produciton at all.
 
 ## Define a function to gapfill
+
 ```{r inlcude=FALSE}
-## Function to gapfill missing data
+#Version 1: take the mean of all available years
+
+
+# gapfill <- function(df, miss_col) {
+#     if (all(is.na(df[, miss_col]))) {
+#     warning("there are no numeric values in the data", call. = FALSE)
+#     finaldf <-df 
+#     } else {
+#       cleandat <- drop_na(df, miss_col)
+#       replacement <- mean(cleandat[,miss_col], na.rm = T)
+#       replaced <- replace_na(df[,miss_col], replacement)
+#       finaldf <- cbind(df, replaced)
+#     }
+#   finaldf
+# }
+
+```
+
+Version 2: if more than 7 years of data are available, take the mean of the earliest 5
+```{r}
 gapfill <- function(df, miss_col) {
-    if (all(is.na(df[, miss_col]))) {
+    finaldf <- df
+    cleandat <- drop_na(df, miss_col)
+  if (all(is.na(df[, miss_col]))) {
     warning("there are no numeric values in the data", call. = FALSE)
-    finaldf <-df 
-    } else {
-      cleandat <- drop_na(df, miss_col)
-      replacement <- mean(cleandat[,miss_col], na.rm = T)
-      replaced <- replace_na(df[,miss_col], replacement)
-      finaldf <- cbind(df, replaced)
-    }
+  } else if (nrow(cleandat >= 7)) {
+    replacement <- mean(cleandat[1:5, miss_col], na.rm = T)
+    replaced <- replace_na(df[, miss_col], replacement)
+    finaldf <- cbind(df, replaced)
+  } else {
+    replacement <- mean(cleandat[, miss_col], na.rm = T)
+    replaced <- replace_na(df[, miss_col], replacement)
+    finaldf <- cbind(df, replaced)
+  }
   finaldf
 }
-
 ```
 
 ## Replacing missing years of data
@@ -311,7 +338,7 @@ lice_municips <- below_lice_full %>%
 
 ## Compiling final dataframe
 ```{r}
-allyears <-data.frame(Year = seq(2004, 2019, by = 1))
+allyears <-data.frame(Year = seq(2005, 2019, by = 1))
 
 lice_replaced_prep <- map(lice_municips, ~ as.data.frame(.x)) %>%
   map(., ~ full_join(.x, allyears, by = "Year")) %>% 
@@ -324,10 +351,8 @@ lice_replaced_prep <- map(lice_municips, ~ as.data.frame(.x)) %>%
   map(., ~ gapfill(.x,2)) 
 
 lice_gapfilled <- do.call("rbind", lice_replaced_prep) %>%
-  rename(Municip_number = Komnum_new, Municip = Kommune_new, gapfilled = replaced) %>%
+  rename(Municip_number = Komnum_new, Municip = Kommune_new, score_final = replaced) %>%
   mutate(gf = ifelse(is.na(below_lice), "y", "n"))
 
 #write_csv(lice_gapfilled, "data/lice_below_thr_gapfilled.csv")
 ```
-
-Final table compiled, now need to check with the 13 mpp with no data and comfirm that my methods of gapfillig is ok.
