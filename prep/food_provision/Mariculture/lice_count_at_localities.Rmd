@@ -26,7 +26,6 @@ library(stringr)
 
 # Load data
 ```{r}
-# lice counts
 lus <- read.csv(file.path(dir_M[2], "Aquaculture/Lice/lakselus_per_fisk_utf8.csv"), header = TRUE, encoding = "UTF-8")
 municip <- read.table("../../administrative/komlist.csv", header = TRUE, sep = ";")
 municip <-filter(municip, !Name == "NonCoast")
@@ -41,10 +40,14 @@ I will check if the Aquaculture registry have information on these locaitons ("l
 
 ```{r}
 #list of the locaitons with missing info:
+lus <- lus %>%  
+  rename(Ar = X.r)
+
 missing_mppinfo <-lus %>% 
   filter(is.na(Kommunenummer)) 
 
-foo <-lus %>% group_by(Ar) %>% 
+foo <-lus %>% 
+  group_by(Ar) %>% 
   mutate(lusegrense = as.numeric(as.character(Lusegrense.uke)))
 
 #cheking if lice threshold changed during 2012-2019: yes, since 2017 lice threshold is 0.2 (in spring) and 0.5 otherwise
@@ -52,11 +55,12 @@ foo2 <- foo %>%
   group_by(Ar) %>% 
   summarize(grensemin = min(lusegrense, na.rm = T),
             grensemax = max(lusegrense, na.rm = T))
+foo2
 ```
 
 
 Merging lus_prep with lisences dataframe - to find municipaities where they are missing. 
-I could find info only for 2 out of 89 locations with missing municipality and I add municipalities for them mannually in the code ""Preliminary data cleaning.
+I could find info only for 2 out of 89 locations with missing municipality and I add municipalities for them mannually in the code "Preliminary data cleaning".
 
 ```{r}
 locsmpp <- lisences  %>% 
@@ -225,7 +229,7 @@ lus_old_prep2 <- lus_old_prep %>%
   select(-c(What, Latlon))
 ```
 
-# Estimate average % of weeks when localities are below lice threshold (old data)
+# Estimate average % of months when localities are below lice threshold (old data)
 ```{r}
 #check NAs in the old data
 map(lus_old_prep2, ~sum(is.na(.)))
@@ -308,15 +312,15 @@ All these municipalities  had no information in lice, and they also did not have
 
 ```
 
-Version 2: if more than 7 years of data are available, take the mean of the earliest 5
+Version 2: if more than 7 years of data are available, take the mean of the latest 5
 ```{r}
 gapfill <- function(df, miss_col) {
-    finaldf <- df
-    cleandat <- drop_na(df, miss_col)
+  finaldf <- df
+  cleandat <- drop_na(df, miss_col)
   if (all(is.na(df[, miss_col]))) {
     warning("there are no numeric values in the data", call. = FALSE)
   } else if (nrow(cleandat >= 7)) {
-    replacement <- mean(cleandat[1:5, miss_col], na.rm = T)
+    replacement <- mean(tail(cleandat, 5)[, miss_col], na.rm = T)
     replaced <- replace_na(df[, miss_col], replacement)
     finaldf <- cbind(df, replaced)
   } else {

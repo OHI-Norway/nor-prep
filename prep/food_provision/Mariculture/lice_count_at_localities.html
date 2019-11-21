@@ -11,7 +11,7 @@
 
 <meta name="author" content="Marina Espinasse" />
 
-<meta name="date" content="2019-10-04" />
+<meta name="date" content="2019-11-21" />
 
 <title>Lice counts per week and municipality</title>
 
@@ -362,21 +362,21 @@ $(document).ready(function () {
 
 <h1 class="title toc-ignore">Lice counts per week and municipality</h1>
 <h4 class="author"><em>Marina Espinasse</em></h4>
-<h4 class="date"><em>2019-10-04</em></h4>
+<h4 class="date"><em>2019-11-21</em></h4>
 
 </div>
 
 <div id="TOC">
 <ul>
 <li><a href="#load-data"><span class="toc-section-number">1</span> Load data</a></li>
-<li><a href="#preliminary-data-cleaning"><span class="toc-section-number">2</span> Preliminary data cleaning</a></li>
-<li><a href="#finding-municipality-and-lice-threshold-info-for-some-of-the-locations"><span class="toc-section-number">3</span> Finding municipality and lice threshold info for some of the locations</a></li>
+<li><a href="#finding-municipality-and-lice-threshold-info-for-some-of-the-locations"><span class="toc-section-number">2</span> Finding municipality and lice threshold info for some of the locations</a></li>
+<li><a href="#preliminary-data-cleaning"><span class="toc-section-number">3</span> Preliminary data cleaning</a></li>
 <li><a href="#further-data-cleaning-remove-inactive-localities-and-those-that-did-not-count-lice"><span class="toc-section-number">4</span> Further data cleaning: remove inactive localities and those that did not count lice</a></li>
 <li><a href="#estimate-average-of-weeks-localities-are-below-lice-threshold-new-data"><span class="toc-section-number">5</span> Estimate average % of weeks localities are below lice threshold (new data)</a></li>
 <li><a href="#cleaning-older-lice-data-2005-2011"><span class="toc-section-number">6</span> Cleaning older lice data (2005-2011)</a></li>
-<li><a href="#estimate-average-of-weeks-when-localities-are-below-lice-threshold-old-data"><span class="toc-section-number">7</span> Estimate average % of weeks when localities are below lice threshold (old data)</a></li>
+<li><a href="#estimate-average-of-months-when-localities-are-below-lice-threshold-old-data"><span class="toc-section-number">7</span> Estimate average % of months when localities are below lice threshold (old data)</a></li>
 <li><a href="#merge-old-and-new-data-tables"><span class="toc-section-number">8</span> Merge old and new data tables</a></li>
-<li><a href="#gapfilling-missing-data-in-lice-dataseet"><span class="toc-section-number">9</span> Gapfilling missing data in lice dataseet</a><ul>
+<li><a href="#gapfilling-missing-data-in-lice-dataset"><span class="toc-section-number">9</span> Gapfilling missing data in lice dataset</a><ul>
 <li><a href="#check-which-counties-did-not-have-lice-data-at-all"><span class="toc-section-number">9.1</span> Check which counties did not have lice data at all</a></li>
 <li><a href="#define-a-function-to-gapfill"><span class="toc-section-number">9.2</span> Define a function to gapfill</a></li>
 <li><a href="#replacing-missing-years-of-data"><span class="toc-section-number">9.3</span> Replacing missing years of data</a></li>
@@ -389,44 +389,50 @@ $(document).ready(function () {
 <a class="sourceLine" id="cb1-2" data-line-number="2"><span class="kw">library</span>(stringr)</a></code></pre></div>
 <div id="load-data" class="section level1">
 <h1><span class="header-section-number">1</span> Load data</h1>
-<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" data-line-number="1"><span class="co"># lice counts</span></a>
-<a class="sourceLine" id="cb2-2" data-line-number="2">lus &lt;-<span class="st"> </span><span class="kw">read.csv</span>(<span class="kw">file.path</span>(dir_M[<span class="dv">2</span>], <span class="st">&quot;Aquaculture/Lice/lakselus_per_fisk_utf8.csv&quot;</span>), <span class="dt">header =</span> <span class="ot">TRUE</span>, <span class="dt">encoding =</span> <span class="st">&quot;UTF-8&quot;</span>)</a>
-<a class="sourceLine" id="cb2-3" data-line-number="3">municip &lt;-<span class="st"> </span><span class="kw">read.table</span>(<span class="st">&quot;../../administrative/komlist.csv&quot;</span>, <span class="dt">header =</span> <span class="ot">TRUE</span>, <span class="dt">sep =</span> <span class="st">&quot;;&quot;</span>)</a>
-<a class="sourceLine" id="cb2-4" data-line-number="4">municip &lt;-<span class="kw">filter</span>(municip, <span class="op">!</span>Name <span class="op">==</span><span class="st"> &quot;NonCoast&quot;</span>)</a>
-<a class="sourceLine" id="cb2-5" data-line-number="5">lus_<span class="dv">2005</span> &lt;-<span class="kw">read.csv</span>(<span class="st">&quot;./data/lice_vers2_2005_2011_formatted.csv&quot;</span>, <span class="dt">sep =</span> <span class="st">&quot;,&quot;</span>)</a>
-<a class="sourceLine" id="cb2-6" data-line-number="6">lisences &lt;-<span class="kw">read.csv</span>(<span class="st">&quot;./data/aquaculture_lisences_northnorway_2010_2018.csv&quot;</span>)</a></code></pre></div>
-</div>
-<div id="preliminary-data-cleaning" class="section level1">
-<h1><span class="header-section-number">2</span> Preliminary data cleaning</h1>
-<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" data-line-number="1"><span class="kw">colnames</span>(lus)[<span class="kw">c</span>(<span class="dv">2</span>, <span class="dv">19</span>, <span class="dv">20</span>)] &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;Ar&quot;</span>, <span class="st">&quot;ProduksjonsomradeID&quot;</span>, <span class="st">&quot;Produksjonsomrade&quot;</span>)</a>
-<a class="sourceLine" id="cb3-2" data-line-number="2">lus_prep &lt;-<span class="st"> </span>lus <span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb3-3" data-line-number="3"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">Kommunenummer =</span> <span class="kw">replace</span>(Kommunenummer, Lokalitetsnummer <span class="op">==</span><span class="st"> &quot;10893&quot;</span>, <span class="st">&quot;1835&quot;</span> )) <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb3-4" data-line-number="4"><span class="st">  </span><span class="kw">filter</span>(Kommunenummer <span class="op">&gt;=</span><span class="st"> </span><span class="dv">1800</span> <span class="op">&amp;</span><span class="st"> </span>Kommunenummer <span class="op">&lt;</span><span class="st"> </span><span class="dv">2100</span>) <span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb3-5" data-line-number="5"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">Kommunenummer =</span> <span class="kw">replace</span>(Kommunenummer, Kommunenummer <span class="op">==</span><span class="st"> &quot;1915&quot;</span>, <span class="st">&quot;1903&quot;</span>)) <span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb3-6" data-line-number="6"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">Kommunenummer =</span> <span class="kw">replace</span>(Kommunenummer, Kommunenummer <span class="op">==</span><span class="st"> &quot;1901&quot;</span>, <span class="st">&quot;1903&quot;</span>)) <span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb3-7" data-line-number="7"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">Kommunenummer =</span> <span class="kw">as.numeric</span>(Kommunenummer)) <span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb3-8" data-line-number="8"><span class="st">  </span><span class="kw">left_join</span>(municip[, <span class="kw">c</span>(<span class="dv">1</span>, <span class="dv">2</span>)], <span class="dt">by =</span> <span class="kw">c</span>(<span class="st">&quot;Kommunenummer&quot;</span> =<span class="st"> &quot;Komnum&quot;</span>)) <span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb3-9" data-line-number="9"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">Kommune =</span> Name) <span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb3-10" data-line-number="10"><span class="st">  </span><span class="kw">select</span>(<span class="op">-</span>Name)</a></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" data-line-number="1">lus &lt;-<span class="st"> </span><span class="kw">read.csv</span>(<span class="kw">file.path</span>(dir_M[<span class="dv">2</span>], <span class="st">&quot;Aquaculture/Lice/lakselus_per_fisk_utf8.csv&quot;</span>), <span class="dt">header =</span> <span class="ot">TRUE</span>, <span class="dt">encoding =</span> <span class="st">&quot;UTF-8&quot;</span>)</a>
+<a class="sourceLine" id="cb2-2" data-line-number="2">municip &lt;-<span class="st"> </span><span class="kw">read.table</span>(<span class="st">&quot;../../administrative/komlist.csv&quot;</span>, <span class="dt">header =</span> <span class="ot">TRUE</span>, <span class="dt">sep =</span> <span class="st">&quot;;&quot;</span>)</a>
+<a class="sourceLine" id="cb2-3" data-line-number="3">municip &lt;-<span class="kw">filter</span>(municip, <span class="op">!</span>Name <span class="op">==</span><span class="st"> &quot;NonCoast&quot;</span>)</a>
+<a class="sourceLine" id="cb2-4" data-line-number="4">lus_<span class="dv">2005</span> &lt;-<span class="kw">read.csv</span>(<span class="st">&quot;./data/lice_vers2_2005_2011_formatted.csv&quot;</span>, <span class="dt">sep =</span> <span class="st">&quot;,&quot;</span>)</a>
+<a class="sourceLine" id="cb2-5" data-line-number="5">lisences &lt;-<span class="kw">read.csv</span>(<span class="st">&quot;./data/aquaculture_lisences_northnorway_2010_2018.csv&quot;</span>)</a></code></pre></div>
 </div>
 <div id="finding-municipality-and-lice-threshold-info-for-some-of-the-locations" class="section level1">
-<h1><span class="header-section-number">3</span> Finding municipality and lice threshold info for some of the locations</h1>
-<p>There are 80 locations for which no municipality and region specified, also the lice threshold is missing for those. I will check if the Aquaculture registry have information on these locaitons (“lisences” dataframe).</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" data-line-number="1"><span class="co">#list of the locaitons with missing info:</span></a>
-<a class="sourceLine" id="cb4-2" data-line-number="2">missing_mppinfo &lt;-lus <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb4-3" data-line-number="3"><span class="st">  </span><span class="kw">filter</span>(<span class="kw">is.na</span>(Kommunenummer)) </a>
-<a class="sourceLine" id="cb4-4" data-line-number="4"></a>
-<a class="sourceLine" id="cb4-5" data-line-number="5">foo &lt;-lus_prep <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">group_by</span>(Ar) <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb4-6" data-line-number="6"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">lusegrense =</span> <span class="kw">as.numeric</span>(<span class="kw">as.character</span>(Lusegrense.uke)))</a></code></pre></div>
-<pre><code>## Warning: NAs introduced by coercion</code></pre>
-<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb6-1" data-line-number="1">foo <span class="op">%&gt;%</span><span class="st">  </span></a>
-<a class="sourceLine" id="cb6-2" data-line-number="2"><span class="st">  </span><span class="kw">group_by</span>(Ar) <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb6-3" data-line-number="3"><span class="st">  </span><span class="kw">summarize</span>(<span class="dt">grensemin =</span> <span class="kw">min</span>(lusegrense),</a>
-<a class="sourceLine" id="cb6-4" data-line-number="4">            <span class="dt">grensemax =</span> <span class="kw">max</span>(lusegrense))</a></code></pre></div>
+<h1><span class="header-section-number">2</span> Finding municipality and lice threshold info for some of the locations</h1>
+<p>There are 89 locations for which no municipality and region specified, also the lice threshold is missing for those. I will check if the Aquaculture registry have information on these locaitons (“lisences” dataframe).</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" data-line-number="1"><span class="co">#list of the locaitons with missing info:</span></a>
+<a class="sourceLine" id="cb3-2" data-line-number="2">lus &lt;-<span class="st"> </span>lus <span class="op">%&gt;%</span><span class="st">  </span></a>
+<a class="sourceLine" id="cb3-3" data-line-number="3"><span class="st">  </span><span class="kw">rename</span>(<span class="dt">Ar =</span> X.r)</a>
+<a class="sourceLine" id="cb3-4" data-line-number="4"></a>
+<a class="sourceLine" id="cb3-5" data-line-number="5">missing_mppinfo &lt;-lus <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb3-6" data-line-number="6"><span class="st">  </span><span class="kw">filter</span>(<span class="kw">is.na</span>(Kommunenummer)) </a>
+<a class="sourceLine" id="cb3-7" data-line-number="7"></a>
+<a class="sourceLine" id="cb3-8" data-line-number="8">foo &lt;-lus <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb3-9" data-line-number="9"><span class="st">  </span><span class="kw">group_by</span>(Ar) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb3-10" data-line-number="10"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">lusegrense =</span> <span class="kw">as.numeric</span>(<span class="kw">as.character</span>(Lusegrense.uke)))</a></code></pre></div>
+<pre><code>## Warning: NAs introduced by coercion
+
+## Warning: NAs introduced by coercion
+
+## Warning: NAs introduced by coercion
+
+## Warning: NAs introduced by coercion
+
+## Warning: NAs introduced by coercion
+
+## Warning: NAs introduced by coercion
+
+## Warning: NAs introduced by coercion
+
+## Warning: NAs introduced by coercion</code></pre>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" data-line-number="1"><span class="co">#cheking if lice threshold changed during 2012-2019: yes, since 2017 lice threshold is 0.2 (in spring) and 0.5 otherwise</span></a>
+<a class="sourceLine" id="cb5-2" data-line-number="2">foo2 &lt;-<span class="st"> </span>foo <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb5-3" data-line-number="3"><span class="st">  </span><span class="kw">group_by</span>(Ar) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb5-4" data-line-number="4"><span class="st">  </span><span class="kw">summarize</span>(<span class="dt">grensemin =</span> <span class="kw">min</span>(lusegrense, <span class="dt">na.rm =</span> T),</a>
+<a class="sourceLine" id="cb5-5" data-line-number="5">            <span class="dt">grensemax =</span> <span class="kw">max</span>(lusegrense, <span class="dt">na.rm =</span> T))</a>
+<a class="sourceLine" id="cb5-6" data-line-number="6">foo2</a></code></pre></div>
 <pre><code>## # A tibble: 8 x 3
 ##      Ar grensemin grensemax
 ##   &lt;int&gt;     &lt;dbl&gt;     &lt;dbl&gt;
-## 1  2012      NA        NA  
+## 1  2012       0.5       0.5
 ## 2  2013       0.5       0.5
 ## 3  2014       0.5       0.5
 ## 4  2015       0.5       0.5
@@ -434,17 +440,17 @@ $(document).ready(function () {
 ## 6  2017       0.2       0.5
 ## 7  2018       0.2       0.5
 ## 8  2019       0.5       0.5</code></pre>
-<p>Merging lus_prep with lisences dataframe - to find municipaities where they are missing. I could find info only for 2 out of 89 locations with missing municipality.</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb8-1" data-line-number="1">locsmpp &lt;-<span class="st"> </span>lisences  <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb8-2" data-line-number="2"><span class="st">  </span><span class="kw">group_by</span>(Year, LOK_NR, LOK_KOMNR, LOK_KOM) <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb8-3" data-line-number="3"><span class="st">  </span><span class="kw">summarize</span>(<span class="dt">count=</span><span class="kw">n</span>()) </a>
-<a class="sourceLine" id="cb8-4" data-line-number="4"></a>
-<a class="sourceLine" id="cb8-5" data-line-number="5">missing_mppinfo_filled &lt;-<span class="st"> </span>missing_mppinfo <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb8-6" data-line-number="6"><span class="st">  </span><span class="kw">group_by</span>(Ar,Lokalitetsnummer) <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb8-7" data-line-number="7"><span class="st">  </span><span class="kw">summarize</span>(<span class="dt">locscount =</span> <span class="kw">n</span>()) <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb8-8" data-line-number="8"><span class="st">  </span><span class="kw">left_join</span>(locsmpp[,<span class="kw">c</span>(<span class="st">&quot;Year&quot;</span>,<span class="st">&quot;LOK_NR&quot;</span>, <span class="st">&quot;LOK_KOMNR&quot;</span>, <span class="st">&quot;LOK_KOM&quot;</span>)], <span class="dt">by =</span> <span class="kw">c</span>(<span class="st">&quot;Lokalitetsnummer&quot;</span> =<span class="st"> &quot;LOK_NR&quot;</span>,<span class="st">&quot;Ar&quot;</span>=<span class="st">&quot;Year&quot;</span>))</a>
-<a class="sourceLine" id="cb8-9" data-line-number="9"></a>
-<a class="sourceLine" id="cb8-10" data-line-number="10"><span class="kw">map</span>(missing_mppinfo_filled, <span class="op">~</span><span class="st"> </span><span class="kw">sum</span>(<span class="kw">is.na</span>(.)))</a></code></pre></div>
+<p>Merging lus_prep with lisences dataframe - to find municipaities where they are missing. I could find info only for 2 out of 89 locations with missing municipality and I add municipalities for them mannually in the code “Preliminary data cleaning”.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" data-line-number="1">locsmpp &lt;-<span class="st"> </span>lisences  <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb7-2" data-line-number="2"><span class="st">  </span><span class="kw">group_by</span>(Year, LOK_NR, LOK_KOMNR, LOK_KOM) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb7-3" data-line-number="3"><span class="st">  </span><span class="kw">summarize</span>(<span class="dt">count=</span><span class="kw">n</span>()) </a>
+<a class="sourceLine" id="cb7-4" data-line-number="4"></a>
+<a class="sourceLine" id="cb7-5" data-line-number="5">missing_mppinfo_filled &lt;-<span class="st"> </span>missing_mppinfo <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb7-6" data-line-number="6"><span class="st">  </span><span class="kw">group_by</span>(Ar,Lokalitetsnummer) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb7-7" data-line-number="7"><span class="st">  </span><span class="kw">summarize</span>(<span class="dt">locscount =</span> <span class="kw">n</span>()) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb7-8" data-line-number="8"><span class="st">  </span><span class="kw">left_join</span>(locsmpp[,<span class="kw">c</span>(<span class="st">&quot;Year&quot;</span>,<span class="st">&quot;LOK_NR&quot;</span>, <span class="st">&quot;LOK_KOMNR&quot;</span>, <span class="st">&quot;LOK_KOM&quot;</span>)], <span class="dt">by =</span> <span class="kw">c</span>(<span class="st">&quot;Lokalitetsnummer&quot;</span> =<span class="st"> &quot;LOK_NR&quot;</span>,<span class="st">&quot;Ar&quot;</span>=<span class="st">&quot;Year&quot;</span>))</a>
+<a class="sourceLine" id="cb7-9" data-line-number="9"></a>
+<a class="sourceLine" id="cb7-10" data-line-number="10"><span class="kw">map</span>(missing_mppinfo_filled, <span class="op">~</span><span class="st"> </span><span class="kw">sum</span>(<span class="kw">is.na</span>(.)))</a></code></pre></div>
 <pre><code>## $Ar
 ## [1] 0
 ## 
@@ -459,6 +465,20 @@ $(document).ready(function () {
 ## 
 ## $LOK_KOM
 ## [1] 87</code></pre>
+</div>
+<div id="preliminary-data-cleaning" class="section level1">
+<h1><span class="header-section-number">3</span> Preliminary data cleaning</h1>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb9-1" data-line-number="1"><span class="kw">colnames</span>(lus)[<span class="kw">c</span>(<span class="dv">2</span>, <span class="dv">19</span>, <span class="dv">20</span>)] &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;Ar&quot;</span>, <span class="st">&quot;ProduksjonsomradeID&quot;</span>, <span class="st">&quot;Produksjonsomrade&quot;</span>)</a>
+<a class="sourceLine" id="cb9-2" data-line-number="2">lus_prep &lt;-<span class="st"> </span>lus <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb9-3" data-line-number="3"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">Kommunenummer =</span> <span class="kw">replace</span>(Kommunenummer, Lokalitetsnummer <span class="op">==</span><span class="st"> &quot;10893&quot;</span>, <span class="st">&quot;1835&quot;</span> )) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb9-4" data-line-number="4"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">Kommunenummer =</span> <span class="kw">replace</span>(Kommunenummer, Lokalitetsnummer <span class="op">==</span><span class="st"> &quot;11087&quot;</span>, <span class="st">&quot;1836&quot;</span> )) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb9-5" data-line-number="5"><span class="st">  </span><span class="kw">filter</span>(Kommunenummer <span class="op">&gt;=</span><span class="st"> </span><span class="dv">1800</span> <span class="op">&amp;</span><span class="st"> </span>Kommunenummer <span class="op">&lt;</span><span class="st"> </span><span class="dv">2100</span>) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb9-6" data-line-number="6"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">Kommunenummer =</span> <span class="kw">replace</span>(Kommunenummer, Kommunenummer <span class="op">==</span><span class="st"> &quot;1915&quot;</span>, <span class="st">&quot;1903&quot;</span>)) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb9-7" data-line-number="7"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">Kommunenummer =</span> <span class="kw">replace</span>(Kommunenummer, Kommunenummer <span class="op">==</span><span class="st"> &quot;1901&quot;</span>, <span class="st">&quot;1903&quot;</span>)) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb9-8" data-line-number="8"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">Kommunenummer =</span> <span class="kw">as.numeric</span>(Kommunenummer)) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb9-9" data-line-number="9"><span class="st">  </span><span class="kw">left_join</span>(municip[, <span class="kw">c</span>(<span class="dv">1</span>, <span class="dv">2</span>)], <span class="dt">by =</span> <span class="kw">c</span>(<span class="st">&quot;Kommunenummer&quot;</span> =<span class="st"> &quot;Komnum&quot;</span>)) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb9-10" data-line-number="10"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">Kommune =</span> Name) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb9-11" data-line-number="11"><span class="st">  </span><span class="kw">select</span>(<span class="op">-</span>Name)</a></code></pre></div>
 <div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb10-1" data-line-number="1"><span class="co">#Lice threshold is 0.2 from week 21 to week 26 in Northern Norway since 2017.</span></a>
 <a class="sourceLine" id="cb10-2" data-line-number="2">replace_licethr &lt;-<span class="st"> </span><span class="cf">function</span>(num, year, <span class="dt">week=</span><span class="ot">NULL</span>) {</a>
 <a class="sourceLine" id="cb10-3" data-line-number="3">  <span class="cf">if</span> (year <span class="op">&lt;</span><span class="st"> </span><span class="dv">2017</span>) {</a>
@@ -482,101 +502,98 @@ $(document).ready(function () {
 <a class="sourceLine" id="cb10-21" data-line-number="21">  }</a>
 <a class="sourceLine" id="cb10-22" data-line-number="22">  overgrense</a>
 <a class="sourceLine" id="cb10-23" data-line-number="23">}</a></code></pre></div>
-<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb11-1" data-line-number="1"><span class="co">#filter out rows where lice threshold is unknown:</span></a>
-<a class="sourceLine" id="cb11-2" data-line-number="2">foo2 &lt;-<span class="kw">filter</span>(lus_prep, Over.lusegrense.uke <span class="op">==</span><span class="st"> &quot;Ukjent&quot;</span>)</a>
-<a class="sourceLine" id="cb11-3" data-line-number="3">foo2 &lt;-<span class="st"> </span>foo2 <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb11-4" data-line-number="4"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">Over.lusegrense.uke =</span> <span class="kw">pmap_chr</span>(<span class="kw">list</span>(Lus.i.bevegelige.stadier, Ar, Uke), <span class="op">~</span><span class="st"> </span><span class="kw">replace_licethr</span>(..<span class="dv">1</span>, ..<span class="dv">2</span>, ..<span class="dv">3</span>)))</a>
-<a class="sourceLine" id="cb11-5" data-line-number="5"></a>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb11-1" data-line-number="1"><span class="co">#filter out rows where lice threshold is unknown.</span></a>
+<a class="sourceLine" id="cb11-2" data-line-number="2"><span class="co">#(the responsible engineer said it was probably a mistake in data logging)</span></a>
+<a class="sourceLine" id="cb11-3" data-line-number="3">foo3 &lt;-<span class="kw">filter</span>(lus_prep, Over.lusegrense.uke <span class="op">==</span><span class="st"> &quot;Ukjent&quot;</span> <span class="op">&amp;</span><span class="st"> </span><span class="op">!</span><span class="kw">is.na</span>(Lus.i.bevegelige.stadier))</a>
+<a class="sourceLine" id="cb11-4" data-line-number="4">foo4 &lt;-<span class="st"> </span>foo3 <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb11-5" data-line-number="5"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">Over.lusegrense.uke =</span> <span class="kw">pmap_chr</span>(<span class="kw">list</span>(Lus.i.bevegelige.stadier, Ar, Uke), <span class="op">~</span><span class="st"> </span><span class="kw">replace_licethr</span>(..<span class="dv">1</span>, ..<span class="dv">2</span>, ..<span class="dv">3</span>)))</a>
 <a class="sourceLine" id="cb11-6" data-line-number="6"></a>
-<a class="sourceLine" id="cb11-7" data-line-number="7"><span class="co">#and rbind with the other:</span></a>
-<a class="sourceLine" id="cb11-8" data-line-number="8">lus_prep2 &lt;-lus_prep <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb11-9" data-line-number="9"><span class="st">  </span><span class="kw">filter</span>(<span class="op">!</span><span class="kw">is.na</span>(Lus.i.bevegelige.stadier)) <span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb11-10" data-line-number="10"><span class="st">  </span><span class="kw">filter</span>(Over.lusegrense.uke <span class="op">!=</span><span class="st"> &quot;Ukjent&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb11-11" data-line-number="11"><span class="st">  </span><span class="kw">bind_rows</span>(foo2)</a></code></pre></div>
-<pre><code>## Warning in bind_rows_(x, .id): binding factor and character vector,
-## coercing into character vector</code></pre>
-<pre><code>## Warning in bind_rows_(x, .id): binding character and factor vector,
-## coercing into character vector</code></pre>
+<a class="sourceLine" id="cb11-7" data-line-number="7"></a>
+<a class="sourceLine" id="cb11-8" data-line-number="8"><span class="co">#and rbind with the other:</span></a>
+<a class="sourceLine" id="cb11-9" data-line-number="9">lus_prep2 &lt;-lus_prep <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb11-10" data-line-number="10"><span class="st">  </span><span class="kw">filter</span>(<span class="op">!</span><span class="kw">is.na</span>(Lus.i.bevegelige.stadier)) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb11-11" data-line-number="11"><span class="st">  </span><span class="kw">filter</span>(Over.lusegrense.uke <span class="op">!=</span><span class="st"> &quot;Ukjent&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb11-12" data-line-number="12"><span class="st">  </span><span class="kw">bind_rows</span>(foo2)</a></code></pre></div>
 </div>
 <div id="further-data-cleaning-remove-inactive-localities-and-those-that-did-not-count-lice" class="section level1">
 <h1><span class="header-section-number">4</span> Further data cleaning: remove inactive localities and those that did not count lice</h1>
 <p>How many localities are there in total per municipality per year? We may want to know how many locations were active per municiality, year and week, to be aware how many locations actually report lice count.</p>
-<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb14-1" data-line-number="1">total_locations &lt;-<span class="st"> </span>lus_prep <span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb14-2" data-line-number="2"><span class="st">  </span><span class="kw">group_by</span>(Kommune, Kommunenummer,Ar, Uke) <span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb14-3" data-line-number="3"><span class="st">  </span><span class="kw">summarize</span>(<span class="dt">tot_loc =</span> <span class="kw">n_distinct</span>(Lokalitetsnummer)) <span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb14-4" data-line-number="4"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">key =</span> <span class="kw">paste</span>(Kommune,<span class="st">&quot;_&quot;</span> , Ar, <span class="st">&quot;_&quot;</span>, Uke))</a>
-<a class="sourceLine" id="cb14-5" data-line-number="5"></a>
-<a class="sourceLine" id="cb14-6" data-line-number="6"><span class="co">#write.csv(total_locations,&quot;data/number_lice_obersvations_per_mpp.csv&quot;) </span></a></code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb12-1" data-line-number="1">total_locations &lt;-<span class="st"> </span>lus_prep <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb12-2" data-line-number="2"><span class="st">  </span><span class="kw">group_by</span>(Kommune, Kommunenummer,Ar, Uke) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb12-3" data-line-number="3"><span class="st">  </span><span class="kw">summarize</span>(<span class="dt">tot_loc =</span> <span class="kw">n_distinct</span>(Lokalitetsnummer)) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb12-4" data-line-number="4"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">key =</span> <span class="kw">paste</span>(Kommune,<span class="st">&quot;_&quot;</span> , Ar, <span class="st">&quot;_&quot;</span>, Uke))</a>
+<a class="sourceLine" id="cb12-5" data-line-number="5"></a>
+<a class="sourceLine" id="cb12-6" data-line-number="6"><span class="co">#write.csv(total_locations,&quot;data/number_lice_obersvations_per_mpp.csv&quot;) </span></a></code></pre></div>
 <p>Select only locations that were counting lice. Change column names to English.</p>
-<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb15-1" data-line-number="1">lus_prep3 &lt;-<span class="st"> </span>lus_prep2 <span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb15-2" data-line-number="2"><span class="st">  </span><span class="kw">filter</span>(Har.telt.lakselus <span class="op">==</span><span class="st"> &quot;Ja&quot;</span>) <span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb15-3" data-line-number="3"><span class="st">  </span><span class="kw">select</span>(<span class="op">-</span><span class="kw">c</span>(</a>
-<a class="sourceLine" id="cb15-4" data-line-number="4">    <span class="st">&quot;Voksne.hunnlus&quot;</span>, <span class="st">&quot;Lus.i.bevegelige.stadier&quot;</span>, <span class="st">&quot;Fastsittende.lus&quot;</span>, <span class="st">&quot;Brakklagt&quot;</span>, <span class="st">&quot;Sj.temperatur&quot;</span>,</a>
-<a class="sourceLine" id="cb15-5" data-line-number="5">    <span class="st">&quot;Har.telt.lakselus&quot;</span>, <span class="st">&quot;Lusegrense.uke&quot;</span>, <span class="st">&quot;ProduksjonsomradeID&quot;</span>, <span class="st">&quot;Produksjonsomrade&quot;</span></a>
-<a class="sourceLine" id="cb15-6" data-line-number="6">  )) <span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb15-7" data-line-number="7"><span class="st">  </span><span class="kw">rename</span>(</a>
-<a class="sourceLine" id="cb15-8" data-line-number="8">    <span class="dt">Week =</span> Uke, <span class="dt">Year =</span> Ar, <span class="dt">Locality_number =</span> Lokalitetsnummer, <span class="dt">Locality_name =</span> Lokalitetsnavn,</a>
-<a class="sourceLine" id="cb15-9" data-line-number="9">    <span class="dt">Municip_number =</span> Kommunenummer, <span class="dt">Municip_name =</span> Kommune, <span class="dt">County_number =</span> Fylkesnummer, <span class="dt">County =</span> Fylke,</a>
-<a class="sourceLine" id="cb15-10" data-line-number="10">    <span class="dt">Above_threshold =</span> Over.lusegrense.uke</a>
-<a class="sourceLine" id="cb15-11" data-line-number="11">  )</a></code></pre></div>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb13-1" data-line-number="1">lus_prep3 &lt;-<span class="st"> </span>lus_prep2 <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb13-2" data-line-number="2"><span class="st">  </span><span class="kw">filter</span>(Har.telt.lakselus <span class="op">==</span><span class="st"> &quot;Ja&quot;</span>) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb13-3" data-line-number="3"><span class="st">  </span><span class="kw">select</span>(<span class="op">-</span><span class="kw">c</span>(</a>
+<a class="sourceLine" id="cb13-4" data-line-number="4">    <span class="st">&quot;Voksne.hunnlus&quot;</span>, <span class="st">&quot;Lus.i.bevegelige.stadier&quot;</span>, <span class="st">&quot;Fastsittende.lus&quot;</span>, <span class="st">&quot;Brakklagt&quot;</span>, <span class="st">&quot;Sj.temperatur&quot;</span>,</a>
+<a class="sourceLine" id="cb13-5" data-line-number="5">    <span class="st">&quot;Har.telt.lakselus&quot;</span>, <span class="st">&quot;Lusegrense.uke&quot;</span>, <span class="st">&quot;ProduksjonsomradeID&quot;</span>, <span class="st">&quot;Produksjonsomrade&quot;</span></a>
+<a class="sourceLine" id="cb13-6" data-line-number="6">  )) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb13-7" data-line-number="7"><span class="st">  </span><span class="kw">rename</span>(</a>
+<a class="sourceLine" id="cb13-8" data-line-number="8">    <span class="dt">Week =</span> Uke, <span class="dt">Year =</span> Ar, <span class="dt">Locality_number =</span> Lokalitetsnummer, <span class="dt">Locality_name =</span> Lokalitetsnavn,</a>
+<a class="sourceLine" id="cb13-9" data-line-number="9">    <span class="dt">Municip_number =</span> Kommunenummer, <span class="dt">Municip_name =</span> Kommune, <span class="dt">County_number =</span> Fylkesnummer, <span class="dt">County =</span> Fylke,</a>
+<a class="sourceLine" id="cb13-10" data-line-number="10">    <span class="dt">Above_threshold =</span> Over.lusegrense.uke</a>
+<a class="sourceLine" id="cb13-11" data-line-number="11">  )</a></code></pre></div>
 </div>
 <div id="estimate-average-of-weeks-localities-are-below-lice-threshold-new-data" class="section level1">
 <h1><span class="header-section-number">5</span> Estimate average % of weeks localities are below lice threshold (new data)</h1>
-<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb16-1" data-line-number="1">below_threshold_new &lt;-<span class="st"> </span>lus_prep3 <span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb16-2" data-line-number="2"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">Above_thr_new =</span> <span class="kw">case_when</span>(</a>
-<a class="sourceLine" id="cb16-3" data-line-number="3">    Above_threshold <span class="op">==</span><span class="st"> &quot;Nei&quot;</span> <span class="op">~</span><span class="st"> &quot;1&quot;</span>,</a>
-<a class="sourceLine" id="cb16-4" data-line-number="4">    Above_threshold <span class="op">==</span><span class="st"> &quot;Ja&quot;</span> <span class="op">~</span><span class="st"> &quot;0&quot;</span></a>
-<a class="sourceLine" id="cb16-5" data-line-number="5">  )) <span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb16-6" data-line-number="6"><span class="st">   </span><span class="kw">mutate</span>(<span class="dt">Above_thr_new =</span> <span class="kw">as.numeric</span>(<span class="kw">as.character</span>(Above_thr_new))) <span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb16-7" data-line-number="7"><span class="st">  </span><span class="kw">group_by</span>(Year, Locality_number, Municip_number, Municip_name) <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb16-8" data-line-number="8"><span class="st">  </span><span class="kw">summarise</span>(<span class="dt">totweeks =</span> <span class="kw">n</span>(),</a>
-<a class="sourceLine" id="cb16-9" data-line-number="9">            <span class="dt">below_weeks =</span> <span class="kw">sum</span>(Above_thr_new),</a>
-<a class="sourceLine" id="cb16-10" data-line-number="10">            <span class="dt">prop_weeks_below =</span> below_weeks<span class="op">/</span>totweeks)</a></code></pre></div>
-<p>About halth of the locations reported salmon lice only once a year. Barentswatch.no explains that missing lice count maybe because the locality did not have fish in the pens that weeks or they just did not report. I will select only the locations that reported at least 25 weeks over a year (about half of all locations).</p>
-<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb17-1" data-line-number="1">below_threshold_new2 &lt;-<span class="st"> </span>below_threshold_new <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb17-2" data-line-number="2"><span class="st">  </span><span class="kw">filter</span>(totweeks <span class="op">&gt;=</span><span class="st"> </span><span class="dv">25</span>) </a>
-<a class="sourceLine" id="cb17-3" data-line-number="3"></a>
-<a class="sourceLine" id="cb17-4" data-line-number="4"><span class="co">#check how many locations left per municipality: most of municipalities had 1-5 locations,</span></a>
-<a class="sourceLine" id="cb17-5" data-line-number="5"><span class="co">#counting lice at least 25 weeks a year.</span></a>
-<a class="sourceLine" id="cb17-6" data-line-number="6">locs_counted_25weeks &lt;-<span class="st"> </span>below_threshold_new2 <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb17-7" data-line-number="7"><span class="st">  </span><span class="kw">group_by</span>(Year, Municip_name) <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb17-8" data-line-number="8"><span class="st">  </span><span class="kw">summarize</span>(<span class="dt">locscount =</span> <span class="kw">n</span>())</a>
-<a class="sourceLine" id="cb17-9" data-line-number="9"></a>
-<a class="sourceLine" id="cb17-10" data-line-number="10"><span class="co">#Final table</span></a>
-<a class="sourceLine" id="cb17-11" data-line-number="11">below_lice_mpp_new &lt;-below_threshold_new2 <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb17-12" data-line-number="12"><span class="st">  </span><span class="kw">group_by</span>(Year, Municip_number, Municip_name) <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb17-13" data-line-number="13"><span class="st">  </span><span class="kw">summarize</span>(<span class="dt">below_lice =</span> <span class="kw">mean</span>(prop_weeks_below))</a></code></pre></div>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb14-1" data-line-number="1">below_threshold_new &lt;-<span class="st"> </span>lus_prep3 <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb14-2" data-line-number="2"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">Above_thr_new =</span> <span class="kw">case_when</span>(</a>
+<a class="sourceLine" id="cb14-3" data-line-number="3">    Above_threshold <span class="op">==</span><span class="st"> &quot;Nei&quot;</span> <span class="op">~</span><span class="st"> &quot;1&quot;</span>,</a>
+<a class="sourceLine" id="cb14-4" data-line-number="4">    Above_threshold <span class="op">==</span><span class="st"> &quot;Ja&quot;</span> <span class="op">~</span><span class="st"> &quot;0&quot;</span></a>
+<a class="sourceLine" id="cb14-5" data-line-number="5">  )) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb14-6" data-line-number="6"><span class="st">   </span><span class="kw">mutate</span>(<span class="dt">Above_thr_new =</span> <span class="kw">as.numeric</span>(<span class="kw">as.character</span>(Above_thr_new))) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb14-7" data-line-number="7"><span class="st">  </span><span class="kw">group_by</span>(Year, Locality_number, Municip_number, Municip_name) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb14-8" data-line-number="8"><span class="st">  </span><span class="kw">summarise</span>(<span class="dt">totweeks =</span> <span class="kw">n</span>(),</a>
+<a class="sourceLine" id="cb14-9" data-line-number="9">            <span class="dt">below_weeks =</span> <span class="kw">sum</span>(Above_thr_new),</a>
+<a class="sourceLine" id="cb14-10" data-line-number="10">            <span class="dt">prop_weeks_below =</span> below_weeks<span class="op">/</span>totweeks)</a></code></pre></div>
+<p>About halth of the locations reported salmon lice only once a year. Barentswatch.no explains that missing lice count maybe because the locality did not have fish in the pens during those weeks or they just did not report. I will select only the locations that reported at least 25 weeks over a year (about half of all locations).</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb15-1" data-line-number="1">below_threshold_new2 &lt;-<span class="st"> </span>below_threshold_new <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb15-2" data-line-number="2"><span class="st">  </span><span class="kw">filter</span>(totweeks <span class="op">&gt;=</span><span class="st"> </span><span class="dv">25</span>) </a>
+<a class="sourceLine" id="cb15-3" data-line-number="3"></a>
+<a class="sourceLine" id="cb15-4" data-line-number="4"><span class="co">#check how many locations left per municipality: most of municipalities had 1-5 locations,</span></a>
+<a class="sourceLine" id="cb15-5" data-line-number="5"><span class="co">#counting lice at least 25 weeks a year.</span></a>
+<a class="sourceLine" id="cb15-6" data-line-number="6">locs_counted_25weeks &lt;-<span class="st"> </span>below_threshold_new2 <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb15-7" data-line-number="7"><span class="st">  </span><span class="kw">group_by</span>(Year, Municip_name) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb15-8" data-line-number="8"><span class="st">  </span><span class="kw">summarize</span>(<span class="dt">locscount =</span> <span class="kw">n</span>())</a>
+<a class="sourceLine" id="cb15-9" data-line-number="9"></a>
+<a class="sourceLine" id="cb15-10" data-line-number="10"><span class="co">#Final table</span></a>
+<a class="sourceLine" id="cb15-11" data-line-number="11">below_lice_mpp_new &lt;-below_threshold_new2 <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb15-12" data-line-number="12"><span class="st">  </span><span class="kw">group_by</span>(Year, Municip_number, Municip_name) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb15-13" data-line-number="13"><span class="st">  </span><span class="kw">summarize</span>(<span class="dt">below_lice =</span> <span class="kw">mean</span>(prop_weeks_below))</a></code></pre></div>
 </div>
 <div id="cleaning-older-lice-data-2005-2011" class="section level1">
 <h1><span class="header-section-number">6</span> Cleaning older lice data (2005-2011)</h1>
-<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb18-1" data-line-number="1">lus_old_prep &lt;-<span class="st"> </span>lus_<span class="dv">2005</span> <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb18-2" data-line-number="2"><span class="st">  </span><span class="kw">select</span>(<span class="op">-</span><span class="kw">c</span>(<span class="st">&quot;Farmname&quot;</span>, <span class="st">&quot;Sitting_lice&quot;</span>))</a>
-<a class="sourceLine" id="cb18-3" data-line-number="3"></a>
-<a class="sourceLine" id="cb18-4" data-line-number="4"><span class="co">#the list of locaitons with no municipality info</span></a>
-<a class="sourceLine" id="cb18-5" data-line-number="5">lus_old_missinglocs &lt;-lus_old_prep <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb18-6" data-line-number="6"><span class="st">  </span><span class="kw">filter</span>(Latlon <span class="op">==</span><span class="st"> &quot;(-999.0,-999.0)&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb18-7" data-line-number="7"><span class="st">  </span><span class="kw">group_by</span>(Location) <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb18-8" data-line-number="8"><span class="st">  </span><span class="kw">summarize</span>(<span class="dt">count =</span> <span class="kw">n</span>())</a>
-<a class="sourceLine" id="cb18-9" data-line-number="9"></a>
-<a class="sourceLine" id="cb18-10" data-line-number="10"><span class="co">#count the number of locations in the new data that have lice counts</span></a>
-<a class="sourceLine" id="cb18-11" data-line-number="11">lus_new_locs &lt;-lus <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb18-12" data-line-number="12"><span class="st">  </span><span class="kw">group_by</span>(Lokalitetsnummer, Lokalitetsnavn, Lat, Lon) <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb18-13" data-line-number="13"><span class="st">  </span><span class="kw">summarise</span>(<span class="dt">count =</span> <span class="kw">n</span>())</a>
-<a class="sourceLine" id="cb18-14" data-line-number="14"></a>
-<a class="sourceLine" id="cb18-15" data-line-number="15"><span class="co">#merge the old and new datasets to see for which locations I can find lat and lon info - only for 63 (extra check - for another colleague)</span></a>
-<a class="sourceLine" id="cb18-16" data-line-number="16">locnames_merged &lt;-lus_old_missinglocs <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb18-17" data-line-number="17"><span class="st">  </span><span class="kw">left_join</span>(lus_new_locs, <span class="dt">by =</span> <span class="kw">c</span>(<span class="st">&quot;Location&quot;</span> =<span class="st"> &quot;Lokalitetsnummer&quot;</span>)) <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb18-18" data-line-number="18"><span class="st">  </span><span class="kw">filter</span>(<span class="op">!</span><span class="kw">is.na</span>(Lokalitetsnavn)) <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb18-19" data-line-number="19"><span class="st">  </span><span class="kw">select</span>(<span class="op">-</span><span class="kw">c</span>(<span class="st">&quot;count.x&quot;</span>, <span class="st">&quot;count.y&quot;</span>))</a></code></pre></div>
-<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb19-1" data-line-number="1"><span class="co">#location 10933 had no municipality info, it is not in the Aquaculture registry</span></a>
-<a class="sourceLine" id="cb19-2" data-line-number="2">lus_old_prep2 &lt;-<span class="st"> </span>lus_old_prep <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb19-3" data-line-number="3"><span class="st">  </span><span class="kw">filter</span>(<span class="op">!</span><span class="kw">is.na</span>(Municipality)) <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb19-4" data-line-number="4"><span class="st">  </span><span class="kw">select</span>(<span class="op">-</span><span class="kw">c</span>(What, Latlon))</a></code></pre></div>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb16-1" data-line-number="1">lus_old_prep &lt;-<span class="st"> </span>lus_<span class="dv">2005</span> <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb16-2" data-line-number="2"><span class="st">  </span><span class="kw">select</span>(<span class="op">-</span><span class="kw">c</span>(<span class="st">&quot;Farmname&quot;</span>, <span class="st">&quot;Sitting_lice&quot;</span>))</a>
+<a class="sourceLine" id="cb16-3" data-line-number="3"></a>
+<a class="sourceLine" id="cb16-4" data-line-number="4"><span class="co">#the list of locaitons with no municipality info</span></a>
+<a class="sourceLine" id="cb16-5" data-line-number="5">lus_old_missinglocs &lt;-lus_old_prep <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb16-6" data-line-number="6"><span class="st">  </span><span class="kw">filter</span>(Latlon <span class="op">==</span><span class="st"> &quot;(-999.0,-999.0)&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb16-7" data-line-number="7"><span class="st">  </span><span class="kw">group_by</span>(Location) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb16-8" data-line-number="8"><span class="st">  </span><span class="kw">summarize</span>(<span class="dt">count =</span> <span class="kw">n</span>())</a>
+<a class="sourceLine" id="cb16-9" data-line-number="9"></a>
+<a class="sourceLine" id="cb16-10" data-line-number="10"><span class="co">#count the number of locations in the new data that have lice counts</span></a>
+<a class="sourceLine" id="cb16-11" data-line-number="11">lus_new_locs &lt;-lus <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb16-12" data-line-number="12"><span class="st">  </span><span class="kw">group_by</span>(Lokalitetsnummer, Lokalitetsnavn, Lat, Lon) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb16-13" data-line-number="13"><span class="st">  </span><span class="kw">summarise</span>(<span class="dt">count =</span> <span class="kw">n</span>())</a>
+<a class="sourceLine" id="cb16-14" data-line-number="14"></a>
+<a class="sourceLine" id="cb16-15" data-line-number="15"><span class="co">#merge the old and new datasets to see for which locations I can find lat and lon info - only for 63 (extra check - for another colleague)</span></a>
+<a class="sourceLine" id="cb16-16" data-line-number="16">locnames_merged &lt;-lus_old_missinglocs <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb16-17" data-line-number="17"><span class="st">  </span><span class="kw">left_join</span>(lus_new_locs, <span class="dt">by =</span> <span class="kw">c</span>(<span class="st">&quot;Location&quot;</span> =<span class="st"> &quot;Lokalitetsnummer&quot;</span>)) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb16-18" data-line-number="18"><span class="st">  </span><span class="kw">filter</span>(<span class="op">!</span><span class="kw">is.na</span>(Lokalitetsnavn)) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb16-19" data-line-number="19"><span class="st">  </span><span class="kw">select</span>(<span class="op">-</span><span class="kw">c</span>(<span class="st">&quot;count.x&quot;</span>, <span class="st">&quot;count.y&quot;</span>))</a></code></pre></div>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb17-1" data-line-number="1"><span class="co">#location 10933 had no municipality info, it is not in the Aquaculture registry</span></a>
+<a class="sourceLine" id="cb17-2" data-line-number="2">lus_old_prep2 &lt;-<span class="st"> </span>lus_old_prep <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb17-3" data-line-number="3"><span class="st">  </span><span class="kw">filter</span>(<span class="op">!</span><span class="kw">is.na</span>(Municipality)) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb17-4" data-line-number="4"><span class="st">  </span><span class="kw">select</span>(<span class="op">-</span><span class="kw">c</span>(What, Latlon))</a></code></pre></div>
 </div>
-<div id="estimate-average-of-weeks-when-localities-are-below-lice-threshold-old-data" class="section level1">
-<h1><span class="header-section-number">7</span> Estimate average % of weeks when localities are below lice threshold (old data)</h1>
-<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb20-1" data-line-number="1"><span class="co">#check NAs in the old data</span></a>
-<a class="sourceLine" id="cb20-2" data-line-number="2"><span class="kw">map</span>(lus_old_prep2, <span class="op">~</span><span class="kw">sum</span>(<span class="kw">is.na</span>(.)))</a></code></pre></div>
+<div id="estimate-average-of-months-when-localities-are-below-lice-threshold-old-data" class="section level1">
+<h1><span class="header-section-number">7</span> Estimate average % of months when localities are below lice threshold (old data)</h1>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb18-1" data-line-number="1"><span class="co">#check NAs in the old data</span></a>
+<a class="sourceLine" id="cb18-2" data-line-number="2"><span class="kw">map</span>(lus_old_prep2, <span class="op">~</span><span class="kw">sum</span>(<span class="kw">is.na</span>(.)))</a></code></pre></div>
 <pre><code>## $Municipality
 ## [1] 0
 ## 
@@ -600,50 +617,50 @@ $(document).ready(function () {
 ## 
 ## $Date
 ## [1] 863</code></pre>
-<div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb22-1" data-line-number="1"><span class="co">#delete all rows where count of adult females is NA,</span></a>
-<a class="sourceLine" id="cb22-2" data-line-number="2"><span class="co">#remove duplicated rows </span></a>
-<a class="sourceLine" id="cb22-3" data-line-number="3"><span class="co">#summarize per location months below lice threshold (0.5)</span></a>
-<a class="sourceLine" id="cb22-4" data-line-number="4"></a>
-<a class="sourceLine" id="cb22-5" data-line-number="5">below_thr_old &lt;-lus_old_prep2 <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb22-6" data-line-number="6"><span class="st">  </span><span class="kw">filter</span>(<span class="op">!</span><span class="kw">is.na</span>(Adult_females)) <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb22-7" data-line-number="7"><span class="st">  </span><span class="kw">filter</span>(<span class="op">!</span><span class="kw">duplicated</span>(.)) <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb22-8" data-line-number="8"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">Avobe_threshold =</span> <span class="kw">ifelse</span>(Adult_females <span class="op">&gt;=</span><span class="st"> </span><span class="fl">0.5</span>, <span class="dv">0</span>, <span class="dv">1</span>)) <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb22-9" data-line-number="9"><span class="st">  </span><span class="kw">group_by</span>(Year, Municipality, Location) <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb22-10" data-line-number="10"><span class="st">   </span><span class="kw">summarise</span>(<span class="dt">totmonths =</span> <span class="kw">n</span>(),</a>
-<a class="sourceLine" id="cb22-11" data-line-number="11">            <span class="dt">below_months =</span> <span class="kw">sum</span>(Avobe_threshold),</a>
-<a class="sourceLine" id="cb22-12" data-line-number="12">            <span class="dt">prop_months_below =</span> below_months<span class="op">/</span>totmonths)</a></code></pre></div>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb20-1" data-line-number="1"><span class="co">#delete all rows where count of adult females is NA,</span></a>
+<a class="sourceLine" id="cb20-2" data-line-number="2"><span class="co">#remove duplicated rows </span></a>
+<a class="sourceLine" id="cb20-3" data-line-number="3"><span class="co">#summarize per location months below lice threshold (0.5)</span></a>
+<a class="sourceLine" id="cb20-4" data-line-number="4"></a>
+<a class="sourceLine" id="cb20-5" data-line-number="5">below_thr_old &lt;-lus_old_prep2 <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb20-6" data-line-number="6"><span class="st">  </span><span class="kw">filter</span>(<span class="op">!</span><span class="kw">is.na</span>(Adult_females)) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb20-7" data-line-number="7"><span class="st">  </span><span class="kw">filter</span>(<span class="op">!</span><span class="kw">duplicated</span>(.)) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb20-8" data-line-number="8"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">Avobe_threshold =</span> <span class="kw">ifelse</span>(Adult_females <span class="op">&gt;=</span><span class="st"> </span><span class="fl">0.5</span>, <span class="dv">0</span>, <span class="dv">1</span>)) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb20-9" data-line-number="9"><span class="st">  </span><span class="kw">group_by</span>(Year, Municipality, Location) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb20-10" data-line-number="10"><span class="st">   </span><span class="kw">summarise</span>(<span class="dt">totmonths =</span> <span class="kw">n</span>(),</a>
+<a class="sourceLine" id="cb20-11" data-line-number="11">            <span class="dt">below_months =</span> <span class="kw">sum</span>(Avobe_threshold),</a>
+<a class="sourceLine" id="cb20-12" data-line-number="12">            <span class="dt">prop_months_below =</span> below_months<span class="op">/</span>totmonths)</a></code></pre></div>
 <p>Again, about halth of the locations reported lice less than 6 times a year (once a month). I will select only the locations that reported at least 6 times a year.</p>
-<div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb23-1" data-line-number="1">below_thr_old2 &lt;-<span class="st"> </span>below_thr_old <span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb23-2" data-line-number="2"><span class="st">  </span><span class="kw">filter</span>(totmonths <span class="op">&gt;=</span><span class="st"> </span><span class="dv">6</span>)</a>
-<a class="sourceLine" id="cb23-3" data-line-number="3"></a>
-<a class="sourceLine" id="cb23-4" data-line-number="4"><span class="co"># check how many locations left per municipality: most of municipalities had 1-6 locations,</span></a>
-<a class="sourceLine" id="cb23-5" data-line-number="5"><span class="co"># counting lice at least 6 months in a year.</span></a>
-<a class="sourceLine" id="cb23-6" data-line-number="6"></a>
-<a class="sourceLine" id="cb23-7" data-line-number="7">locs_counted_6months &lt;-<span class="st"> </span>below_thr_old2 <span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb23-8" data-line-number="8"><span class="st">  </span><span class="kw">group_by</span>(Year, Municipality) <span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb23-9" data-line-number="9"><span class="st">  </span><span class="kw">summarize</span>(<span class="dt">locscount =</span> <span class="kw">n</span>())</a>
-<a class="sourceLine" id="cb23-10" data-line-number="10"></a>
-<a class="sourceLine" id="cb23-11" data-line-number="11"><span class="co"># Final table</span></a>
-<a class="sourceLine" id="cb23-12" data-line-number="12">below_lice_mpp_old &lt;-<span class="st"> </span>below_thr_old2 <span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb23-13" data-line-number="13"><span class="st">  </span><span class="kw">group_by</span>(Year, Municipality) <span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb23-14" data-line-number="14"><span class="st">  </span><span class="kw">summarize</span>(<span class="dt">below_lice =</span> <span class="kw">mean</span>(prop_months_below)) <span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb23-15" data-line-number="15"><span class="st">  </span><span class="kw">left_join</span>(municip[, <span class="kw">c</span>(<span class="dv">1</span>, <span class="dv">2</span>)], <span class="dt">by =</span> <span class="kw">c</span>(<span class="st">&quot;Municipality&quot;</span> =<span class="st"> &quot;Komnum&quot;</span>)) <span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb23-16" data-line-number="16"><span class="st">  </span><span class="kw">rename</span>(<span class="dt">Municip_number =</span> Municipality, <span class="dt">Municip_name =</span> Name) <span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb23-17" data-line-number="17"><span class="st">  </span><span class="kw">select</span>(Year, Municip_number, Municip_name, below_lice)</a></code></pre></div>
+<div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb21-1" data-line-number="1">below_thr_old2 &lt;-<span class="st"> </span>below_thr_old <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb21-2" data-line-number="2"><span class="st">  </span><span class="kw">filter</span>(totmonths <span class="op">&gt;=</span><span class="st"> </span><span class="dv">6</span>)</a>
+<a class="sourceLine" id="cb21-3" data-line-number="3"></a>
+<a class="sourceLine" id="cb21-4" data-line-number="4"><span class="co"># check how many locations left per municipality: most of municipalities had 1-6 locations,</span></a>
+<a class="sourceLine" id="cb21-5" data-line-number="5"><span class="co"># counting lice at least 6 months in a year.</span></a>
+<a class="sourceLine" id="cb21-6" data-line-number="6"></a>
+<a class="sourceLine" id="cb21-7" data-line-number="7">locs_counted_6months &lt;-<span class="st"> </span>below_thr_old2 <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb21-8" data-line-number="8"><span class="st">  </span><span class="kw">group_by</span>(Year, Municipality) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb21-9" data-line-number="9"><span class="st">  </span><span class="kw">summarize</span>(<span class="dt">locscount =</span> <span class="kw">n</span>())</a>
+<a class="sourceLine" id="cb21-10" data-line-number="10"></a>
+<a class="sourceLine" id="cb21-11" data-line-number="11"><span class="co"># Final table</span></a>
+<a class="sourceLine" id="cb21-12" data-line-number="12">below_lice_mpp_old &lt;-<span class="st"> </span>below_thr_old2 <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb21-13" data-line-number="13"><span class="st">  </span><span class="kw">group_by</span>(Year, Municipality) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb21-14" data-line-number="14"><span class="st">  </span><span class="kw">summarize</span>(<span class="dt">below_lice =</span> <span class="kw">mean</span>(prop_months_below)) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb21-15" data-line-number="15"><span class="st">  </span><span class="kw">left_join</span>(municip[, <span class="kw">c</span>(<span class="dv">1</span>, <span class="dv">2</span>)], <span class="dt">by =</span> <span class="kw">c</span>(<span class="st">&quot;Municipality&quot;</span> =<span class="st"> &quot;Komnum&quot;</span>)) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb21-16" data-line-number="16"><span class="st">  </span><span class="kw">rename</span>(<span class="dt">Municip_number =</span> Municipality, <span class="dt">Municip_name =</span> Name) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb21-17" data-line-number="17"><span class="st">  </span><span class="kw">select</span>(Year, Municip_number, Municip_name, below_lice)</a></code></pre></div>
 </div>
 <div id="merge-old-and-new-data-tables" class="section level1">
 <h1><span class="header-section-number">8</span> Merge old and new data tables</h1>
-<div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb24-1" data-line-number="1">below_lice_full &lt;-<span class="st"> </span><span class="kw">bind_rows</span>(below_lice_mpp_old, below_lice_mpp_new)</a>
-<a class="sourceLine" id="cb24-2" data-line-number="2"><span class="co">#check how many observations per municipality we get:</span></a>
-<a class="sourceLine" id="cb24-3" data-line-number="3">years_per_mpp &lt;-<span class="st"> </span>below_lice_full <span class="op">%&gt;%</span><span class="st">  </span><span class="kw">group_by</span>(Municip_name) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">summarize</span>(<span class="dt">count =</span> <span class="kw">n</span>())</a>
-<a class="sourceLine" id="cb24-4" data-line-number="4"><span class="co">#none of the municipalities had data for all 2005-2018 years, at most we get observations for 14 years. That makes sense since some of the industries came into existince after 2005.</span></a></code></pre></div>
+<div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb22-1" data-line-number="1">below_lice_full &lt;-<span class="st"> </span><span class="kw">bind_rows</span>(below_lice_mpp_old, below_lice_mpp_new)</a>
+<a class="sourceLine" id="cb22-2" data-line-number="2"><span class="co">#check how many observations per municipality we get:</span></a>
+<a class="sourceLine" id="cb22-3" data-line-number="3">years_per_mpp &lt;-<span class="st"> </span>below_lice_full <span class="op">%&gt;%</span><span class="st">  </span><span class="kw">group_by</span>(Municip_name) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">summarize</span>(<span class="dt">count =</span> <span class="kw">n</span>())</a>
+<a class="sourceLine" id="cb22-4" data-line-number="4"><span class="co">#none of the municipalities had data for all 2005-2018 years, at most we get observations for 14 years. That makes sense since some of the industries came into existince after 2005.</span></a></code></pre></div>
 </div>
-<div id="gapfilling-missing-data-in-lice-dataseet" class="section level1">
-<h1><span class="header-section-number">9</span> Gapfilling missing data in lice dataseet</h1>
+<div id="gapfilling-missing-data-in-lice-dataset" class="section level1">
+<h1><span class="header-section-number">9</span> Gapfilling missing data in lice dataset</h1>
 <div id="check-which-counties-did-not-have-lice-data-at-all" class="section level2">
 <h2><span class="header-section-number">9.1</span> Check which counties did not have lice data at all</h2>
-<div class="sourceCode" id="cb25"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb25-1" data-line-number="1"><span class="kw">anti_join</span>(municip, below_lice_full, <span class="dt">by =</span> <span class="kw">c</span>(<span class="st">&quot;Name&quot;</span> =<span class="st"> &quot;Municip_name&quot;</span>)) <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb25-2" data-line-number="2"><span class="st">  </span><span class="kw">arrange</span>(Name)</a></code></pre></div>
+<div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb23-1" data-line-number="1"><span class="kw">anti_join</span>(municip, below_lice_full, <span class="dt">by =</span> <span class="kw">c</span>(<span class="st">&quot;Name&quot;</span> =<span class="st"> &quot;Municip_name&quot;</span>)) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb23-2" data-line-number="2"><span class="st">  </span><span class="kw">arrange</span>(Name)</a></code></pre></div>
 <pre><code>##    Komnum      Name Kid
 ## 1    1871     Andoy  40
 ## 2    1933 Balsfjord  57
@@ -658,51 +675,69 @@ $(document).ready(function () {
 ## 11   2025      Tana  78
 ## 12   2003     Vadso  66
 ## 13   2002     Vardo  65</code></pre>
-<div class="sourceCode" id="cb27"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb27-1" data-line-number="1"><span class="co">#13 counties </span></a></code></pre></div>
-<p>All these municipalities have 0 produciton in the Akvadatut Per’s table but I found that indeed most of these municipalities had aquaculture licenses in the 2005-2018 period. Is there a mistake? Did they produce something or not? Need to check wiht Per.</p>
+<div class="sourceCode" id="cb25"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb25-1" data-line-number="1"><span class="co">#13 counties </span></a></code></pre></div>
+<p>All these municipalities had no information in lice, and they also did not have data on momb, so likely there was no produciton at all.</p>
 </div>
 <div id="define-a-function-to-gapfill" class="section level2">
 <h2><span class="header-section-number">9.2</span> Define a function to gapfill</h2>
-<div class="sourceCode" id="cb28"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb28-1" data-line-number="1"><span class="co">## Function to gapfill missing data</span></a>
-<a class="sourceLine" id="cb28-2" data-line-number="2">gapfill &lt;-<span class="st"> </span><span class="cf">function</span>(df, miss_col) {</a>
-<a class="sourceLine" id="cb28-3" data-line-number="3">    <span class="cf">if</span> (<span class="kw">all</span>(<span class="kw">is.na</span>(df[, miss_col]))) {</a>
-<a class="sourceLine" id="cb28-4" data-line-number="4">    <span class="kw">warning</span>(<span class="st">&quot;there are no numeric values in the data&quot;</span>, <span class="dt">call. =</span> <span class="ot">FALSE</span>)</a>
-<a class="sourceLine" id="cb28-5" data-line-number="5">    finaldf &lt;-df </a>
-<a class="sourceLine" id="cb28-6" data-line-number="6">    } <span class="cf">else</span> {</a>
-<a class="sourceLine" id="cb28-7" data-line-number="7">      cleandat &lt;-<span class="st"> </span><span class="kw">drop_na</span>(df, miss_col)</a>
-<a class="sourceLine" id="cb28-8" data-line-number="8">      replacement &lt;-<span class="st"> </span><span class="kw">mean</span>(cleandat[,miss_col], <span class="dt">na.rm =</span> T)</a>
-<a class="sourceLine" id="cb28-9" data-line-number="9">      replaced &lt;-<span class="st"> </span><span class="kw">replace_na</span>(df[,miss_col], replacement)</a>
-<a class="sourceLine" id="cb28-10" data-line-number="10">      finaldf &lt;-<span class="st"> </span><span class="kw">cbind</span>(df, replaced)</a>
-<a class="sourceLine" id="cb28-11" data-line-number="11">    }</a>
-<a class="sourceLine" id="cb28-12" data-line-number="12">  finaldf</a>
-<a class="sourceLine" id="cb28-13" data-line-number="13">}</a></code></pre></div>
+<div class="sourceCode" id="cb26"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb26-1" data-line-number="1"><span class="co">#Version 1: take the mean of all available years</span></a>
+<a class="sourceLine" id="cb26-2" data-line-number="2"></a>
+<a class="sourceLine" id="cb26-3" data-line-number="3"></a>
+<a class="sourceLine" id="cb26-4" data-line-number="4"><span class="co"># gapfill &lt;- function(df, miss_col) {</span></a>
+<a class="sourceLine" id="cb26-5" data-line-number="5"><span class="co">#     if (all(is.na(df[, miss_col]))) {</span></a>
+<a class="sourceLine" id="cb26-6" data-line-number="6"><span class="co">#     warning(&quot;there are no numeric values in the data&quot;, call. = FALSE)</span></a>
+<a class="sourceLine" id="cb26-7" data-line-number="7"><span class="co">#     finaldf &lt;-df </span></a>
+<a class="sourceLine" id="cb26-8" data-line-number="8"><span class="co">#     } else {</span></a>
+<a class="sourceLine" id="cb26-9" data-line-number="9"><span class="co">#       cleandat &lt;- drop_na(df, miss_col)</span></a>
+<a class="sourceLine" id="cb26-10" data-line-number="10"><span class="co">#       replacement &lt;- mean(cleandat[,miss_col], na.rm = T)</span></a>
+<a class="sourceLine" id="cb26-11" data-line-number="11"><span class="co">#       replaced &lt;- replace_na(df[,miss_col], replacement)</span></a>
+<a class="sourceLine" id="cb26-12" data-line-number="12"><span class="co">#       finaldf &lt;- cbind(df, replaced)</span></a>
+<a class="sourceLine" id="cb26-13" data-line-number="13"><span class="co">#     }</span></a>
+<a class="sourceLine" id="cb26-14" data-line-number="14"><span class="co">#   finaldf</span></a>
+<a class="sourceLine" id="cb26-15" data-line-number="15"><span class="co"># }</span></a></code></pre></div>
+<p>Version 2: if more than 7 years of data are available, take the mean of the latest 5</p>
+<div class="sourceCode" id="cb27"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb27-1" data-line-number="1">gapfill &lt;-<span class="st"> </span><span class="cf">function</span>(df, miss_col) {</a>
+<a class="sourceLine" id="cb27-2" data-line-number="2">  finaldf &lt;-<span class="st"> </span>df</a>
+<a class="sourceLine" id="cb27-3" data-line-number="3">  cleandat &lt;-<span class="st"> </span><span class="kw">drop_na</span>(df, miss_col)</a>
+<a class="sourceLine" id="cb27-4" data-line-number="4">  <span class="cf">if</span> (<span class="kw">all</span>(<span class="kw">is.na</span>(df[, miss_col]))) {</a>
+<a class="sourceLine" id="cb27-5" data-line-number="5">    <span class="kw">warning</span>(<span class="st">&quot;there are no numeric values in the data&quot;</span>, <span class="dt">call. =</span> <span class="ot">FALSE</span>)</a>
+<a class="sourceLine" id="cb27-6" data-line-number="6">  } <span class="cf">else</span> <span class="cf">if</span> (<span class="kw">nrow</span>(cleandat <span class="op">&gt;=</span><span class="st"> </span><span class="dv">7</span>)) {</a>
+<a class="sourceLine" id="cb27-7" data-line-number="7">    replacement &lt;-<span class="st"> </span><span class="kw">mean</span>(<span class="kw">tail</span>(cleandat, <span class="dv">5</span>)[, miss_col], <span class="dt">na.rm =</span> T)</a>
+<a class="sourceLine" id="cb27-8" data-line-number="8">    replaced &lt;-<span class="st"> </span><span class="kw">replace_na</span>(df[, miss_col], replacement)</a>
+<a class="sourceLine" id="cb27-9" data-line-number="9">    finaldf &lt;-<span class="st"> </span><span class="kw">cbind</span>(df, replaced)</a>
+<a class="sourceLine" id="cb27-10" data-line-number="10">  } <span class="cf">else</span> {</a>
+<a class="sourceLine" id="cb27-11" data-line-number="11">    replacement &lt;-<span class="st"> </span><span class="kw">mean</span>(cleandat[, miss_col], <span class="dt">na.rm =</span> T)</a>
+<a class="sourceLine" id="cb27-12" data-line-number="12">    replaced &lt;-<span class="st"> </span><span class="kw">replace_na</span>(df[, miss_col], replacement)</a>
+<a class="sourceLine" id="cb27-13" data-line-number="13">    finaldf &lt;-<span class="st"> </span><span class="kw">cbind</span>(df, replaced)</a>
+<a class="sourceLine" id="cb27-14" data-line-number="14">  }</a>
+<a class="sourceLine" id="cb27-15" data-line-number="15">  finaldf</a>
+<a class="sourceLine" id="cb27-16" data-line-number="16">}</a></code></pre></div>
 </div>
 <div id="replacing-missing-years-of-data" class="section level2">
 <h2><span class="header-section-number">9.3</span> Replacing missing years of data</h2>
-<div class="sourceCode" id="cb29"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb29-1" data-line-number="1">lice_municips &lt;-<span class="st"> </span>below_lice_full <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb29-2" data-line-number="2"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">Komname =</span> <span class="kw">droplevels</span>(Municip_name)) <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb29-3" data-line-number="3"><span class="st">  </span><span class="kw">split</span>(., .<span class="op">$</span>Komname)</a></code></pre></div>
+<div class="sourceCode" id="cb28"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb28-1" data-line-number="1">lice_municips &lt;-<span class="st"> </span>below_lice_full <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb28-2" data-line-number="2"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">Komname =</span> <span class="kw">droplevels</span>(Municip_name)) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb28-3" data-line-number="3"><span class="st">  </span><span class="kw">split</span>(., .<span class="op">$</span>Komname)</a></code></pre></div>
 </div>
 <div id="compiling-final-dataframe" class="section level2">
 <h2><span class="header-section-number">9.4</span> Compiling final dataframe</h2>
-<div class="sourceCode" id="cb30"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb30-1" data-line-number="1">allyears &lt;-<span class="kw">data.frame</span>(<span class="dt">Year =</span> <span class="kw">seq</span>(<span class="dv">2004</span>, <span class="dv">2019</span>, <span class="dt">by =</span> <span class="dv">1</span>))</a>
-<a class="sourceLine" id="cb30-2" data-line-number="2"></a>
-<a class="sourceLine" id="cb30-3" data-line-number="3">lice_replaced_prep &lt;-<span class="st"> </span><span class="kw">map</span>(lice_municips, <span class="op">~</span><span class="st"> </span><span class="kw">as.data.frame</span>(.x)) <span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb30-4" data-line-number="4"><span class="st">  </span><span class="kw">map</span>(., <span class="op">~</span><span class="st"> </span><span class="kw">full_join</span>(.x, allyears, <span class="dt">by =</span> <span class="st">&quot;Year&quot;</span>)) <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb30-5" data-line-number="5"><span class="st">  </span><span class="kw">map</span>(., <span class="op">~</span><span class="st"> </span><span class="kw">mutate</span>(.x, <span class="dt">Komnum_new =</span> <span class="kw">rep</span>(Municip_number[<span class="dv">1</span>], <span class="kw">length</span>(Municip_number)))) <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb30-6" data-line-number="6"><span class="st">  </span><span class="kw">map</span>(., <span class="op">~</span><span class="st"> </span><span class="kw">mutate</span>(.x, <span class="dt">Kommune_new =</span> <span class="kw">rep</span>(Komname[<span class="dv">1</span>], <span class="kw">length</span>(Komname)))) <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb30-7" data-line-number="7"><span class="st">  </span><span class="kw">map</span>(., <span class="op">~</span><span class="st"> </span><span class="kw">select</span>(.x,<span class="op">-</span><span class="kw">c</span>(Municip_number, </a>
-<a class="sourceLine" id="cb30-8" data-line-number="8">                        Municip_name, </a>
-<a class="sourceLine" id="cb30-9" data-line-number="9">                        Komname</a>
-<a class="sourceLine" id="cb30-10" data-line-number="10">                        ))) <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb30-11" data-line-number="11"><span class="st">  </span><span class="kw">map</span>(., <span class="op">~</span><span class="st"> </span><span class="kw">gapfill</span>(.x,<span class="dv">2</span>)) </a>
-<a class="sourceLine" id="cb30-12" data-line-number="12"></a>
-<a class="sourceLine" id="cb30-13" data-line-number="13">lice_gapfilled &lt;-<span class="st"> </span><span class="kw">do.call</span>(<span class="st">&quot;rbind&quot;</span>, lice_replaced_prep) <span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb30-14" data-line-number="14"><span class="st">  </span><span class="kw">rename</span>(<span class="dt">Municip_number =</span> Komnum_new, <span class="dt">Municip =</span> Kommune_new, <span class="dt">gapfilled =</span> replaced) <span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb30-15" data-line-number="15"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">gf =</span> <span class="kw">ifelse</span>(<span class="kw">is.na</span>(below_lice), <span class="st">&quot;y&quot;</span>, <span class="st">&quot;n&quot;</span>))</a>
-<a class="sourceLine" id="cb30-16" data-line-number="16"></a>
-<a class="sourceLine" id="cb30-17" data-line-number="17"><span class="kw">write_csv</span>(lice_gapfilled, <span class="st">&quot;data/lice_below_thr_gapfilled.csv&quot;</span>)</a></code></pre></div>
-<p>Final table compiled, now need to check with the 13 mpp with no data and comfirm that my methods of gapfillig is ok.</p>
+<div class="sourceCode" id="cb29"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb29-1" data-line-number="1">allyears &lt;-<span class="kw">data.frame</span>(<span class="dt">Year =</span> <span class="kw">seq</span>(<span class="dv">2005</span>, <span class="dv">2019</span>, <span class="dt">by =</span> <span class="dv">1</span>))</a>
+<a class="sourceLine" id="cb29-2" data-line-number="2"></a>
+<a class="sourceLine" id="cb29-3" data-line-number="3">lice_replaced_prep &lt;-<span class="st"> </span><span class="kw">map</span>(lice_municips, <span class="op">~</span><span class="st"> </span><span class="kw">as.data.frame</span>(.x)) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb29-4" data-line-number="4"><span class="st">  </span><span class="kw">map</span>(., <span class="op">~</span><span class="st"> </span><span class="kw">full_join</span>(.x, allyears, <span class="dt">by =</span> <span class="st">&quot;Year&quot;</span>)) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb29-5" data-line-number="5"><span class="st">  </span><span class="kw">map</span>(., <span class="op">~</span><span class="st"> </span><span class="kw">mutate</span>(.x, <span class="dt">Komnum_new =</span> <span class="kw">rep</span>(Municip_number[<span class="dv">1</span>], <span class="kw">length</span>(Municip_number)))) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb29-6" data-line-number="6"><span class="st">  </span><span class="kw">map</span>(., <span class="op">~</span><span class="st"> </span><span class="kw">mutate</span>(.x, <span class="dt">Kommune_new =</span> <span class="kw">rep</span>(Komname[<span class="dv">1</span>], <span class="kw">length</span>(Komname)))) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb29-7" data-line-number="7"><span class="st">  </span><span class="kw">map</span>(., <span class="op">~</span><span class="st"> </span><span class="kw">select</span>(.x,<span class="op">-</span><span class="kw">c</span>(Municip_number, </a>
+<a class="sourceLine" id="cb29-8" data-line-number="8">                        Municip_name, </a>
+<a class="sourceLine" id="cb29-9" data-line-number="9">                        Komname</a>
+<a class="sourceLine" id="cb29-10" data-line-number="10">                        ))) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb29-11" data-line-number="11"><span class="st">  </span><span class="kw">map</span>(., <span class="op">~</span><span class="st"> </span><span class="kw">gapfill</span>(.x,<span class="dv">2</span>)) </a>
+<a class="sourceLine" id="cb29-12" data-line-number="12"></a>
+<a class="sourceLine" id="cb29-13" data-line-number="13">lice_gapfilled &lt;-<span class="st"> </span><span class="kw">do.call</span>(<span class="st">&quot;rbind&quot;</span>, lice_replaced_prep) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb29-14" data-line-number="14"><span class="st">  </span><span class="kw">rename</span>(<span class="dt">Municip_number =</span> Komnum_new, <span class="dt">Municip =</span> Kommune_new, <span class="dt">score_final =</span> replaced) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb29-15" data-line-number="15"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">gf =</span> <span class="kw">ifelse</span>(<span class="kw">is.na</span>(below_lice), <span class="st">&quot;y&quot;</span>, <span class="st">&quot;n&quot;</span>))</a>
+<a class="sourceLine" id="cb29-16" data-line-number="16"></a>
+<a class="sourceLine" id="cb29-17" data-line-number="17"><span class="co">#write_csv(lice_gapfilled, &quot;data/lice_below_thr_gapfilled.csv&quot;)</span></a></code></pre></div>
 </div>
 </div>
 
