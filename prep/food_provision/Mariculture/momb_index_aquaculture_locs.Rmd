@@ -13,7 +13,7 @@ output:
   pdf_document:
     toc: true
 ---
-```{r message=FALSE, warning=FALSE}
+```{r message=FALSE, warning=FALSE, include = FALSE}
 knitr::opts_chunk$set(message = FALSE, warning= FALSE, message = FALSE)
 source('~/github/nor-prep/prep/src/common.R')
 ```
@@ -65,7 +65,8 @@ map(momb_prep2, ~sum(is.na(.x))) #Still 93 observations with missing info on the
 momb_prep3 <- momb_prep2 %>% 
   filter(!is.na(Kommune)) 
 ```
-Regarding localities with no municipality info: they are either shut down or have not yet given licence to start the produciton (commented by Fisheries Directorate). Thus, I delete these locaitons. 
+Regarding localities with no municipality info: they are either shut down or were not yet given licence to start the produciton (commented by Fisheries Directorate). 
+Thus, I delete these locaitons. 
 
 ## Check how many examined aquaculture localities per municipality each year and compare to total
 ```{r}
@@ -83,7 +84,7 @@ totlocs_mp <- licenses %>%
 examinations_year <- momb_prep3 %>% 
   group_by(Year, Kommune, Komnum) %>% 
   summarize(examinations = n_distinct(loknr)) %>% 
-  left_join(totlocs_mp, by = c("Year", "Komnum"))
+  left_join(totlocs_mp, by = c("Year", "Komnum")) #NB!! merge here by locaiton mp, not tillateslse mp
 
 #Compare the number of examinations to the total number of registered localities
 #There are no cases when all registered localities were examined.
@@ -111,7 +112,7 @@ anti_join(komlist[,c(1,2)], momb_prep3, by="Komnum") %>%
 momb_prep3 %>% 
   group_by(Kommune) %>% 
   summarize(nyears = n_distinct(Year)) %>% 
-  datatable(.rownames = FALSE,  class =  "stripe compact")
+  datatable(rownames = FALSE,  class =  "stripe compact")
 ```
 
 Also checking data density for municipality and year in a dataframe
@@ -120,30 +121,62 @@ bympp <-split(momb_prep3, momb_prep3$Kommune)
  datatable(bympp[["Vevelstad"]])
 ```
 
-# Preparing final  table: average momb per municipality and year
+# Finding maximal allowed biomass for each locality
+To find MAB, i use licenses table again.
 ```{r}
+
+locs_unique <- licenses %>% 
+  group_by(year, lok_nr, lok_kap, lok_enhet) %>% 
+  summarize(n = n())
+  
+#remove years 2004 and 2019 from the momb dataset, those years have incomplete data.
+#There is no data on maximal capacity before 2010,and for 2016,so  years 2005-2010 and 2016 need to be gapfilled then. 
+#Evene in 2010-2018, about 220 localities did not have information on the capacity (not sure why, bad quality of data I think)
+
+#So, I delete these years from the df.
 momb_prep4 <- momb_prep3 %>%
-  mutate(mombtrans = case_when(
-    miljo_tilstand == 1 ~ "1",
-    miljo_tilstand == 2 ~ "0.66",
-    miljo_tilstand == 3 ~ "0.33",
-    miljo_tilstand == 4 ~ "0"
-  )) %>%
-  mutate(mombtrans = as.numeric(mombtrans)) %>%
-  group_by(Year, Komnum, Kommune) %>%
-  summarize(momb_mean = mean(mombtrans))
+  filter(Year >=2010 & Year < 2019) %>% 
+  left_join(locs_unique[, c(1,2,3,4)], by = c("Year"="year", "loknr" = "lok_nr")) %>% 
+  filter(!is.na(lok_kap))
 ```
 
-# Estimating running mean of the mean momb per municipality
+# Preparing final  table: average momb per municipality and year
+
+```{r}
+momb_prep5 <- momb_prep4 %>% 
+  group_by(Komnum,Kommune, Year) %>% 
+  mutate(tot_capacity_mp = sum(lok_kap)) %>% 
+  ungroup() %>% 
+  mutate(prop_biomass_polluted = ifelse(miljo_tilstand %in% c(3,4), lok_kap/tot_capacity_mp, 0)) %>% 
+  group_by(Komnum,Kommune, Year) %>% 
+  summarise(totprop_biomass_polluted = sum(prop_biomass_polluted),
+            momb_score = (1-totprop_biomass_polluted))
+```
+
+
+```{r include=FALSE}
+#Old approach - scaling momb from 1-4 to 0 to 1.
+# momb_prep4 <- momb_prep3 %>%
+#   mutate(mombtrans = case_when(
+#     miljo_tilstand == 1 ~ "1",
+#     miljo_tilstand == 2 ~ "0.66",
+#     miljo_tilstand == 3 ~ "0.33",
+#     miljo_tilstand == 4 ~ "0"
+#   )) %>%
+#   mutate(mombtrans = as.numeric(mombtrans)) %>%
+#   group_by(Year, Komnum, Kommune) %>%
+#   summarize(momb_mean = mean(mombtrans))
+```
+
+# Estimating running mean of the momb score per municipality
 Remove municipalities with no data
 ```{r}
-momb_bymp <- split(momb_prep4, momb_prep4$Kommune) 
+momb_bymp <- split(momb_prep5, momb_prep5$Kommune) 
 
-#rollapply(df.mp$total_prod_corrected, width = 3, FUN = mean,  fill=NA))
 
 #check if there are municipalities with empty rows.
-#There are 13 of such municipalities
-empties<- map(momb_bymp, ~ isTRUE(length(.x$momb_mean)==0))
+#There are 16 of such municipalities (same as for lice plus Leirfjord, Evenes, and Vaeroy)
+empties<- map(momb_bymp, ~ isTRUE(length(.x$momb_score)==0))
 empty_municips <-unlist(empties) 
 
 #the list of municipalities that did not have any momb data
@@ -154,16 +187,17 @@ empties_list <- unlist(empties) %>%
 momb_bymp_cleaned <-momb_bymp[!empty_municips]
 ```
 
+
 Filter out municipalities with more than 5 years of data
 ```{r}
-long_data <- map(momb_bymp_cleaned, ~ length(.x$momb_mean)) %>% 
+long_data <- map(momb_bymp_cleaned, ~ length(.x$momb_score)) %>% 
   unlist(.) %>% 
   stack(.) %>% 
   filter(values >= 5) %>% 
   select(-values) %>% 
   mutate(ind = as.character(ind))
 
-short_data <- map(momb_bymp_cleaned, ~ length(.x$momb_mean)) %>% 
+short_data <- map(momb_bymp_cleaned, ~ length(.x$momb_score)) %>% 
   unlist(.) %>% 
   stack(.) %>% 
   filter(values < 5) %>% 
@@ -186,8 +220,8 @@ smooth_df <-function(df, colnum){
 
 long_momb_smoothed <- long_momb_data %>% 
   map(.,~ as.data.frame(.x)) %>% 
-  map(., ~ smooth_df(.x, 4)) %>% 
-  map(., ~ mutate(.x, momb_mean=smoothed)) %>% 
+  map(., ~ smooth_df(.x, 5)) %>% 
+  map(., ~ mutate(.x, momb_score=smoothed)) %>% 
   map(., ~ select(.x, -smoothed))
 
 short_momb_data <-map(short_momb_data,~ as.data.frame(.x))
@@ -226,21 +260,22 @@ Often, there will only be 5 years with data - then we just take average of those
 
 
 ```{r}
+#Gapfilling with the last 5 years of data if there are at least 7 years of data, otherwise - gapfilling with all aivailable years.
 gapfill <- function(df, id_col, miss_col) {
+     cleandat <- drop_na(df, miss_col)
+     finaldf <-df 
     if (all(is.na(df[, miss_col]))) {
     warning("there are no numeric values in the data", call. = FALSE)
-    finaldf <-df 
-    } else if (sum(is.na(df[,miss_col])) <= 5) {
-      cleandat <- drop_na(df, miss_col)
+    
+    } else if (nrow(cleandat) >= 7) {
       cleandat_sort <- arrange(cleandat, cleandat[,id_col])
-      replacement <- mean(tail(cleandat, 3)[,miss_col], na.rm = T)
+      replacement <- mean(tail(cleandat, 5)[,miss_col], na.rm = T)
       replaced <- replace_na(df[,miss_col], replacement)
       finaldf <- cbind(df, replaced)
    
     } else {
-      cleandat <- drop_na(df, miss_col)
       cleandat_sort <- arrange(cleandat, cleandat[,id_col])
-      replacement <- mean(tail(cleandat, 5)[,miss_col], na.rm = T)
+      replacement <- mean(cleandat[,miss_col], na.rm = T)
       replaced <- replace_na(df[,miss_col], replacement)
       finaldf <- cbind(df, replaced)
  
@@ -254,27 +289,30 @@ gapfill <- function(df, id_col, miss_col) {
 
 ## Compiling final dataframe
 ```{r}
-allyears <-data.frame(Year = seq(2004, 2019, by = 1))
+allyears <-data.frame(Year = seq(2005, 2018, by = 1))
 
 gapfilled_prep <- momb_smoothed %>%
   map(., ~ full_join(.x, allyears, by = "Year")) %>% 
   map(., ~ mutate(.x, Komnum_new = rep(Komnum[1], length(Komnum)))) %>% 
   map(., ~ mutate(.x, Kommune_new = rep(Kommune[1], length(Kommune)))) %>% 
   map(., ~ select(.x,-c(Komnum, Kommune))) %>% 
-  map(., ~ gapfill(.x, 1,2)) 
+  map(., ~ gapfill(.x, 1,3)) %>% 
+  map(., ~ mutate(.x, momb_gapfilled = replaced)) %>% 
+  map(., ~ select(.x, -replaced)) 
+
 
 momb_gapfilled <- do.call("rbind", gapfilled_prep) 
   
 momb_gapfilled <- momb_gapfilled %>% 
   mutate(gapfilled = case_when(
-    is.na(momb_mean)  ~ "y",
+    is.na(momb_score)  ~ "y",
     TRUE ~ "n"
   ))
+```
+Almost half of the municipalities-year observations (411 out of 910) have momb index of 1. This is because momb grade of 3 or 4 is very rare in northern Norway, so in most cases, every municipality has localities with momb grade 1 or 2. 
 
+Save the resultant table:
+```{r}
 #write_csv(momb_gapfilled, "data/mean_momb_mp_yr_gapfilled.csv")
 ```
-
-
-
-
 
