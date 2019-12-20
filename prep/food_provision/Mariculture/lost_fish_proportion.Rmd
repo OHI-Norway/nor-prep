@@ -1,0 +1,114 @@
+---
+title: "Calculating the proportion of fish lost during the produciton"
+author: "*Compiled on `r date()` by `r Sys.info()['user']`*"
+output: 
+  html_document:
+    css: '~/github/nor-prep/prep/templates/style.css'
+    toc: true
+    number_sections: true
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: '~/github/nor-prep/prep/templates/norway_banner.html'
+  pdf_document:
+    toc: true
+---
+```{r message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(message = FALSE, warning= FALSE, message = FALSE)
+source('~/github/nor-prep/prep/src/common.R')
+```
+
+```{r libraries, results="hide"}
+library(ggthemes)
+library(janitor)
+library(DT)
+```
+
+# Loading data
+```{r}
+akva_final <- read.table("data/total_aquaculture_production_n_efcr.csv", header = TRUE, sep = ",")
+tap_0518 <-read.csv(file.path(dir_M[2],"Aquaculture/Production/production_unlocked_concatenated_2005_2018/akva_tap_formatted_2005_2018.csv"))
+```
+
+
+# Calculate total amount of lost fish
+```{r}
+losttotal_prep <- tap_0518 %>% 
+  clean_names() %>% 
+  rename(year = aar) %>% 
+  select(-c(fylkesnr, fylke, kommune)) %>% 
+  mutate(utkast_kg = tap_utkast*5)
+```
+
+
+# Calculate the amount and the proportion of lost fish 
+We calculate the proporiton of lost fish as follows: 
+(Discard + Sum of lost in cages) / (Harvest of both species - Discard).
+
+I assumed that
+
+1) When the harvest is zero but total lost fish is above zero, the proportion is 1.
+
+2) When the final harvest was negative (4 occasions when discard was larger then harvest),  or the amount of lost was negative, the proportion of lost is NA.
+
+3) When the sum of lost fishes was larger then harvest (this is possible: fish was not yet ready for harvest but got lost), the proportion of lost fish is 1.
+
+```{r}
+prop_lost <- function(lost, prod){
+  if (prod == 0 & lost == 0) {
+    proportion = NA 
+  } else if (prod < 0 | lost < 0) {
+    proportion = NA
+  } else if (prod == 0 & lost > 0) {
+    proportion = 1
+  } else {
+    proportion = lost/prod
+  }
+  proportion
+}
+```
+
+
+```{r}
+lost_permp <- akva_final %>%
+  left_join(losttotal_prep, by = c("year", "kommunenr")) %>%
+  mutate_at(
+    c(
+      "utkast_kg",
+      "tap_d_dfisk",
+      "tap_r_mming",
+      "tap_annet"
+    ),
+    funs(replace(., is.na(.), 0))
+  ) %>% 
+mutate(sum_lost_cages = pmap_dbl(list(
+    tap_d_dfisk,
+    tap_r_mming,
+    tap_annet
+  ), sum, na.rm = T) * 2) %>%
+  mutate(sum_lost_total = pmap_dbl(list(
+    sum_lost_cages,
+    utkast_kg), sum, na.rm = T)) %>% 
+  select(
+    year,
+    kommune,
+    harvested_salmon,
+    harvested_trout,
+    utkast_kg,
+    sum_lost_cages,
+    sum_lost_total
+  ) %>%
+
+  mutate(harvested_final = pmap_dbl(list(
+    harvested_salmon,
+    harvested_trout
+  ), sum) - utkast_kg) %>% 
+  mutate(prop_lost = pmap_dbl(list(
+    sum_lost_total,
+    harvested_final
+    ),  prop_lost))
+
+
+```
+
+
