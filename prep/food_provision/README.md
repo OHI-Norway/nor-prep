@@ -22,9 +22,7 @@ Aquacultue index measures sustainability and efficiency of aquaculture productio
 Data layer    | Source       | Links
 ------------- | -------------|--------
 Total production and biomass of salmon and trout | Fisheries Directorate of Norway | www.fiskeridir.no
-|Constants for protein retention ratio| The Norwegian Institute of Food, Fisheries and Aquaculture Research (Nofima)  |https://nofima.no/wp-content/uploads/2014/11/Nofima_report_resource_utilisation_Oct_2014.pdf
 Prevalence of salmon lice |Barentswatch portal and Norwegian Marine Data Center |https://www.barentswatch.no, https://www.nmdc.no/om-prosjektet/norwegian-marine-data-centre-nmdc-
-Escapees       |Vitenskapsradet|https://www.vitenskapsradet.no
 Registry of aquaculture companies|Fisheries Directorate of Norway|https://www.fiskeridir.no/Akvakultur/Registre-og-skjema/Akvakulturregisteret
 
  
