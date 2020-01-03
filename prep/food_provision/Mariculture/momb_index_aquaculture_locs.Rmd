@@ -25,8 +25,8 @@ library(DT)
 library(zoo)
 ```
 
-# Load mom-b examination data and municipalities names
-NB!I use only the dataset send by Fishereis directorate on July 2nd, 2019.
+# Load mom-b examination data and municipalities' names
+NB!I use only the dataset send by Fisheries directorate on July 2nd, 2019.
 ```{r}
 load_by_sheet <-function(x, page = 1) {
   read_excel(file.path(x),sheet = page)
@@ -65,7 +65,7 @@ map(momb_prep2, ~sum(is.na(.x))) #Still 93 observations with missing info on the
 momb_prep3 <- momb_prep2 %>% 
   filter(!is.na(Kommune)) 
 ```
-Regarding localities with no municipality info: they are either shut down or were not yet given licence to start the produciton (commented by Fisheries Directorate). 
+Regarding localities with no municipality info: they are either shut down or were not yet given licence to start the produciton (commented by Fisheries directorate). 
 Thus, I delete these locaitons. 
 
 ## Check how many examined aquaculture localities per municipality each year and compare to total
@@ -96,7 +96,7 @@ for (i in length(examinations)) {
  print(examinations[examinations == totals])
 }
 
-#write.csv(examinations_filtered, "data/number_momb_examinations_per_mpp.csv")
+#write.csv(examinations_filtered, "data/number_momb_examinations_per_mp.csv")
 
 ```
 
@@ -231,7 +231,7 @@ momb_smoothed <- c(long_momb_smoothed, short_momb_data)
 # Gapfilling missing years of momb data
 ## Creating a function to gapfill
 The idea is to take an average of the 5 recent years witn data. 
-Often, there will only be 5 years with data - then we just take average of those.
+Often, there will only be less than 6 years with data - then we just take average of those.
 ```{r include = FALSE}
 #Just another version of the funciton
 # gapfill <- function(df) {
@@ -260,7 +260,7 @@ Often, there will only be 5 years with data - then we just take average of those
 
 
 ```{r}
-#Gapfilling with the last 5 years of data if there are at least 7 years of data, otherwise - gapfilling with all aivailable years.
+#Gapfilling with the last 5 years of data if there are at least 7 years of data, otherwise - gapfilling with all available years.
 gapfill <- function(df, id_col, miss_col) {
      cleandat <- drop_na(df, miss_col)
      finaldf <-df 
@@ -309,7 +309,7 @@ momb_gapfilled <- momb_gapfilled %>%
     TRUE ~ "n"
   ))
 ```
-Almost half of the municipalities-year observations (411 out of 910) have momb index of 1. This is because momb grade of 3 or 4 is very rare in northern Norway, so in most cases, every municipality has localities with momb grade 1 or 2. 
+Almost half of the municipalities by year observations (411 out of 910) had momb index of 1. This is because momb grade of 3 or 4 is very rare in northern Norway, so in most cases, every municipality has localities with momb grade 1 or 2. 
 
 Save the resultant table:
 ```{r}
