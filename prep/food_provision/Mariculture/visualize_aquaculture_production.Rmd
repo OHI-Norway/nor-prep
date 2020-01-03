@@ -1,0 +1,120 @@
+---
+title: "Visualizing aquaculture production"
+author: "*Compiled on `r date()` by `r Sys.info()['user']`*"
+output: 
+  html_document:
+    css: '~/github/nor-prep/prep/templates/style.css'
+    toc: true
+    number_sections: true
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: '~/github/nor-prep/prep/templates/norway_banner.html'
+  pdf_document:
+    toc: true
+---
+```{r message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(message = FALSE, warning= FALSE, message = FALSE)
+source('~/github/nor-prep/prep/src/common.R')
+```
+
+```{r libraries, results="hide"}
+library(ggthemes)
+library(janitor)
+library(DT)
+```
+
+# Loading data
+```{r}
+akva_final <- read.table("data/total_aquaculture_production_and_efcr.csv", header = TRUE, sep = ",")
+tap_0518 <-read.csv(file.path(dir_M[2],"Aquaculture/Production/production_unlocked_concatenated_2005_2018/akva_tap_formatted_2005_2018.csv"))
+```
+
+
+# Check the overall distribution of aquaculture production
+```{r}
+mosaic::fav_stats(akva_final$production_final)
+```
+
+```{r}
+dens_plot <- ggplot(data = akva_final) +
+  geom_density(
+    mapping = aes(x = production_final_correctweight),
+    fill = "salmon", color = "darkred", alpha = 0.7
+  ) +
+  ggtitle("Distribution of the total aquaculture production") +
+  scale_x_continuous(labels = scales::comma) +
+  labs(x = "Total aquaculture production, kg") +
+  theme(axis.text = element_text(size = 12)) +
+  theme_gdocs()
+
+dens_plot
+```
+
+# How did total production vary in the whole region annually?
+```{r fig.width=8}
+
+ggplot(akva_final, aes(x = reorder(as.factor(year), production_final_correctweight, FUN=sum), y = production_final_correctweight)) +
+  geom_boxplot() +
+  geom_jitter(aes(color = county), alpha = 0.5, size = 2,
+              position = position_jitter(width = 0.3, height = 0)) +
+  labs(x = "", y = "Production, kg") +
+  theme_gdocs() +
+  scale_color_manual(values = c("#ed48ff", "#486dff", "#ffc848"))
+
+```
+
+
+# Plotting total acquaculture production 
+## Creating ggplot theme for total aquaculture production
+```{r}
+theme_akva <- function(...) {
+  theme_stata(scheme = "s1color") +
+    theme(
+      legend.position = "none",
+      axis.text.x = element_text(
+        size = 6, angle = 90, hjust = 1, vjust = 0.5,
+        face = "bold"
+      ),
+      axis.text.y = element_text(size = 7, angle = 0),
+      axis.title.y = element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)),
+      plot.title = element_text(hjust = 0.5, vjust = 0.5),
+      axis.ticks.x = element_line(size = 0.5),
+      axis.ticks.length = unit(0.2, "cm"),
+      strip.text = element_text(size = 12)
+    )
+}
+```
+
+
+# Plots
+```{r}
+
+breaks1 <- seq(1994, 2018, by = 1)
+labels1 <- as.character(breaks1)
+labels1[!breaks1%%2==0]<- ""
+
+
+county_names <- list("Finnmark", "Nordland", "Troms")
+
+counties_df <- split(akva_final, akva_final$county)
+
+plots_akva <- map2(
+  counties_df, 
+  names(counties_df),
+   ~ ggplot(data = .x, mapping = aes(x = as.numeric(year), y = as.numeric(production_final_correctweight))) +
+  geom_col(fill = "dodgerblue4") +
+  ggtitle(.y)  +
+  facet_wrap(kommune ~ .) +
+  scale_x_continuous(breaks = breaks1, labels = labels1) +
+  scale_y_continuous(trans = "log10") +
+  labs(y = "Log(Total Mariculture prod (tons))", x = "") +
+  theme_akva())
+
+ file_names <- paste0("figs/tot_akva_prod", "_", county_names, ".pdf")
+ map2(file_names, plots_akva, ggsave)
+
+```
+
+ 
+ 
