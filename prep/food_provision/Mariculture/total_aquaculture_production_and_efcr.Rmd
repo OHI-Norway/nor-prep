@@ -326,7 +326,7 @@ mosaic::fav_stats(efcr_score$efcr_score)
 
 # Save the final total production and eFCR table
 ```{r}
-write.csv(efcr_score, "data/total_aquaculture_produciton_and_efcr.csv", row.names = FALSE)
+#write.csv(efcr_score, "data/total_aquaculture_production_and_efcr.csv", row.names = FALSE)
 ```
 
 

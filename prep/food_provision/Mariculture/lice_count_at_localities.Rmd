@@ -144,7 +144,7 @@ total_locations <- lus_prep %>%
   summarize(tot_loc = n_distinct(Lokalitetsnummer)) %>%
   mutate(key = paste(Kommune,"_" , Ar, "_", Uke))
 
-#write.csv(total_locations,"data/number_lice_obersvations_per_mpp.csv") 
+#write.csv(total_locations,"data/number_lice_observations_per_mp.csv") 
 ```
 
 
@@ -163,7 +163,6 @@ lus_prep3 <- lus_prep2 %>%
     Above_threshold = Over.lusegrense.uke
   )
 ```
-
 
 
 # Estimate average % of weeks localities are below lice threshold (new data)
