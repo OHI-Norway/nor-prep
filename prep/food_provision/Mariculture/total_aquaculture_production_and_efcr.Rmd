@@ -1,0 +1,410 @@
+---
+title: "Total aquaculture production"
+author: "*Compiled on `r date()` by `r Sys.info()['user']`*"
+output: 
+  html_document:
+    css: '~/github/nor-prep/prep/templates/style.css'
+    toc: true
+    number_sections: true
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: '~/github/nor-prep/prep/templates/norway_banner.html'
+  pdf_document:
+    toc: true
+---
+```{r message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(message = FALSE, warning= FALSE, message = FALSE)
+source('~/github/nor-prep/prep/src/common.R')
+```
+
+```{r libraries, results="hide"}
+library(ggthemes)
+library(janitor)
+library(DT)
+library(tidyr)
+```
+
+# Loading aquaculture produciton data: total biomass produced, feed used, and biomass change per month.
+```{r}
+biomass_0518 <-read.csv(file.path(dir_M[2],"Aquaculture/Production/production_unlocked_concatenated_2005_2018/akva_biomass_2005_2018_formatted.csv")) 
+feed_0518 <-read.csv(file.path(dir_M[2],"Aquaculture/Production/production_unlocked_concatenated_2005_2018/akva_feed_2005_2018_formatted.csv")) 
+tap_0518 <-read.csv(file.path(dir_M[2],"Aquaculture/Production/production_unlocked_concatenated_2005_2018/akva_tap_formatted_2005_2018.csv"))
+uttak_0518 <-read.csv(file.path(dir_M[2],"Aquaculture/Production/production_unlocked_concatenated_2005_2018/akva_uttak_2005_2018_formatted.csv")) 
+"/Volumes/ftp.imr.no/Aquaculture/Production/production_unlocked_concatenated_2005_2018/akva_biomass_2005_2018_formatted.csv"
+municip <- read.table("../../administrative/komlist.csv", header = TRUE, sep = ";")
+```
+
+# Cleaning and formatting the data
+## Pre-clean standing biomass table
+```{r}
+biomass_prep <- biomass_0518 %>% 
+  clean_names() %>% 
+  rename(year = aar) %>% 
+  group_by(kommune) %>% 
+  mutate(laks_des_previous_year = lag(laks_des_beh_kg)) %>% 
+  mutate(rengb_des_previous_year = lag(regnb_des_beh_kg)) %>% 
+  ungroup() %>% 
+  mutate(biomchange_salmon = (laks_des_beh_kg-laks_des_previous_year)) %>% 
+  mutate(biomchange_trout = (regnb_des_beh_kg-rengb_des_previous_year)) %>% 
+  #select(c(year,kommunenr,kommune,biomchange_salmon, biomchange_trout)) %>% 
+  left_join(municip[,c(1,2)], by = c("kommunenr"="Komnum")) %>% 
+  mutate(kommune = Name) %>% 
+  select(-Name) %>% 
+  filter(!is.na(kommune))  #Delete rows with Grane municipality (number of municipality 1825) 
+```
+
+
+Funciton to replace biomass change, when no data for the previous year us available:
+the idea is to take the difference in biomass between the latest and earliest month with data, when there was no production in the previous year.
+Example (imaginary): Evenes municipality had no production in 2015. In 2016, they got fish but not from the beggining of the year. Fish was likely moved from another municipality in March and was harvested in September. Then, the difference in biomass between September and March is the produciton in Evenes in 2016.
+If we would ignore such a case, we would get NA for produciton in Evenes in 2016, but that is not correct.
+
+```{r}
+output_vect <-as.numeric()
+replace_biomass <- function(cols) {
+  biomdat <- as.numeric(cols)
+  if (sum(biomdat) == 0) {
+    biomchange <- 0
+  } else {
+    output_vect <- biomdat[which(biomdat > 0)]
+    biomchange <- sum(output_vect[length(output_vect)], -output_vect[1])
+  }
+  biomchange
+}
+
+```
+
+
+```{r}
+missingdat <- filter(biomass_prep, is.na(biomchange_salmon)) %>%
+  rowwise() %>%
+  mutate(biomchange_salmon_replaced = replace_biomass(c(
+    laks_jan_beh_kg,
+    laks_feb_beh_kg,
+    laks_mar_beh_kg,
+    laks_apr_beh_kg,
+    laks_mai_beh_kg,
+    laks_jun_beh_kg,
+    laks_jul_beh_kg,
+    laks_aug_beh_kg,
+    laks_sep_beh_kg,
+    laks_okt_beh_kg,
+    laks_nov_beh_kg,
+    laks_des_beh_kg
+  ))) %>%
+  mutate(biomchange_trout_replaced = replace_biomass(c( #nothing to replace for trout, it is all zeroes
+    regnb_jan_beh_kg,
+    regnb_feb_beh_kg,
+    regnb_mar_beh_kg,
+    regnb_apr_beh_kg,
+    regnb_mai_beh_kg,
+    regnb_jun_beh_kg,
+    regnb_jul_beh_kg,
+    regnb_aug_beh_kg,
+    regnb_sep_beh_kg,
+    regnb_okt_beh_kg,
+    regnb_nov_beh_kg,
+    regnb_des_beh_kg
+  ))) %>% 
+  select(-c(biomchange_salmon,biomchange_trout)) %>% 
+  rename(biomchange_salmon = biomchange_salmon_replaced, 
+         biomchange_trout = biomchange_trout_replaced)
+
+```
+
+
+```{r}
+biomass_prep2 <- biomass_prep %>% 
+  filter(year!= 2005) %>% 
+  filter(!is.na(biomchange_salmon)) %>% 
+  bind_rows(missingdat) 
+```
+
+
+## Check how fish biomass was changing over a year
+```{r}
+biom_change0506 <- data.frame(
+  year = rep(c(2005, 2006), each = 12),
+  month = rep(c(1:12), 2),
+  salmon = c(
+    unname(unlist(biomass_0518[1, c(6:17)])),
+    unname(unlist(biomass_0518[61, c(6:17)]))
+  )
+)
+```
+
+```{r}
+ggplot(data = biom_change0506) +
+  geom_line(aes(x = as.factor(month), y = salmon, color = as.factor(year), group = year), size = 2) +
+  labs(x = "Month",
+       y = "Biomass, kg") +
+  scale_color_manual(values = c("darkolivegreen", "darkorchid"), name = "Year") +
+      theme_minimal() +
+  theme(
+    axis.text = element_text(size = 10),
+    legend.text = element_text(size = 10)
+  ) +
+  annotate("text", x = 4, y = 1000000, label = "Uttak", color = "orchid", face = "bold") +
+  annotate("text", x = 11, y = 1800000, label = "Uttak", color = "darkolivegreen4", face = "bold")
+```
+
+Which municipalities did not have aquaculture?
+```{r}
+anti_join(municip, biomass_0518[,c(4,5)], municip, by = c("Komnum"="KOMMUNENR")) %>% 
+  arrange(Name) %>% 
+  filter(Name != "NonCoast") %>% 
+  datatable()
+```
+
+## Pre-clean uttak (harvested fish) table 
+```{r}
+uttak_prep <- uttak_0518 %>% 
+  clean_names() %>% 
+  rename(year = aar) %>% 
+  select(-c(fylkesnr, fylke, kommune)) 
+```
+
+## Pre-clean tap (lost fish) table and convert to kg
+```{r}
+utkast_prep <- tap_0518 %>% 
+  clean_names() %>% 
+  rename(year = aar) %>% 
+  select(-c(fylkesnr, fylke, kommune,tap_d_dfisk, tap_r_mming, tap_annet)) %>% 
+  mutate(lost_final_kg = tap_utkast*5) #Ytterstoyl et al 2016 paper suggest the weight of 5 kg at slaughtering.
+```
+
+
+## Pre-clean feed table
+```{r}
+feed_prep <- feed_0518 %>% 
+  clean_names() %>% 
+  rename(year = aar) %>% 
+  select(-c(fylkesnr, fylke, kommune)) 
+```
+
+# Merging all tables
+
+FISKEDIR commented that no record of uttak (executed fish) in a given year, is most likely zero uttak.
+ Thus, I will replace NA of uttak with 0.
+ Similarly,I will assume that no observation of lost fish means zero fish was lost (fish thrown away during slaughtering).
+ 
+Grane municipality is in aquaculture table but not in the komlist. I assume we do not inlcude Grane kommune in the project.
+I found out that in two occasions (Gratangen 2008 and Berg 2009), the amount of fish thrown away was larger than the amount of produced fish. 
+I found also that in Bodo 2008, Balsfjord 2008, and Storfjord 2011,there was zero harvest (as Fisheries directorate said), but there is feed used. That is likely a mistake in the reporting (also suggested by the Directorate).
+
+Also in two occasions, Sor-Varanger 2005 and Evenes 2016, there was no amount of feed registered although there was production. I set efcr to NA in these cases.
+
+```{r}
+production_prep <- biomass_prep2 %>%
+  left_join(feed_prep, by = c("year", "kommunenr")) %>%
+  left_join(uttak_prep, by = c("year", "kommunenr")) %>%
+  left_join(utkast_prep, by = c("year", "kommunenr")) %>%
+  filter(kommunenr != 1825) %>% # remove Grane municipality
+  select(-tap_utkast) %>%
+  mutate(uttak_laks_kg = ifelse(is.na(uttak_laks_kg), 0, uttak_laks_kg)) %>% 
+  mutate(uttak_regnb_kg = ifelse(is.na(uttak_regnb_kg), 0, uttak_regnb_kg)) %>% 
+  mutate(lost_final_kg = ifelse(is.na(lost_final_kg), 0, lost_final_kg)) %>% 
+  rowwise() %>% 
+  mutate(production_final = sum(biomchange_salmon, uttak_laks_kg, biomchange_trout, uttak_regnb_kg, -lost_final_kg)) 
+```
+
+How many years of data per municipality?
+In 50 observations, there were data for biomass change but no data for executed fish.
+```{r}
+production_prep %>%  
+  group_by(kommunenr) %>% 
+  summarize(nyears = n()) %>% 
+  datatable()
+```
+```{r}
+akva_final <- production_prep %>% 
+  rename(feed_used_kg = f_rforbruk_kg, 
+         harvested_salmon = uttak_laks_kg, 
+         harvested_trout = uttak_regnb_kg) %>% 
+  mutate(production_final_correctweight = production_final*0.84) %>% #reduce weight of fish, this is how the weight is reduced during slaughtering (source - Salmon handbook. MOWI)
+  rowwise() %>% 
+  select(c(year, 
+           kommunenr, 
+           kommune,
+           biomchange_salmon,
+           biomchange_trout,
+           harvested_salmon,
+           feed_used_kg,
+           harvested_trout,
+           lost_final_kg,
+           production_final,
+           production_final_correctweight
+           )) %>% 
+  mutate(county = case_when(
+    kommunenr >= 1800 & kommunenr< 1900 ~ "Nordland",
+    kommunenr >= 1900 & kommunenr< 2000 ~ "Troms",
+    kommunenr >= 2000 ~ "Finnmark"
+  )) %>% 
+  remove_rownames()
+```
+
+Function to estimate eFCR
+When the total aquaculture produciton is negative I set efcr to NA. Similarly, if either feed of production is zero, eFCR = NA. 
+But on the regional level, there were no occasions of negative or zero production and feed use.
+```{r}
+estimate_efcr <- function(feed, biom){
+  if (any(is.na(c(feed, biom)))) {
+    consump = NA
+  } else if(all(c(feed, biom) > 0)) {
+    consump = feed/biom 
+  } else if (feed == 0 | biom == 0) {
+    consump = NA
+  } else {
+    consump = NA
+  }
+  consump
+}  
+```
+
+
+# Calculating eFCR index on a regional level
+```{r}
+efcr_per_region <- 
+  akva_final %>% 
+  group_by(county, year) %>% 
+  summarize(biomchange_trout_region = sum(biomchange_trout),
+            biomchange_salmon_region = sum(biomchange_salmon),
+            harvested_salmon_region = sum(harvested_salmon),
+            harvested_trout_region = sum(harvested_trout),
+            lost_region = sum(lost_final_kg),
+            feed_used_region = sum(as.numeric(feed_used_kg))) %>% 
+  mutate(production_final_region = pmap_dbl(list(biomchange_salmon_region, 
+                                                 harvested_salmon_region, 
+                                                 biomchange_trout_region, 
+                                                 harvested_trout_region, 
+                                                 -lost_region), sum)) %>% 
+mutate(efcr_region = pmap_dbl(list(feed_used_region,production_final_region), estimate_efcr)) 
+
+```
+
+```{r}
+mosaic::fav_stats(efcr_per_region$efcr_region)
+```
+
+# Calculate eFCR score for each municipality and year
+I set negative produciton to NA.
+To rescale an eFCR as an indicator 0 to 1, we can use the lowest eFCR in a given year as a reference point.
+With this approach, we ingore possible differences in the production due to water temperature. However, the whole our study region is in the north, above 63 degrees, so we can assume approximately similar growing conditions. 
+Here I also set negative total production to NA, because produciton below zero does not make sense in our analysis.
+
+```{r}
+efcr_score_prep <- akva_final %>%
+  left_join(efcr_per_region[, c(1, 2, 10)], by = c("county", "year")) %>%
+  mutate(production_final_correctweight = ifelse(
+    production_final_correctweight < 0,
+    NA,
+    production_final_correctweight
+  )) %>% 
+  select(-c(biomchange_salmon,
+            biomchange_trout,
+            harvested_salmon,
+            harvested_trout,
+            feed_used_kg,
+            lost_final_kg,
+            production_final
+            )) 
+```
+
+```{r}
+efcr_score <- efcr_score_prep %>% 
+  group_by(year) %>% 
+  mutate(ref_efcr = min(efcr_region)) %>% 
+  ungroup() %>% 
+  mutate(efcr_score = ref_efcr/efcr_region)
+```
+
+The differences in eFCR are within one year, so the range of the score is narrow.
+```{r}
+mosaic::fav_stats(efcr_score$efcr_score)
+```
+
+# Save the final total production and eFCR table
+```{r}
+write.csv(efcr_score, "data/total_aquaculture_produciton_and_efcr.csv", row.names = FALSE)
+```
+
+
+
+# Check the biomass per month per region
+I do this to just compare my data to the data available on the Fisheries Directorate website.
+Biomass data is the same in both tables,as it should be.
+```{r}
+# biomass_monthly_region <- production_prep %>% 
+#   pivot_long(
+#     cols = starts_with("laks"),
+#     names_to = "month",
+#     names_prefix = "laks",
+#     values_to = "biomass"
+#     
+# )
+
+biomass_monthly_region <- production_prep %>% 
+  select(-c(18:33,36)) %>% 
+  gather(
+  laks_jan_beh_kg,
+  laks_feb_beh_kg,
+  laks_mar_beh_kg,
+  laks_apr_beh_kg,
+  laks_mai_beh_kg,
+  laks_jun_beh_kg,
+  laks_jul_beh_kg,
+  laks_aug_beh_kg,
+  laks_sep_beh_kg,
+  laks_okt_beh_kg,
+  laks_nov_beh_kg,
+  laks_des_beh_kg,
+  key = "month_edit", value = "biomass",
+  ) %>% 
+  mutate(month = str_sub(month_edit,6,8)) %>% 
+  group_by(fylke, year, month) %>% 
+  summarize(biomass_fylke = sum(biomass))
+
+```
+
+Quickly check the same but for harvested fish: data is the same.
+
+```{r}
+uttak_monthly_region <- production_prep %>% 
+  select(1:5, 35) %>%  
+  group_by(fylke, year) %>% 
+  summarize(uttak_fylke = sum(uttak_laks_kg)) 
+  
+```
+
+Check sum of lost fish for the municipalities with negative total produciton to have a quick look.
+```{r}
+losttotal_prep <- tap_0518 %>% 
+  clean_names() %>% 
+  rename(year = aar) %>% 
+  select(-c(fylkesnr, fylke, kommune)) %>% 
+  mutate(utkast = tap_utkast*5)
+
+negative_prod <-akva_final %>%
+  rename(utkast_harvest = lost_final_kg) %>% 
+  filter(production_final < 0) %>% 
+  left_join(losttotal_prep, by = c("year", "kommunenr")) %>% 
+  rowwise() %>% 
+  mutate(sum_lost_cages = sum(tap_d_dfisk,tap_r_mming, tap_annet)*5) %>% 
+  mutate(delta_prod_lost = abs(production_final) - sum_lost_cages) %>% 
+  select(c(year, kommunenr, kommune, 
+         biomchange_salmon,
+         biomchange_trout,
+         harvested_salmon,
+         harvested_trout,
+         feed_used_kg,
+         production_final,
+         production_final_correctweight,
+         utkast_harvest,
+         sum_lost_cages,
+         delta_prod_lost
+         )) 
+
+```
+
+
