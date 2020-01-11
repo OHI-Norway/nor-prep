@@ -28,6 +28,8 @@ library(DT)
 ```{r}
 akva_final <- read.table("data/total_aquaculture_production_and_efcr.csv", header = TRUE, sep = ",")
 tap_0518 <-read.csv(file.path(dir_M[2],"Aquaculture/Production/production_unlocked_concatenated_2005_2018/akva_tap_formatted_2005_2018.csv"))
+biomass_0518 <-read.csv(file.path(dir_M[2],"Aquaculture/Production/production_unlocked_concatenated_2005_2018/akva_biomass_2005_2018_formatted.csv")) 
+municip <- read.table("../../administrative/komlist.csv", header = TRUE, sep = ";")
 ```
 
 
@@ -116,5 +118,40 @@ plots_akva <- map2(
 
 ```
 
+
+
+# Check how fish biomass was changing over a year
+An example from Hammerfest municipailty, year 2006
+```{r}
+biom_change0506 <- data.frame(
+  year = rep(c(2005, 2006), each = 12),
+  month = rep(c(1:12), 2),
+  salmon = c(
+    unname(unlist(biomass_0518[1, c(6:17)])),
+    unname(unlist(biomass_0518[61, c(6:17)]))
+  )
+)
+```
+
+```{r}
+ggplot(data = biom_change0506) +
+  geom_line(aes(x = as.factor(month), y = salmon, color = as.factor(year), group = year), size = 2) +
+  labs(x = "Month",
+       y = "Biomass, kg") +
+  scale_color_manual(values = c("darkolivegreen", "darkorchid"), name = "Year") +
+      theme_minimal() +
+  theme(
+    axis.text = element_text(size = 10),
+    legend.text = element_text(size = 10)
+  ) +
+  annotate("text", x = 4, y = 1000000, label = "Uttak", color = "orchid", face = "bold") +
+  annotate("text", x = 11, y = 1800000, label = "Uttak", color = "darkolivegreen4", face = "bold")
+``` 
  
- 
+# Which municipalities did not have aquaculture?
+```{r}
+anti_join(municip, biomass_0518[,c(4,5)], municip, by = c("Komnum"="KOMMUNENR")) %>% 
+  arrange(Name) %>% 
+  filter(Name != "NonCoast") %>% 
+  datatable()
+```
