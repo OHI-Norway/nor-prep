@@ -23,3 +23,132 @@ source('~/github/nor-prep/prep/src/common.R')
 library(ggthemes)
 library(ghibli)
 ```
+
+# Imporat data
+```{r}
+lice <-read.csv("data/lice_below_thr_gapfilled.csv") 
+momb <-read.csv("data/mean_momb_mp_yr_gapfilled.csv")
+```
+
+```{r}
+lice_plot <- lice %>% 
+  mutate(county = case_when(
+    Municip_number >= 1800 & Municip_number < 1900 ~ "Nordland",
+    Municip_number >= 1900 & Municip_number < 2000 ~ "Troms",
+    Municip_number >= 2000 ~ "Finnmark"
+  ))
+```
+
+
+```{r}
+theme_lice <- function(...) {
+  theme_stata(scheme = "s1color") +
+    theme(
+      legend.position = "none",
+      axis.text.x = element_text(
+        size = 6, angle = 90, hjust = 1, vjust = 0.5,
+        face = "bold"
+      ),
+      axis.text.y = element_text(size = 7, angle = 0),
+      axis.title.y = element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)),
+      plot.title = element_text(hjust = 0.5, vjust = 0.5),
+      axis.ticks.x = element_line(size = 0.5),
+      axis.ticks.length = unit(0.2, "cm"),
+      strip.text = element_text(size = 12, face = "bold"),
+      strip.background = element_rect(fill = "mistyrose", color ="mediumvioletred"),
+      panel.background = element_rect(fill = "white"),
+      plot.background = element_rect(fill = "seashell"),
+      panel.grid.major.x = element_line(color = "grey97", size = 0.7),
+    )
+}
+```
+
+# Trend in lice index: proporiton of week a locality is below lice threshold
+```{r}
+breaks1 <- seq(2004, 2018, by = 1)
+labels1 <- as.character(breaks1)
+labels1[!breaks1%%2==0]<- ""
+
+
+county_names <- list("Finnmark", "Nordland", "Troms")
+
+lice_df <- split(lice_plot, lice_plot$county)
+
+plots_lice <- map2(
+  lice_df, 
+  names(lice_df),
+   ~ ggplot(data = .x, mapping = aes(x = Year, y = score_final)) +
+  geom_point(color = "mediumslateblue") +
+  geom_smooth() +
+  ggtitle(.y)  +
+  facet_wrap(Municip ~ .) +
+  scale_x_continuous(breaks = breaks1, labels = labels1) +
+  labs(y = "Lice index", x = "") +
+  theme_lice())
+
+ file_names <- paste0("figs/lice_score_trends", "_", county_names, ".pdf")
+ map2(file_names, plots_lice, ggsave)
+```
+
+# Trends in momb  index: the proportion of MAB with momb score 3 and 4
+
+```{r}
+momb_plot <- momb %>% 
+  mutate(county = case_when(
+    Komnum_new >= 1800 & Komnum_new < 1900 ~ "Nordland",
+    Komnum_new >= 1900 & Komnum_new < 2000 ~ "Troms",
+    Komnum_new >= 2000 ~ "Finnmark"
+  ))
+```
+
+
+```{r}
+theme_momb <- function(...) {
+  theme_stata(scheme = "s1color") +
+    theme(
+      legend.position = "none",
+      axis.text.x = element_text(
+        size = 6, angle = 90, hjust = 1, vjust = 0.5,
+        face = "bold"
+      ),
+      axis.text.y = element_text(size = 7, angle = 0),
+      axis.title.y = element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)),
+      plot.title = element_text(hjust = 0.5, vjust = 0.5),
+      axis.ticks.x = element_line(size = 0.5),
+      axis.ticks.length = unit(0.2, "cm"),
+      strip.text = element_text(size = 12, face = "bold"),
+      strip.background = element_rect(fill = "moccasin", color ="salmon4"),
+      panel.background = element_rect(fill = "white"),
+      plot.background = element_rect(fill = "oldlace"),
+      panel.grid.major.x = element_line(color = "grey97", size = 0.7),
+    )
+}
+```
+
+Plotting trends in momb index:
+```{r}
+breaks1 <- seq(2004, 2018, by = 1)
+labels1 <- as.character(breaks1)
+labels1[!breaks1%%2==0]<- ""
+
+
+momb_df <- split(momb_plot, momb_plot$county)
+
+plots_momb <- map2(
+  momb_df, 
+  names(momb_df),
+   ~ ggplot(data = .x, mapping = aes(x = Year, y = momb_gapfilled)) +
+  geom_point(color = "orangered4") +
+  geom_smooth(color = "red",
+              size = 0.3) +
+  ggtitle(.y)  +
+  facet_wrap(Kommune_new ~ .) +
+  scale_x_continuous(breaks = breaks1, labels = labels1) +
+  labs(y = "Momb index", x = "") +
+  theme_momb())
+
+ file_names <- paste0("figs/momb_score_trends", "_", county_names, ".pdf")
+ map2(file_names, plots_momb, ggsave)
+ 
+```
+

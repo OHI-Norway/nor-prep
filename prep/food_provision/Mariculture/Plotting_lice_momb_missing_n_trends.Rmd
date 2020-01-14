@@ -29,7 +29,6 @@ library(gridExtra)
 ```{r}
 lice <-read.csv("data/lice_below_thr_gapfilled.csv") 
 momb <-read.csv("data/mean_momb_mp_yr_gapfilled.csv")
-#produciton <-read.csv(..)
 ```
 
 
