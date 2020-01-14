@@ -126,12 +126,13 @@ To find MAB, i use licenses table again.
 ```{r}
 
 locs_unique <- licenses %>% 
+  clean_names(.) %>% 
   group_by(year, lok_nr, lok_kap, lok_enhet) %>% 
   summarize(n = n())
   
 #remove years 2004 and 2019 from the momb dataset, those years have incomplete data.
 #There is no data on maximal capacity before 2010,and for 2016,so  years 2005-2010 and 2016 need to be gapfilled then. 
-#Evene in 2010-2018, about 220 localities did not have information on the capacity (not sure why, bad quality of data I think)
+#Even in 2010-2018, about 220 localities did not have information on the capacity (not sure why, bad quality of data I think)
 
 #So, I delete these years from the df.
 momb_prep4 <- momb_prep3 %>%
@@ -154,19 +155,6 @@ momb_prep5 <- momb_prep4 %>%
 ```
 
 
-```{r include=FALSE}
-#Old approach - scaling momb from 1-4 to 0 to 1.
-# momb_prep4 <- momb_prep3 %>%
-#   mutate(mombtrans = case_when(
-#     miljo_tilstand == 1 ~ "1",
-#     miljo_tilstand == 2 ~ "0.66",
-#     miljo_tilstand == 3 ~ "0.33",
-#     miljo_tilstand == 4 ~ "0"
-#   )) %>%
-#   mutate(mombtrans = as.numeric(mombtrans)) %>%
-#   group_by(Year, Komnum, Kommune) %>%
-#   summarize(momb_mean = mean(mombtrans))
-```
 
 # Estimating running mean of the momb score per municipality
 Remove municipalities with no data
