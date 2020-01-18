@@ -58,7 +58,7 @@ biomass_prep <- biomass_0518 %>%
 Funciton to replace biomass change, when no data for the previous year us available:
 the idea is to take the difference in biomass between the latest and earliest month with data, when there was no production in the previous year.
 Example (imaginary): Evenes municipality had no production in 2015. In 2016, they got fish but not from the beggining of the year. Fish was likely moved from another municipality in March and was harvested in September. Then, the difference in biomass between September and March is the produciton in Evenes in 2016.
-If we would ignore such a case, we would get NA for produciton in Evenes in 2016, but that is not correct.
+If we would ignore such a case, we would get NA for produciton in Evenes in 2016, but this is not correct.
 
 ```{r}
 output_vect <-as.numeric()
@@ -121,33 +121,6 @@ biomass_prep2 <- biomass_prep %>%
   bind_rows(missingdat) 
 ```
 
-
-## Check how fish biomass was changing over a year
-```{r}
-biom_change0506 <- data.frame(
-  year = rep(c(2005, 2006), each = 12),
-  month = rep(c(1:12), 2),
-  salmon = c(
-    unname(unlist(biomass_0518[1, c(6:17)])),
-    unname(unlist(biomass_0518[61, c(6:17)]))
-  )
-)
-```
-
-```{r}
-ggplot(data = biom_change0506) +
-  geom_line(aes(x = as.factor(month), y = salmon, color = as.factor(year), group = year), size = 2) +
-  labs(x = "Month",
-       y = "Biomass, kg") +
-  scale_color_manual(values = c("darkolivegreen", "darkorchid"), name = "Year") +
-      theme_minimal() +
-  theme(
-    axis.text = element_text(size = 10),
-    legend.text = element_text(size = 10)
-  ) +
-  annotate("text", x = 4, y = 1000000, label = "Uttak", color = "orchid", face = "bold") +
-  annotate("text", x = 11, y = 1800000, label = "Uttak", color = "darkolivegreen4", face = "bold")
-```
 
 Which municipalities did not have aquaculture?
 ```{r}
