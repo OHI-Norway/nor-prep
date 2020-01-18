@@ -21,7 +21,7 @@ library(zoo)
 ```
 
 
-###Load the data tables
+# Load the data tables
 ```{r}
 fish_nor_weight <- read.csv("data/catch_weighted_score.csv")
 # fish_nor_score <-read.csv ("data/sustain_score.csv")
@@ -29,7 +29,7 @@ ices_clean <- read.csv("data/ices_updated_2018.csv")
 final_scores <-read.csv("data/fish_score_smoothed_seaarea.csv")
 ```
 
-###Overview of fisheries data and scores with ggplots:
+# Overview of fisheries data and scores with ggplots:
 Compare total proportions of catch per stock  
 ```{r, warning=FALSE}
 breaks1 <- seq(1994, 2018, by = 1)
@@ -58,7 +58,7 @@ ggplot(plot_catches, aes(x = Year, y = catch_prop, fill= Species))+
 
 
 
-###Total catch per species and municipality (figures are uploaded as pdf) 
+# Total catch per species and municipality (figures are uploaded as pdf) 
 ```{r message=FALSE} 
 stocks_bycounty <-fish_nor_weight %>% 
              mutate(county = case_when(
@@ -115,7 +115,7 @@ ggsave(paste0("figs/catch_", cty, "_", sp, ".pdf"), plot)
 
 ```
 
-###How SSB per species varied accross years in relation to Blim and Bmsy?
+# How SSB per species varied accross years in relation to Blim and Bmsy?
 ```{r message=FALSE}
 #breaks2 <- seq(1994, 2018, by = 1)
 # labels1 <- as.character(breaks1)
@@ -167,61 +167,4 @@ ggsave(paste0("figs/SSB_", "_", sp, ".pdf"), plot2)
 ```
 
 
-###How did the fisheries sustainability score varied in Norway temporally in each municipality?
-```{r message=FALSE}
-plot_fscores <-final_scores %>% 
-             mutate(county = case_when(
-                                    Municip_number >= 1800 &  Municip_number < 1900 ~ "Nordland",
-                                    Municip_number >= 1900 &  Municip_number < 2000 ~ "Troms",
-                                    Municip_number >= 2000 ~ "Finnmark"
-                                    ))
-
-for(i in 1:length(counties))
-  {
-  cty <- counties[i]
-  
-  df <- plot_fscores %>%
-    filter(county == cty)
-  
-  plot <- ggplot(df)+
-      geom_line(aes(x = Year, y = fish_score))+
-      facet_wrap(Municip_name_new  ~ .) +
-      scale_x_continuous(breaks = breaks1, limits = c(1994,2018), labels = labels1)+
-      labs(y = "Fisheries sustainability score", x = "") +
-      ggtitle(cty)+
-      theme_stata(scheme = "s1color") +
-      theme(legend.position = "none", 
-            axis.text.x = element_text(size = 6, angle = 90, hjust = 1, vjust = 0.5, face = "bold"),
-            axis.text.y = element_text(size = 7, face = "bold", angle = 0, hjust = 1, vjust = 0),
-            axis.title.y = element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)),
-            plot.title = element_text(hjust=0.5, vjust=0.5),
-            axis.ticks.x = element_line(size = 0.5),
-            axis.ticks.length = unit(0.1, "cm"))
-           
-           
-ggsave(paste0("figs/fishery_score","_", cty, ".pdf"), plot)
-  
-}
-
-```
-
-
-```{r inlcude = FALSE}
-#Re-estimating fisheries sustainability score by smoothing it with a rolling average (zoo package)
-municipalities <-unique(final_scores$Municip_name_new)
-
-finallist <-list()
-for (i in 1:length(municipalities)) 
-  {
-  mp <- municipalities[i]
-  df <- final_scores %>% 
-      filter(Municip_name_new == mp)
-   runmean <-data.frame(runmean = rollapply(df$fish_score, width = 3, FUN = mean,  fill=NA))
-   df2 <- bind_cols(df, runmean)
-  finallist[[i]] <- df2  
-}
-
-smoothed_fish_scores <- do.call("rbind", finallist)
-colSums(is.na(smoothed_fish_scores)) #a lot of NA were introduced with a rolling mean, because some municipailities have too few data lines. Does it make sense to use rolling 
-```
 
