@@ -1,5 +1,5 @@
 ---
-title: "Total aquaculture production using updated production data"
+title: "Estimating total aquaculture production on updated production data"
 author: "*Compiled on `r date()` by `r Sys.info()['user']`*"
 output: 
   html_document:
@@ -26,7 +26,7 @@ library(tidyr)
 library(zoo)
 ```
 
-# Loading aquaculture produciton data with feed used, biomass change per month, lost fish and seeded fish.
+# Loading aquaculture production data with feed used, biomass change per month, lost fish and seeded fish.
 ```{r}
 
 load_by_sheet <-function(x, page = 1) {
@@ -68,7 +68,7 @@ biomass_prep2 <- biomass_prep %>%
 
 Funciton to replace biomass change, when no data for the previous year is available:
 the idea is to take the difference in biomass between the latest and earliest month with data in a given year, when there was no production in the previous year.
-Example (imaginary):  municipality XX had no production in 2015. In 2016, they got fish but not from the beggining of the year. Fish was likely moved from another municipality in March and was harvested in September. Then, the difference in biomass between September and March is the produciton in Evenes in 2016.
+Example (imaginary):  municipality XX had no production in 2015. In 2016, they got fish but not from the beggining of the year. Fish was likely moved from another municipality in March and was harvested in September. Then, the difference in biomass between September and March is the produciton in XX in 2016.
 If we would just subtract biomass in desember 2016 from biomass in desember  2015 (which is NA), we will get NA in the total produciton in 2016. But that would not be correct. 
 
 ```{r}
@@ -135,7 +135,7 @@ biomass_prep3 <- biomass_prep2 %>%
 Biomass change and harvest (uttak) will be corrected for slaugher weight, by multiplying the weight by 0.88.
 The weight of smolts is assumed to be 100 gramms, and the weight of discarded salmon - **5x0.88 = 4.4**  kg.
 Finally, the total production is
-$ot.prod = \triangle Biomass + harvest - discard - seeded.smolts$
+$Tot.prod = \triangle Biomass + harvest - discard - seeded.smolts$
 ```{r}
 production_prep <- biomass_prep3 %>%
   select(c(
@@ -245,14 +245,8 @@ production_efcr <- production_prep %>%
 mosaic::fav_stats(production_efcr$efcr_municip)
 ```
 
-```{r}
-#write.csv(production_efcr, "data/total_municipality_aquaculture__production_and_efcr.csv", row.names = FALSE)
-```
-
-
 
 # Calulating eFCR per region
-NB! This time I will not use the amount of fish moved to the municipality, because I don't know the weight of fish moved (there is no data on that). 
 
 ```{r}
 efcr_per_region <- 
@@ -304,6 +298,7 @@ efcr_score_prep <- production_prep %>%
             )) 
 ```
 
+The reeference efcr is the lowest efcr amoung the 2 regions, whithin 1 year.
 ```{r}
 efcr_score <- efcr_score_prep %>% 
   group_by(year) %>% 
@@ -415,26 +410,14 @@ write.csv(production_gapfilled_final, "data/gapfilled_aquaculture_production.csv
 
 # Calcualte regional eFCR using gapfilled produciton data
 
-# Calculating eFCR score
+# Calculating eFCR score on gapfilled production data
 ```{r}
-efcr_score_prep <- production_prep %>%
-  left_join(efcr_per_region[, c(1, 2, 5)], by = c("county", "year")) %>%
-  mutate(production_final = ifelse(
-    production_final < 0,
-    NA,
-    production_final
-  )) %>% 
-  select(c(year, 
-           county, 
-           municip_number, 
-           municip,
-           production_final,
-           efcr_region
-            )) 
+efcr_on_gapfilled <- production_gapfilled_final %>%
+  left_join(efcr_per_region[, c(1, 2, 5)], by = c("county", "year")) 
 ```
 
 ```{r}
-efcr_score <- efcr_score_prep %>% 
+efcr_score_on_gapfilled <- efcr_on_gapfilled %>% 
   group_by(year) %>% 
   mutate(ref_efcr = min(efcr_region)) %>% 
   ungroup() %>% 
@@ -443,6 +426,6 @@ efcr_score <- efcr_score_prep %>%
 
 Save the final eFCR per region table:
 ```{r}
-
+#write.csv(efcr_score_on_gapfilled, "data/regional_efcr_score_on_gapfilled_prod.csv", row.names = FALSE)
 ```
 
