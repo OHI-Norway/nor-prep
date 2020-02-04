@@ -1,0 +1,137 @@
+---
+title: "Dowloading ICES data on stocks assessment"
+author: "Marina"
+date: "1/9/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r libraries, results="hide"}
+library(ggthemes)
+library(janitor)
+library(DT)
+library(tidyr)
+library(tidyverse)
+```
+
+```{r}
+library("icesSAG")
+library(rebus)
+```
+
+```{r}
+stocks_raw <- getListStocks(0) 
+  
+stocks_prep <- stocks_raw %>% 
+  dplyr::select(c(AssessmentKey, AssessmentYear, SpeciesName))
+```
+Following a tutorial at: 
+http://ices.dk/marine-data/Documents/StockAssessment/intro-sag.pdf
+
+Selecting all the stocks form the Barents and Norwegian Seas (areas 27.1 and 27.2)
+
+```{r}
+bar_nor <- str_detect(
+  stocks_raw$StockKeyLabel,
+  ANY_CHAR %R%
+    or("27.1", "27.2") %R%
+    negated_char_class(DGT)
+) # select areas of north-east atlantic
+
+
+nea <- str_detect(
+  stocks_raw$StockKeyLabel,
+  ANY_CHAR %R%
+    "27.nea" %R%
+    END
+)
+
+coast_arct <- 
+  str_detect(
+  stocks_raw$StockKeyLabel,
+  ANY_CHAR %R%
+    or("coas", "arct") %R%
+    END)
+
+stocks_nea <- bind_rows(list(
+  stocks_raw[bar_nor, ],
+  stocks_raw[nea, ],
+  stocks_raw[coast_arct,]
+))
+```
+
+
+```{r}
+#cod, capelin, herring, saithe, halibut, makerel, b.whiting, redfish.
+species_keys <- stocks_nea %>% 
+  filter(SpeciesName %in% c(
+    "Reinhardtius hippoglossoides",
+    "Clupea harengus",
+     "Pollachius virens",
+     "Scomber scombrus",
+     "Gadus morhua",
+     "Micromesistius poutassou",
+     "Sebastes norvegicus",
+     "Mallotus villosus"
+    ))  %>%
+    pull(AssessmentKey)
+
+```
+
+Get the stock summary tables for all species:
+```{r}
+# just to try getting stock summaries for one species (capelin) 
+#stock_status <- getSummaryTable(9192)[[1]]
+
+stock_status <-map(species_keys,  ~ getSummaryTable(.x)[[1]]) %>% 
+  do.call("rbind", .)
+```
+
+```{r}
+stock_msy <- getFishStockReferencePoints(species_keys) %>% 
+  do.call("rbind", .) %>% 
+  filter(!is.na(FMSY)) %>% 
+  group_by(StockKeyLabel,FLim, Blim, FMSY, MSYBtrigger) %>% 
+  summarize(n = n())
+```
+
+Megre the stocks status table with MSY table, using the StockKeyLabel as a key
+```{r}
+stocks_labels <- stocks_nea %>% 
+  group_by(StockKeyLabel,SpeciesName, StockDescription) %>% 
+  summarize(n = n()) 
+
+stocks_final_df <- stock_status %>% 
+  left_join(stocks_labels[,c(1,2,3)], by = c("fishstock" = "StockKeyLabel")) %>% 
+  left_join(stock_msy[,-6], by =  c("fishstock" = "StockKeyLabel")) %>% 
+  as.tibble(.) %>% 
+  dplyr::select(-c(recruitment, 
+            high_recruitment, 
+            low_recruitment,
+            catches,
+            landings,
+            discards,
+            StockPublishNote,
+            Purpose,
+            recruitment_age,
+            units,
+            stockSizeDescription,
+            stockSizeUnits,
+            fishingPressureDescription,
+            fishingPressureUnits)) %>%  #Saithe was there two times under different names
+  filter(StockDescription != "")
+```
+Which stocks did not have FMSY information for all years:
+```{r}
+filter(stocks_final_df, is.na(FMSY)) %>% 
+  count(SpeciesName, fishstock)
+```
+
+Save  the final table:
+```{r}
+#write.csv(stocks_final_df, "data/ices_stocsk_bmsy_fmsy_feb2020.csv", row.names = F)
+```
+
