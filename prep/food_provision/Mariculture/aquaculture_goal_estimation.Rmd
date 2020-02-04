@@ -1,0 +1,160 @@
+---
+title: "Calculating final aquaculture goal"
+author: "Marina Espinasse"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    css: '~/github/nor-prep/prep/templates/style.css'
+    toc: true
+    number_sections: true
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: '~/github/nor-prep/prep/templates/norway_banner.html'
+  pdf_document:
+    toc: true
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source('~/github/nor-prep/prep/src/common.R')
+```
+
+Here I combine the sustainability indicators of aquaculture (lice, momb, efcr), and production into one table.
+Then I estimate the proportion of total production per year and municipality, that is sustainable.
+# Load data: lice, momb, efcr and production
+```{r}
+lice <- read.csv("data/lice_below_thr_gapfilled.csv")
+momb <-read.csv("data/mean_momb_mp_yr_gapfilled.csv")
+efcr <-read.csv("data/regional_efcr_score_on_gapfilled_prod.csv")
+```
+
+# Homogenizing the data
+```{r}
+lice_prep <- lice %>% 
+  rename(prop_below_lice = below_lice,
+         lice_score = score_final) %>% 
+          select(-gf) %>% 
+          rename_all(., tolower)
+      
+
+momb_prep <- momb %>% 
+  select(-c(momb_score, gapfilled)) %>% 
+  rename(municip_number = Komnum_new,
+         municip = Kommune_new,
+         momb_score = momb_gapfilled,
+         proportion_biomass_bad_momb = totprop_biomass_polluted) %>% 
+         rename_all(., tolower)
+
+```
+
+# Merging the three tables
+```{r}
+aqua_goal_prep <- efcr %>%
+  select(-gapfilled) %>%
+  rename(reference_efcr = ref_efcr) %>% 
+  left_join(lice_prep, by = c(
+    "year",
+    "municip",
+    "municip_number"
+  )) %>%
+  left_join(momb_prep, by = c(
+    "year",
+    "municip",
+    "municip_number"
+  )) 
+  
+```
+
+# Define function to calculate geometric mean of sustaianbility scores
+Geometric mean does not tolerate zeros: when any terms is zero, the whole mean becomes zero. A workaround is to add 1 to each term and then subtract 1 from the resultant geometric mean. But because the scores are on the scale 0-1,  I add and subtract 0.01.
+```{r}
+gm_mean <- function(...) {
+  x <- c(...)
+  if (all(is.na(x))) {
+    return(NA)
+   } else if (any(x == 0, na.rm = T)) {
+     mod_x <- x + 0.01
+   gmmean  <- prod(mod_x, na.rm = TRUE)^(1 / sum(!is.na(mod_x))) - 0.01
+   } else {
+    gmmean  <- prod(x, na.rm = TRUE)^(1 / sum(!is.na(x)))
+   }
+   return(gmmean)
+ }
+```
+
+Calculating geometric mean of sustainability scores and defining the reference - maximal produciton within the whole northern Norway in a given year.
+```{r}
+aqua_goal_final <-
+  aqua_goal_prep %>%
+  mutate(mean_sustain_score = pmap_dbl(
+    list(
+      efcr_score,
+      lice_score,
+      momb_score
+    ),
+    gm_mean
+  )) %>% 
+  group_by(year) %>% 
+  mutate(maxprod = max(production_final)) %>% 
+  ungroup() %>% 
+  mutate(prod_prop_mp = production_final/maxprod) %>% 
+  mutate(aqua_score = prod_prop_mp*mean_sustain_score*100)
+           
+```
+
+# Check the distribution of the aquaculture score:
+```{r}
+library(ggthemes)
+
+ggplot(data = aqua_goal_final) +
+  geom_density(
+    mapping = aes(x = aqua_score),
+   fill = "yellow", color = "darkgoldenrod", alpha = 0.6
+  ) +
+  ggtitle("Distribution of the aquaculture goal score") +
+  #scale_x_continuous(labels = scales::comma) +
+  labs(x = "Total aquaculture production, kg") +
+  theme(axis.text = element_text(size = 12)) +
+  theme_gdocs()
+```
+
+
+
+
+
+
+
+
+Just another way to avoid zeroes in the geometric mean, the code is for python and I have not translated it to R.
+https://github.com/RobertoCM/geomMeanExt/blob/master/geomMeanExt.py
+
+```{python}
+def geomMeanExtension(dataset):
+	epsilon=1e-5
+	
+	dataset_nozeros=dataset[dataset>0]
+	geomeanNozeros=ssm.gmean(dataset_nozeros)
+	
+	deltamin=0
+	deltamax=geomeanNozeros-min(dataset_nozeros);
+	delta=(deltamin+deltamax)/2;
+	
+	epsilon=epsilon*geomeanNozeros;
+	auxExp=math.exp(np.mean(np.log(dataset_nozeros+delta)))-delta;
+	while (auxExp-geomeanNozeros)>epsilon:
+		if(auxExp<geomeanNozeros):
+			deltamin=delta
+		else:
+			deltamax=delta
+		delta=(deltamin+deltamax)/2;
+		auxExp=math.exp(np.mean(np.log(dataset_nozeros+delta)))-delta;
+
+	gmeanE=math.exp(np.mean(np.log(dataset+delta)))-delta;
+	return(gmeanE,delta);
+```
+
+	
+```{r}
+
+```
+	
