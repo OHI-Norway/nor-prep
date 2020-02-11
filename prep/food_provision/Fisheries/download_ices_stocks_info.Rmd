@@ -32,14 +32,13 @@ Following a tutorial at:
 http://ices.dk/marine-data/Documents/StockAssessment/intro-sag.pdf
 
 Selecting all the stocks form the Barents and Norwegian Seas (areas 27.1 and 27.2)
-
 ```{r}
 bar_nor <- str_detect(
   stocks_raw$StockKeyLabel,
   ANY_CHAR %R%
     or("27.1", "27.2") %R%
     negated_char_class(DGT)
-) # select areas of north-east atlantic
+) 
 
 
 nea <- str_detect(
@@ -65,7 +64,7 @@ stocks_nea <- bind_rows(list(
 
 
 ```{r}
-#cod, capelin, herring, saithe, halibut, makerel, b.whiting, redfish.
+#cod, capelin, herring, saithe, halibut, makerel, b.whiting, redfish, haddock.
 species_keys <- stocks_nea %>% 
   filter(SpeciesName %in% c(
     "Reinhardtius hippoglossoides",
@@ -75,27 +74,31 @@ species_keys <- stocks_nea %>%
      "Gadus morhua",
      "Micromesistius poutassou",
      "Sebastes norvegicus",
-     "Mallotus villosus"
+     "Mallotus villosus",
+    "Melanogrammus aeglefinus"
     ))  %>%
     pull(AssessmentKey)
 
 ```
 
-Get the stock summary tables for all species:
+# Get the stock summary tables for all species
 ```{r}
 # just to try getting stock summaries for one species (capelin) 
 #stock_status <- getSummaryTable(9192)[[1]]
 
-stock_status <-map(species_keys,  ~ getSummaryTable(.x)[[1]]) %>% 
-  do.call("rbind", .)
+stock_status <- map(species_keys, ~ getSummaryTable(.x)[[1]]) %>%
+  do.call("rbind", .) %>%
+  group_by(fishstock) %>%
+  filter(AssessmentYear == max(unique(AssessmentYear)))
 ```
 
 ```{r}
 stock_msy <- getFishStockReferencePoints(species_keys) %>% 
   do.call("rbind", .) %>% 
-  filter(!is.na(FMSY)) %>% 
-  group_by(StockKeyLabel,FLim, Blim, FMSY, MSYBtrigger) %>% 
-  summarize(n = n())
+  group_by(AssessmentYear,AssessmentKey, StockKeyLabel,FLim, Blim, FMSY, MSYBtrigger) %>% 
+  tally()
+
+#write.csv(stock_msy, "data/ices_stock_msy.csv", row.names = F)
 ```
 
 Megre the stocks status table with MSY table, using the StockKeyLabel as a key
@@ -106,9 +109,10 @@ stocks_labels <- stocks_nea %>%
 
 stocks_final_df <- stock_status %>% 
   left_join(stocks_labels[,c(1,2,3)], by = c("fishstock" = "StockKeyLabel")) %>% 
-  left_join(stock_msy[,-6], by =  c("fishstock" = "StockKeyLabel")) %>% 
   as.tibble(.) %>% 
-  dplyr::select(-c(recruitment, 
+  dplyr::select(-c(
+            AssessmentYear,
+            recruitment, 
             high_recruitment, 
             low_recruitment,
             catches,
@@ -121,17 +125,20 @@ stocks_final_df <- stock_status %>%
             stockSizeDescription,
             stockSizeUnits,
             fishingPressureDescription,
-            fishingPressureUnits)) %>%  #Saithe was there two times under different names
+            fishingPressureUnits)) %>%  
   filter(StockDescription != "")
-```
-Which stocks did not have FMSY information for all years:
-```{r}
-filter(stocks_final_df, is.na(FMSY)) %>% 
-  count(SpeciesName, fishstock)
+
+
+#write.csv(stocks_final_df, "data/ices_stocks_ssb.csv", row.names = F)
 ```
 
-Save  the final table:
+
+Which stocks did not have FMSY information for all years:
 ```{r}
-#write.csv(stocks_final_df, "data/ices_stocsk_bmsy_fmsy_feb2020.csv", row.names = F)
+filter(stock_msy, is.na(FMSY)) %>% 
+  count(StockKeyLabel)
 ```
+
+
+
 
