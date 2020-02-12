@@ -1,0 +1,88 @@
+---
+title: "Calculating fish stock scores"
+author: "Jamie Afflerbach"
+date: "2/11/2020"
+output: html_document
+---
+
+This script shows how to use the F/B lim and MSY metrics to score a stock on a scale from 0 to 1. Importantly, this method does not penalize for underfished stocks (SSB > MSYBtrigger) or underfishing (F < Fmsy). 
+
+If you want to consider those penalties, you can expand the methods. But for now I'll just start with this simple method of calculating stock scores.
+
+```{r setup, message = FALSE, warning = FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+
+library(tidyverse)
+library(readxl)
+```
+
+Read in data
+```{r}
+data <- read_excel("~/github/nor-prep/prep/food_provision/Fisheries/data/sample_data_fmsy_bmsy_norway.xlsx")
+```
+
+Clean data
+```{r}
+# Remove columns we don't need
+
+data_clean <- data %>%
+  filter(AssessmentYear == 2019) %>% #if we don't filter for this we have duplicate years
+  mutate(F = as.numeric(F),
+         FMSY = as.numeric(FMSY),
+         FLim = as.numeric(FLim)) %>% #not sure why but these came in as character
+  select(year = Year, SSB, F, FLim, Blim, FMSY, MSYBtrigger)# %>%
+  #pivot_longer(cols = c(b_bmsy, f_fmsy), names_to = "metric", values_to = "value")
+
+```
+# Calculate stock scores between 0 and 1
+
+## Scenario 1: no underfishing penalty
+
+In this case since we have both a target (MSYBtrigger) and Blim we don't need to first calculate B/Bmsy, we can use these two reference points to score each stock. If a stock is above MSYBtrigger, it gets a perfect score since we don't apply an overfishing penalty. 
+
+First calculate the B'
+```{r}
+data_b_score <- data_clean %>%
+  mutate(b_score = case_when(
+    SSB >= MSYBtrigger ~ 1,
+    SSB <= Blim ~ 0,
+    SSB > Blim & SSB < MSYBtrigger ~ 1-((MSYBtrigger - SSB)/(MSYBtrigger - Blim))
+  ))
+```
+
+Second calculate F'
+
+```{r}
+data_b_f_score <- data_b_score %>%
+  mutate(f_score = case_when(
+    F <= FMSY ~ 1,
+    F >= FLim ~ 0,
+    F < Blim & F > FMSY ~ 1-((FMSY - F)/(FMSY - FLim))
+  ))
+```
+
+Take a look
+```{r}
+plot_data <- data_b_f_score %>%
+  pivot_longer(cols = c(b_score, f_score), names_to = "metric", values_to = "score")
+
+ggplot(plot_data) +
+  geom_line(aes(x = year, y = score, color = metric)) +
+  theme_bw() +
+  labs(y = "Score")
+```
+
+Combine to get your final stock score
+
+```{r}
+data_score <- data_b_f_score %>%
+  rowwise() %>%
+  mutate(stock_score = mean(c(b_score, f_score), na.rm = T))
+
+ggplot(data_score) +
+  geom_line(aes(x = year, y = stock_score)) +
+  theme_bw() +
+  labs(y = "Stock Score") + 
+  expand_limits(y = 0)
+```
+
