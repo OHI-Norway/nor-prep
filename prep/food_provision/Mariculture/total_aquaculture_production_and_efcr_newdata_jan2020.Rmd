@@ -405,10 +405,9 @@ The final datafrane has 857 observations compared to 862 in the initial datafram
 
 Save the table of gapfilled production data
 ```{r}
-write.csv(production_gapfilled_final, "data/gapfilled_aquaculture_production.csv", row.names = FALSE)
+#write.csv(production_gapfilled_final, "data/gapfilled_aquaculture_production.csv", row.names = FALSE)
 ```
 
-# Calcualte regional eFCR using gapfilled produciton data
 
 # Calculating eFCR score on gapfilled production data
 ```{r}
