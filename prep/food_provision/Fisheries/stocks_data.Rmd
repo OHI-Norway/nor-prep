@@ -1,5 +1,5 @@
 ---
-title: "Preparation of ICES stocks data"
+title: "Estimation of stock scores"
 author: "Marina Espinasse"
 date: "`r Sys.Date()`"
 output:
@@ -15,32 +15,232 @@ output:
     toc: true
 
 ---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source('~/github/nor-prep/prep/src/common.R')
+```
 
-```{r, message=FALSE}
+```{r libraries, results="hide"}
+library(ggthemes)
+library(janitor)
+library(DT)
 library(readxl)
-library(readr)
-library(RCurl)
-library(dplyr)
 ```
 
-# Loading ICES stock parameters data
+# Loading ICES stocks data
 ```{r }
-temp_ices <- read_excel("/Volumes/ftp.imr.no/Fishery/DeliveryDataFiskDir/ices_bmsy.xlsx")
+ices_stocks_all <-read.csv("data/ices_stocks_ssb.csv")
+ices_msy <-read.csv("data/ices_stock_msy.csv")
 ```
 
-# Removing unnessesary rows and small-cleaning the ICES Bmsy and SSB data
-```{r, warning=FALSE}
-foo <- temp_ices[-c(1:7),]; colnames(foo) <-temp_ices[7,];colnames(foo)[13] <-"SSB"
-ices_clean <- data.frame(Year = rep(foo$Yrs, 6), 
-                         Species = rep(c("Cod", "Haddock", "Herring", "Saithe","Capelin", "Kingcrab"), each = 72),
-                         SSB = rbind(foo[,2], foo[,5],foo[,7],foo[,9],foo[,11],foo[,13]),
-                         Bmsy = rep(c(460000, 80000,3184000,220000,427000,NA), each = 72),
-                         SSB_Bmsy = rbind(foo[,3],foo[,6],foo[,8],foo[,10],foo[,12],foo[,14]),
-                         Blim = rep(c(220000, 50000,2500000,136000,200000,NA), each = 72) )
-ices_fin <- ices_clean %>% 
-            mutate(SSB = as.numeric(SSB),SSB.Bmsy = as.numeric(SSB.Bmsy)) %>% 
-            mutate(Spp_year = paste(Species,Year, sep = "_"))
-
-#write_csv(ices_fin, "data/ices_stock_stats.csv")
+Below I remove some of the stocks, that do not belong to North-East Atlantic. Also, i homogenize stock names and replace MSYBtrigger for saithe with NA (it is not defined, but 0 value is there instead). 
+```{r}
+msy_prep <- ices_msy %>% 
+  filter(!StockKeyLabel %in% c(
+    "cap.27.2a514", 	
+    "cod.2127.1f14",
+    "cod-arct",
+    "cod-coas",
+    "cod.27.1-2coast",
+    "had-arct",
+    "sai-arct",
+    "smr-arct",
+    "ghl-arct"
+  )) 
+  
 ```
+There is no MSYBtrigger assessment for redfish (except Blim in 2018), greenland halibut, saithe  and capelin.
+
+
+# Removing unnessesary rows and small-cleaning the ICES stocks data
+
+Remove unused stocks.
+I also suspect that the same stock were uploaded to the database under different names, such as cod-arct and cod.27.1-2 have similar stock decription (both are NEA cod). Same problem occured for haddock  (had-arct and had.27.1-2(), saithe (pok.27.1-2 and sai-arct),  redfish (	reg.27.1-2 and smr-arct), and halibut (ghl-arct and  ghl.27.1-2) which are the same stocks.
+
+I observed also that stock stats for mackerel are duplicated, but SSB and F vary slightly between the duplicates. Likely, this is because data came from two databases, or two assessments. I cannot see how to distinguish between the two asessments, so I just keep the first row of the each pair of dulicated rows. The difference in SSB and F values is small and will not affect our analysis. 
+
+```{r}
+stocks_prep <- ices_stocks_all %>% 
+  filter(!fishstock %in% c(
+    "cap.27.2a514", 	
+    "cod.2127.1f14",
+    "cod-arct",
+    "cod-coas",
+    "cod.27.1-2coast",
+    "had-arct",
+    "sai-arct",
+    "smr-arct",
+    "ghl-arct"
+)) %>% 
+  select(c(Year, 
+           SSB,
+           F,
+           fishstock,
+           SpeciesName,
+           StockDescription
+  )) %>%
+  distinct_at(vars(
+    Year,
+    fishstock,
+    SpeciesName, 
+    StockDescription
+  ), .keep_all = TRUE
+  ) %>% 
+  clean_names(.) 
+  
+```
+
+
+For MSY-table, keep only the latest year of assessment (usually, 2016-2018) for each species.
+
+```{r}
+msy_prep2 <- msy_prep %>%
+  group_by(StockKeyLabel) %>% 
+  arrange(AssessmentYear) %>% 
+  slice(n()) %>% 
+  ungroup()
+```
+
+# Merging the MSY and SSB tables
+```{r}
+stock_df_full <- stocks_prep %>% 
+  left_join(msy_prep2, 
+              by = c("fishstock" = "StockKeyLabel"))
+```
+
+For saithe, no MSYBtrigger  and Fmsy are undefined, to replace missing MSYBtrigger, we use SSB trigger  (220000), reported here:
+http://ices.dk/sites/pub/Publication%20Reports/Advice/2014/2014/sai-arct.pdf. 
+
+For redfish (*S. norvegicus*), ICES advice states that "there is no direct fisheries" in the region (North-East Atlantic), and no MSYBtrigger assessemnt exist. In the northern Norway, the proportion of redfish in total catches in negligible as well.
+http://ices.dk/sites/pub/Publication%20Reports/Advice/2018/2018/reg.27.1-2.pdf
+
+For capelin, MSYBtrigger and Fmsy are also undefined. We can instead take the lowest observed SSB since 1994.
+http://ices.dk/sites/pub/Publication%20Reports/Advice/2019/2019/cap.27.1-2.pdf
+
+
+Greenland halibut does not have any stock assessments, but we can assume that since 1994 the stock is sustainable since fisheries was reduced in 1990's.
+http://ices.dk/sites/pub/Publication%20Reports/Advice/2019/2019/ghl.27.1-2.pdf
+
+Find a minimum SSB of capeling observed since 1994:
+```{r}
+stocks_prep %>% 
+  filter(fishstock == "cap.27.1-2") %>% 
+  filter(year >= 1994) %>% 
+  summarise_at(vars(ssb), min, na.rm = T)
+  
+```
+
+Replacing missing MSYBtrigger for saithe and capelin.
+Also, for some species, the mortality (f) is unkown for the recent year (e.g., 2018), I replace NA with the values of the nearest year (e.g., 2017). 
+
+```{r}
+stock_df_final <- stock_df_full %>% 
+  select(-c(
+    AssessmentYear, 
+    AssessmentKey, 
+    stock_description
+            )) %>% 
+  filter(year >= 1994 & year < 2019) %>% 
+  mutate(MSYBtrigger = replace(
+  MSYBtrigger, 
+  fishstock == "pok.27.1-2",
+  220000
+  )) %>% 
+ mutate(MSYBtrigger = replace(
+  MSYBtrigger, 
+  fishstock == "cap.27.1-2",
+  94000	
+ )) %>% 
+  group_by(fishstock) %>% 
+  mutate(f_gapfilled = zoo::na.fill(f,"extend")) %>% 
+  ungroup()
+```
+
+# Calculating stock scores
+```{r}
+stock_scores_prep <- stock_df_final %>% 
+  select(-c(n,f)) %>% 
+  rename(Year = year,
+         SSB = ssb,
+         F = f_gapfilled,
+         Flim = FLim,
+         Fmsy = FMSY,
+         Stock = fishstock
+      ) %>% 
+  rowwise() %>% 
+  mutate(
+    b_score = ifelse(
+    any(is.na(c(MSYBtrigger, Blim))),
+    NA,
+    case_when(
+    SSB >= MSYBtrigger ~ 1,
+    SSB <= Blim ~ 0,
+    SSB > Blim & SSB < MSYBtrigger ~ 1-((MSYBtrigger - SSB)/(MSYBtrigger - Blim))
+  )
+  )) %>% 
+     rowwise() %>% 
+  mutate(
+    f_score = ifelse(
+    any(is.na(c(Fmsy, Flim))),
+    NA, 
+    case_when(
+    F <= Fmsy ~ 1,
+    F >= Flim ~ 0,
+    F < Flim & F > Fmsy ~ 1-((Fmsy - F)/(Fmsy - Flim))
+    )
+  )) %>% 
+  rowwise() %>%
+  mutate(stock_score = ifelse(
+    all(is.na(c(f_score, b_score))), 
+         NA,
+        mean(c(b_score, f_score),na.rm = T))
+  )
+```
+  
+I will assume that Greenland halibut and golden redifsh are sustainable, and just allocate score 1 to them.
+Also, adding English names of the species.
+
+```{r}
+stock_scores_final <- stock_scores_prep %>% 
+  mutate(stock_score = replace(
+  stock_score,
+  Stock == "reg.27.1-2",
+  1
+  )) %>% 
+  mutate(stock_score = replace(
+  stock_score,
+  Stock == "ghl.27.1-2",
+  1
+  )) %>% 
+  mutate(English = case_when(
+    Stock == "cap.27.1-2" ~ "Capelin",
+    Stock == "cod.27.1-2" ~ "Atlantic cod",
+    Stock == "ghl.27.1-2" ~ "Greenland halibut",
+    Stock == "had.27.1-2" ~ "Haddock",
+    Stock == "her.27.1-24a514a" ~ "Atlantic herring",
+    Stock == "pok.27.1-2" ~ "Saithe",
+    Stock == "reg.27.1-2" ~ "Redfish",
+    Stock == "whb.27.1-91214" ~ "Blue whiting",
+    Stock == "mac.27.nea" ~ "Mackerel"
+  )) 
+
+#write.csv(stock_scores_final, "data/stock_scores.csv")
+
+```
+
+
+# Take a look at the stock scores
+```{r}
+ggplot(stock_scores_final) +
+  geom_line(aes(x = Year, y = stock_score)) +
+  theme_bw() +
+  facet_wrap(~ English) +
+  expand_limits(y = 0) +
+  labs(y = "Stock Score") 
+```
+
+  
+  
+  
+
 
