@@ -96,7 +96,6 @@ str_view(fishnames, pattern = "kolmule", match  = TRUE) #kolmule
 str_view(fishnames, pattern = "reke", match  = TRUE) #reke (dypvanns ), reke, dypvannsreke
 ```
 
-
 # Creating clean catches data: unifying species names and municipalities names
 ```{r }
 # I assume that we don't need maricultured cod and saithe (oppdrett torsk, oppdrett sild), and capeling from Iceland and Greenalnd, Skagerraksild, Nordsjosild
@@ -419,5 +418,9 @@ ggplot(catch_total, aes(x = Year, y = Total_catch, fill = English))+
   theme_hc() +
   labs(fill = "Species") +
   scale_fill_brewer(palette = "Paired") 
+```
+# Save catch table
+```{r}
+write.csv(catch_total, "data/catch_total.csv", row.names = F)
 ```
 
