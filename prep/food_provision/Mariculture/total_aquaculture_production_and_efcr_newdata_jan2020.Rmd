@@ -280,6 +280,7 @@ efcr_per_region <-
 ```{r}
 mosaic::fav_stats(efcr_per_region$efcr_region)
 ```
+
 # Calculating eFCR score
 ```{r}
 efcr_score_prep <- production_prep %>%
@@ -349,6 +350,7 @@ empties_list <- unlist(empties) %>%
 
 empties_list
 ```
+
 Select only the municipalities with produciton and then those that have NA in some years:
 ```{r}
 missing_observations <- 
