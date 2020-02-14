@@ -197,21 +197,9 @@ stock_scores_prep <- stock_df_final %>%
   )
 ```
   
-I will assume that Greenland halibut and golden redifsh are sustainable, and just allocate score 1 to them.
-Also, adding English names of the species.
-
+Adding English names to species
 ```{r}
 stock_scores_final <- stock_scores_prep %>% 
-  mutate(stock_score = replace(
-  stock_score,
-  Stock == "reg.27.1-2",
-  1
-  )) %>% 
-  mutate(stock_score = replace(
-  stock_score,
-  Stock == "ghl.27.1-2",
-  1
-  )) %>% 
   mutate(English = case_when(
     Stock == "cap.27.1-2" ~ "Capelin",
     Stock == "cod.27.1-2" ~ "Atlantic cod",
@@ -224,7 +212,7 @@ stock_scores_final <- stock_scores_prep %>%
     Stock == "mac.27.nea" ~ "Mackerel"
   )) 
 
-#write.csv(stock_scores_final, "data/stock_scores.csv")
+write.csv(stock_scores_final, "data/stock_scores.csv")
 
 ```
 
