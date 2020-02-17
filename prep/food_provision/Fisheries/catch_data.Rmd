@@ -421,6 +421,6 @@ ggplot(catch_total, aes(x = Year, y = Total_catch, fill = English))+
 ```
 # Save catch table
 ```{r}
-write.csv(catch_total, "data/catch_total.csv", row.names = F)
+#write.csv(catch_total, "data/catch_total.csv", row.names = F)
 ```
 

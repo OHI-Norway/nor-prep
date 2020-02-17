@@ -209,7 +209,7 @@ stock_scores_final <- stock_scores_prep %>%
     Stock == "pok.27.1-2" ~ "Saithe",
     Stock == "reg.27.1-2" ~ "Redfish",
     Stock == "whb.27.1-91214" ~ "Blue whiting",
-    Stock == "mac.27.nea" ~ "Mackerel"
+    Stock == "mac.27.nea" ~ "Atlantic mackerel"
   )) 
 
 write.csv(stock_scores_final, "data/stock_scores.csv")
