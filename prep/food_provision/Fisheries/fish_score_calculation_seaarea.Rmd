@@ -1,0 +1,346 @@
+---
+title: "Calculation of fisheries sustainability score"
+author: "Marina Espinasse"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    css: '~/github/nor-prep/prep/templates/style.css'
+    toc: true
+    number_sections: true
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: '~/github/nor-prep/prep/templates/norway_banner.html'
+  pdf_document:
+    toc: true
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE)
+source('~/github/nor-prep/prep/src/common.R')
+```
+
+```{r message = FALSE}
+library(stringr)
+library(ggthemes)
+library(scales)
+library(zoo)
+library(ggridges)
+library(kableExtra)
+```
+
+# Importing formatted catches and stocks data
+```{r }
+stock_scores <- read.csv("data/stock_scores.csv")
+catch <- read.csv("data/catch_total.csv")
+seaarea <-read_excel(file.path(dir_M[2], "Fishery/DeliveryDataFiskDir/KommArea.xlsx"))
+```
+
+# Merging catch data with ICES stocks data
+
+```{r warning=FALSE}
+stock_scores_prep <- stock_scores[,-1]
+
+fish_nor <-catch %>% 
+           left_join(stock_scores_prep, 
+                  by = c("Year", "English"
+                  )) 
+```
+
+Checking the number of data points per species
+```{r}
+fish_nor %>% group_by(English) %>% 
+            tally()
+```
+
+
+# Further data cleaning: removing and re-arranging locations 
+Deleting municipalities that are not in the study (Beiarn county and Guovdageaidnu-Kautokeino)
+Re-estimating landings for the municipalities that were merged (Bodo + Skjerstad_2005, Bjarkoy_2013 + Harstad_2013) - I sum the landings for these pairs of municipalities for the years before they've merged. 
+Using this approach to merge cathes will create duplicated rows, I remove them in the chunk after.
+```{r}
+
+fish_nor_prep <- fish_nor %>% 
+                  rename(Species = English) %>% 
+                  mutate(Municip_name = as.character(Municip_name)) %>% 
+                  filter(!Municip_name %in% c("Beiarn", "Guovdageaidnu-Kautokeino")) %>% #mind the correct spelling of Guo... county
+                  mutate(newid = case_when(Municip_name %in% c("Harstad_2013", "Bjarkoy_2013") ~ "1",
+                                           Municip_name %in% c("Bodo", "Skjerstad_2005") ~ "2",
+                                           TRUE ~ Municip_name)) %>% 
+                  group_by(newid, Year, Species) %>%  
+                  mutate(Total_catch_new = sum(Total_catch))
+```
+
+
+In this table, *Municip_name_new* are the names of the municipalities after they've merged. *Total_catch_new* is the total fish landings after municipalities merged.
+
+```{r}
+fish_nor_prep2 <- fish_nor_prep %>% 
+                  ungroup() %>% 
+                  select(-c("Municip_name", "Total_catch")) %>% 
+                  mutate(Municip_name_new = newid) %>% 
+                  mutate(Municip_name_new = replace(Municip_name_new, Municip_name_new == "1", "Harstad")) %>% 
+                  mutate(Municip_number = replace(Municip_number, Municip_name_new == "Harstad", "1903")) %>% 
+                  mutate(Municip_name_new = replace(Municip_name_new, Municip_name_new == "2", "Bodo")) %>% 
+                  mutate(Municip_number = replace(Municip_number, Municip_name_new == "Bodo", "1804")) %>% 
+                  distinct_all() %>% 
+                  select(-c(newid,  species_name))
+```
+
+
+
+# Examining the distribution of observations of catches by species, regardless of municipality
+This grapth shows how the number of municipalities, where the catch was delivered, varied fro, 1994 to 2018
+```{r}
+catch_dist <- ggplot(data = fish_nor_prep2) +
+  geom_density_ridges(aes(y = Species, x = Year, fill = Species)) +
+  scale_x_continuous(breaks = seq(1994, 2018, 4)) +
+  labs(x = "") +
+  scale_fill_viridis_d(option = "D", alpha = 0.6) +
+  theme_igray()
+catch_dist
+```
+
+# Estimating cacth per area and maximal weighted catch
+(Check fisheries README. for details). This approach however, has a danger of positive  outliers dominating 
+the maximal catch per area. Due to multiple reasons, catch will vary in every municipality for each stock from year to year. Thus, a maximal catch (biomass) per area can be just an outlier, a seldomly seen very high catch. Therefore most of the biomass.area/max.biomass.area ratios are very low (75% are less than 0.6).
+The largest catch per sea area was observed in Oksnes in 2018, for Atlantic cod.
+
+We do not have MSY-reference points, but we can assume it is sustainable.
+https://www.hi.no/hi/temasider/arter/kyst-og-fjordreke 
+Similarly, for Kingcrab, I will assume its catches sustainable.
+
+I remove redfish, blue whiting and greenland halibut from the table.
+17.02.2020 we decided not to include these three species into the Fisheries sub-goal.
+
+```{r}
+seaarea <- seaarea %>% 
+          mutate(Komnum = as.character(Komnum))   
+
+weighted_catch_score <- fish_nor_prep2 %>%
+  filter(!Species %in%
+    c(
+      "Redfish",
+      "Greenland halibut",
+       "Blue whiting"
+    )) %>%
+  mutate(stock_score = replace(
+    stock_score,
+    Species == "Shrimp",
+    1
+  )) %>%
+  mutate(stock_score = replace(
+    stock_score,
+    Species == "Kingcrab",
+    1
+  )) %>%
+  left_join(seaarea[, c("Havflate", "Komnum")], by = c("Municip_number" = "Komnum")) %>%
+  rename("Seaarea" = "Havflate") %>%
+  mutate(catch_per_area = Total_catch_new / Seaarea) %>%
+  group_by(Species) %>%
+  mutate(max_catch_area = max(catch_per_area)) %>%
+  ungroup() %>%
+  mutate(weighted_catch =  catch_per_area / max_catch_area) %>%
+  mutate(weighted_catch_score = weighted_catch * stock_score)
+#Check the basic stats for weighted biomass score:
+mosaic::fav_stats(weighted_catch_score$catch_per_area)
+
+#write.csv(weighted_catch_score, "data/area_weighted_catch_and_catchscore.csv", row.names = F )
+
+```
+
+
+# Re-estimate weighted catch per area based on smoothed catches
+
+## Apply 3-years rolling mean on catch data
+Rolling mean is a remedy against inter-annual variability in catches and against influential outliers. 
+I apply 3-year rolliing mean to catch data. However,rolling mean does not help to smooth variability in catches between the municipalities.
+```{r}
+municipalities <-unique(fish_nor_prep2$Municip_name_new)
+species <-unique(fish_nor_prep2$Species)
+
+splist <-list()
+finallist <-list()
+for (i in 1:length(municipalities)) 
+  {
+   mp <- municipalities[i]
+   df.mp <- fish_nor_prep2 %>% 
+      filter(Municip_name_new == mp)
+    for (j in 1:length(species))
+     {
+        sp <- species[j]
+        df.sp <- df.mp %>% 
+            filter(Species == sp)
+  
+      runmean <-data.frame(catch_runmean = rollapply(df.sp$Total_catch_new, width = 3, FUN = mean,  fill=NA))
+      df.sp.full <- bind_cols(df.sp, runmean)
+      splist[[j]] <- df.sp.full
+      smoothed_catches_spp <- do.call("rbind", splist)
+      finallist[[i]] <-smoothed_catches_spp
+    
+    }
+   
+ }
+ 
+smoothed_catches <- do.call("rbind", finallist)
+colSums(is.na(smoothed_catches)) 
+```
+
+## Re-esitmate weighted catch per area based on smoothed catches
+```{r}
+smoothed_weighted_catch_score <- smoothed_catches %>%
+  filter(!Species %in%
+    c(
+      "Redfish",
+      "Greenland halibut",
+      "Blue whiting"
+    )) %>%
+  mutate(stock_score = replace(
+    stock_score,
+    Species == "Shrimp",
+    1
+  )) %>%
+  mutate(stock_score = replace(
+    stock_score,
+    Species == "Kingcrab",
+    1
+  )) %>% 
+left_join(seaarea[, c("Havflate", "Komnum")], by = c("Municip_number" = "Komnum")) %>%
+  rename("Seaarea" = "Havflate") %>%
+  filter(!is.na(catch_runmean)) %>%
+  mutate(catch_per_area = catch_runmean / Seaarea) %>%
+  group_by(Species) %>%
+  mutate(max_catch_area = max(catch_per_area)) %>%
+  ungroup() %>%
+  mutate(weighted_catch = catch_per_area / max_catch_area) %>%
+  mutate(weighted_catch_score = weighted_catch * stock_score)
+
+#write.csv(smoothed_weighted_catch_score, "data/ smoothed_area_weighted_catch_and_catchscore.csv", row.names = F)
+
+```
+
+# Check the distribution of biomass/area for each stock
+## Plot smoothed catches on a boxplot
+```{r}
+plot2<- ggplot(smoothed_weighted_catch_score) +
+  geom_boxplot(aes(Species, catch_per_area), color = "darkgreen", alpha = 0.7, fill = "transparent", outlier.color = "red") +
+  labs(x = "") +
+  theme(
+  axis.text = element_text(angle = 90) 
+  )
+
+
+#And a truncated version
+plot3<- ggplot(smoothed_weighted_catch_score) +
+  geom_boxplot(aes(Species, catch_per_area), color = "darkgreen", alpha = 0.7, fill = "transparent", outlier.color = "red") +
+  scale_y_continuous(limits = c(0,30)) +
+  labs(x = "") +
+  theme(
+    axis.text = element_text(angle = 90)
+  )
+  
+plot2
+plot3
+  
+```
+
+## Summarize smoothed catches in a table
+```{r}  
+species <-unique(smoothed_weighted_catch_score$Species)
+
+outputdf <- list()
+for (i in 1:length(species))
+  {
+   sp <- species[i]
+   spdf <- filter(smoothed_weighted_catch_score, Species == sp)
+   stats <- mosaic::fav_stats(spdf$catch_per_area)
+   allstats <-cbind(stats, Species = rep(sp, 1))
+   outputdf[[i]] <- allstats
+}
+
+catch_area_favstats <- do.call("rbind", outputdf)
+
+newtable <- catch_area_favstats %>%  
+    mutate(Species = cell_spec(
+    Species, color = "white", bold = T,
+    background = spec_color(1:8, end = 0.9, option = "A", direction = -1))) %>% 
+    mutate(max = round(max, 2)) %>% 
+    mutate(max = cell_spec(
+    as.numeric(max), "html", 
+    color = ifelse(max > 1000, "red", "blue"))) %>% 
+    kable(escape = F, align = "c", digits = 4) %>%
+    kable_styling(c("striped", "condensed"), full_width = F) %>% 
+    column_spec(1:10,bold = T,background = "azure", color = "darkgreen")
+newtable
+```
+
+
+# Calculate final fisheries scores based on smoothed weighted catches per area
+
+```{r}
+final_scores_smoothed_area <- smoothed_weighted_catch_score %>%
+  filter(!is.na(catch_runmean)) %>%
+  group_by(Year, Municip_number, Municip_name_new) %>%
+  mutate(total_tons = sum(catch_runmean)) %>%
+  mutate(catch_prop = catch_runmean / total_tons) %>%
+  mutate(fish_score = sum(weighted_catch_score * catch_prop * 100))
+
+```
+
+# Quick-check of the distribution of area-weighted final score 
+```{r}
+mosaic::fav_stats(final_scores_smoothed_area$fish_score)       
+plot<- ggplot(final_scores_smoothed_area) +
+        geom_density(aes(fish_score), fill = "blue", color = "navy", alpha = 0.7)
+plot 
+```
+
+# Using 0.75th quartile of catch per area as a target
+```{r}
+smoothed_weighted_catch_score_quantile <- smoothed_catches %>%
+  filter(!Species %in%
+    c(
+      "Redfish",
+      "Greenland halibut",
+      "Blue whiting"
+    )) %>%
+  mutate(stock_score = replace(
+    stock_score,
+    Species == "Shrimp",
+    1
+  )) %>%
+  mutate(stock_score = replace(
+    stock_score,
+    Species == "Kingcrab",
+    1
+  )) %>%
+  left_join(seaarea[, c("Havflate", "Komnum")], by = c("Municip_number" = "Komnum")) %>%
+  rename("Seaarea" = "Havflate") %>%
+  filter(!is.na(catch_runmean)) %>%
+  mutate(catch_per_area = catch_runmean / Seaarea) %>%
+  group_by(Species) %>%
+  mutate(catch_area_q75 = quantile(catch_per_area, probs = 0.75)) %>%
+  ungroup() %>%
+  mutate(weighted_catch = ifelse(
+    catch_per_area > catch_area_q75, 1, catch_per_area / catch_area_q75
+  )) %>%
+  mutate(weighted_catch_score = weighted_catch * stock_score)
+```
+
+# Recalcualte fisheries score based on 0.75th quartile of catch as a reference
+```{r}
+final_scores_smoothed_area_q75 <- smoothed_weighted_catch_score_quantile %>%
+                  group_by(Year, Municip_number, Municip_name_new) %>% 
+                  mutate(total_tons = sum(catch_runmean)) %>%
+                  mutate(catch_prop = catch_runmean / total_tons) %>% 
+                  summarize(fish_score = sum(weighted_catch_score*catch_prop*100))
+
+#write.csv(final_scores_smoothed_area_q75, "data/fish_score_smoothed_seaarea.csv")
+```
+
+# Quick-check the distribution of area-weighted final score based on 0.75th qunatile
+```{r}
+mosaic::fav_stats(final_scores_smoothed_area_q75$fish_score)       
+plot4<- ggplot(final_scores_smoothed_area_q75) +
+        geom_density(aes(fish_score), fill = "blue", color = "navy", alpha = 0.7)
+plot4 
+```
