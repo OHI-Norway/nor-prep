@@ -24,7 +24,7 @@ library(zoo)
 
 # Load the data tables
 ```{r}
-#ices_clean <- read.csv("data/ices_updated_2018.csv")
+stocks_stat <- read.csv("data/stock_scores.csv")
 catch <-read.csv("data/area_weighted_catch_and_catchscore.csv")
 ```
 
@@ -116,24 +116,30 @@ ggsave(paste0("figs/catch_", cty, "_", sp, ".pdf"), plot)
 
 # How SSB per species varied accross years in relation to Blim and Bmsy?
 ```{r message=FALSE}
-#breaks2 <- seq(1994, 2018, by = 1)
-# labels1 <- as.character(breaks1)
-# labels1[!breaks1%%2==0]<- ""
 
-ices_spp <-unique(ices_clean$Species)
+plot_stocks_prep <- stocks_stat %>% 
+  select(-X) %>% 
+  filter(!English %in% c(
+    "Greenland halibut",
+     "Redfish",
+     "Blue whiting"
+  ))
 
- ices_plotprep <- ices_clean %>% 
-       filter(Year >= 1994) %>% 
-       select(Year, Species, SSB, Bmsy, Blim) %>% 
+
+
+ plot_stocks_prep2 <- plot_stocks_prep %>% 
+       select(Year, English, SSB, MSYBtrigger, Blim) %>% 
        mutate(SSB = as.numeric(as.character(SSB))) %>% 
        mutate(Year = as.numeric(as.character(Year)))
 
- for (i in 1:length(ices_spp)) {
+ stocks_spp <-unique(plot_stocks_prep2$English)
+ 
+ for (i in 1:length(stocks_spp)) {
    
- sp <-species[i]  
- df <- ices_plotprep %>% 
-       filter(Species == sp)
- bmsy = df$Bmsy[1]
+ sp <-stocks_spp[i]  
+ df <- plot_stocks_prep2 %>% 
+       filter(English == sp)
+ bmsy = df$MSYBtrigger[1]
  blim = df$Blim[1]
  
 options(scipen = 999) 
@@ -141,12 +147,12 @@ options(scipen = 999)
 plot2 <- ggplot(df)+
       geom_col(aes(x = Year, y = SSB), fill = "dodgerblue")+
       scale_x_continuous(breaks = breaks1, labels = labels1)+
-      scale_y_continuous(limits = c(0,max(df$SSB, na.rm = T)))+
+      scale_y_continuous(limits = c(0, max(df$SSB, na.rm = T)))+
       labs(y = "SSB", x = "") +
       geom_hline(aes(yintercept = Blim), col = "darkred", linetype = "dashed", size = 1) +
-      geom_hline(aes(yintercept = Bmsy), col = "darkgreen", linetype = "dashed", size = 1) +
+      geom_hline(aes(yintercept = MSYBtrigger), col = "darkgreen", linetype = "dashed", size = 1) +
       ggtitle(sp) +
-      annotate("text", x = 1994, y = (bmsy + 20000), label = "Bmsy", hjust = 0, color = "darkgreen", size = 7)+
+      annotate("text", x = 1994, y = (bmsy + 20000), label = "MSYBtrigger", hjust = 0, color = "darkgreen", size = 7)+
       annotate("text", x = 1994, y = (blim + 20000), label = "Blim", hjust = 0, color = "darkred", size = 7)+
       theme_stata(scheme = "s1color") +
       theme(legend.position = "none", 
