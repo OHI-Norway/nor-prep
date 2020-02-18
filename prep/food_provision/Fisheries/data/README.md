@@ -15,12 +15,10 @@ fishery_final_score_smoothed_by_area.csv | final fisheries score based on smooth
 
 **Explanation of calculations**:
 
-### Approach 1
-![Formulas:](../figs/fish_formulas1.png)
 
-### Approach 2
+![Formulas:](../figs/fish_formulas3.tiff)
 
-![Formulas:](../figs/fish_formulas2.png)
+
                                    
 
 
