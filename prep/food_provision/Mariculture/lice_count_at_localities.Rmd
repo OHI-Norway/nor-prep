@@ -29,8 +29,10 @@ library(stringr)
 lus <- read.csv(file.path(dir_M[2], "Aquaculture/Lice/lakselus_per_fisk_utf8.csv"), header = TRUE, encoding = "UTF-8")
 municip <- read.table("../../administrative/komlist.csv", header = TRUE, sep = ";")
 municip <-filter(municip, !Name == "NonCoast")
-lus_2005 <-read.csv("./data/lice_vers2_2005_2011_formatted.csv", sep = ",")
-lisences <-read.csv("./data/aquaculture_lisences_northnorway_2010_2018.csv")
+lus_2005 <-read.csv("~/github/nor-data/aquaculture/lice_vers2_2005_2011_formatted.csv", sep = ",")
+lisences <-read.csv("~/github/nor-data/aquaculture/aquaculture_lisences_northnorway_2010_2018.csv")
+
+
 ```
 
 
