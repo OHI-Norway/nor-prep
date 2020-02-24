@@ -1,6 +1,5 @@
 #common.R
 
-#Common libraries and directories that we use for OHI Norway project
 
 
 # set the mazu data_edit share based on operating system
@@ -35,3 +34,16 @@ library(raster)
 rm(packages)
 
 select <- dplyr::select
+
+
+
+# #Reading file from ftp.imr.no server
+# #Windows: 
+# read_excel(file.path(dir_M[1], "Folder1/Folder2/filename.xslx"))
+# #MAC:  
+# read_excel(file.path(dir_M[2], "Folder1/Folder2/filename.xslx"))
+# Examples
+# #Windows: 
+# escap_raw <-read_excel(file.path(dir_M[1], "Aquaculture/Escapees/Escapees.xlsx"))
+# #MAC: 
+# escap_raw <-read_excel(file.path(dir_M[2], "Aquaculture/Escapees/Escapees.xlsx"))

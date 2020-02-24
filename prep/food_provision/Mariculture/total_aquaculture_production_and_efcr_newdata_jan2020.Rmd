@@ -305,7 +305,7 @@ efcr_score <- efcr_score_prep %>%
   group_by(year) %>% 
   mutate(ref_efcr = min(efcr_region)) %>% 
   ungroup() %>% 
-  mutate(efcr_score = ref_efcr/efcr_region)
+  mutate(efcr_score = 1 - (efcr_region - ref_efcr)/ref_efcr)
 ```
 
 Save the regional produciton and efcr per region table:
@@ -422,7 +422,7 @@ efcr_score_on_gapfilled <- efcr_on_gapfilled %>%
   group_by(year) %>% 
   mutate(ref_efcr = min(efcr_region)) %>% 
   ungroup() %>% 
-  mutate(efcr_score = ref_efcr/efcr_region)
+  mutate(efcr_score = 1 - (efcr_region - ref_efcr)/ref_efcr)
 ```
 
 Save the final eFCR per region table:
