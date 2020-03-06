@@ -1,0 +1,139 @@
+---
+title: "Fisheries formulas"
+author: "Marina Espinasse"
+date: "3/2/2020"
+output:
+  word_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Simple single lines version
+## B-score
+
+$$SSB\ge MSYBtrigger, \quad  B.score = 1$$
+\hspace{1cm} 
+
+
+$$SSB \le Blim, \quad  B.score = 0 $$
+\hspace{1cm} 
+
+$$SSB > Blim  \quad  \&\ \quad SSB < MSYBtrigger, \quad B.score = 1 - \frac{MSYBtrigger - SSB}{MSYBtrigger - Blim}$$
+\hspace{1cm} 
+
+## F-score
+
+$$F \le Fmsy, \quad  F.score = 1$$
+\hspace{1cm}
+
+$$F \ge Flim, \quad  F.score = 0$$
+\hspace{1cm} 
+
+$$F < Flim  \quad  \&\ \quad F > Fmsy, \quad F.score = 1 - \frac{Fmsy - F}{Fmsy - Flim}$$
+\hspace{1cm} 
+
+## Stock score
+
+$$Stock.score = mean(F.score, B.score)$$
+
+## System of equations
+
+
+ $$
+\begin{equation}
+  B_{score} =
+    \begin{cases}
+      1 & \text{if $SSB \ge MSYBtrigger$}\\
+    \\
+      0 & \text{if $SSB \le Blim$}\\
+    \\
+      1 - \frac{MSYBtrigger - SSB}{MSYBtrigger - Blim} & \text{ if $SSB > Blim  \quad  \&\ \quad SSB < MSYBtrigger$}
+    \end{cases}       
+\end{equation}
+ $$
+
+
+$~$
+$~$
+$~$
+$~$
+
+
+ $$
+\begin{equation}
+  F_{score} =
+    \begin{cases}
+      1 & \text{if $F \le Fmsy$}\\
+    \\  
+      0 & \text{if $F \ge Flim $}\\
+      \\
+      1 - \frac{Fmsy - F}{Fmsy - Flim} & \text{if $F < Flim  \quad  \&\ \quad F > Fmsy$}
+    \end{cases}       
+\end{equation}
+ $$
+ 
+$~$
+$~$
+$~$
+
+
+
+
+
+## Just another example of alighning equations
+  $$
+\begin{aligned}
+  \dot{x} & = \sigma(y-x) \\
+  \dot{y} & = \rho x- y - xz 
+\end{aligned}
+$$
+# Stock score 
+$$Stock.score_{j,k} = \frac{F_{score\ j,k} +B_{score\ j,k}}{2}$$  
+  
+  
+# Catch weighted score
+$$Catch\ weighted \ score_{i,j, k} = \frac{Catch\ per\ area_{i,j,k}}{Catch\ per\ area_{max,j,k}}*Stock\ score_{j,k}$$
+
+
+
+# Final fisheries score
+$$Fisheries\ score_{i,k} = \sum_{j = 1}^{N stocks}Catch\ weighted\ score_{i,j,k} * catch\ proportion_{i,j,k}*100$$
+  
+# Combining the two goals
+$$W_{FP\ i, k} = \frac{P_{F\ i,k}}{(P_{F\ i,k} + P_{A\ i,k})}$$
+$$Food\ provision\ total_{i,k} = (W_{FP\ i,k} *Fisheries\ score_{i,k}) + (1 - W_{FP\ i,k})*Aquaculture\ score_{i,k}$$
+$~$
+$~$
+$~$
+  
+# An example of multiline equation
+$$
+\begin{multline}
+  Q(\lambda,\hat{\lambda}) = -\frac{1}{2} P(O \mid \lambda ) \sum_s \sum_m \sum_t \gamma_m^{(s)} (t) \biggl( n \log(2 \pi ) \\
+  + \log \left| C_m^{(s)} \right| + \left( \mathbf{o}_t - \hat{\mu}_m^{(s)} \right) ^T C_m^{(s)-1} \left(\mathbf{o}_t - \hat{\mu}_m^{(s)}\right) \biggr)
+\end{multline}
+$$
+
+
+
+$~$
+$~$
+$~$
+
+
+# Food provision goal written in multiline
+$$
+\begin{multline}
+  Food\ provision\ total_{i,k}  = \\
+  \\
+  (W_{FP\ i,k} *Fisheries\ score_{i,k}) + (1 - W_{FP\ i,k})*Aquaculture\ score_{i,k}  
+\end{multline}
+$$
+
+
+
+  
+  
