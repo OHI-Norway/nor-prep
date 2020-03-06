@@ -1,0 +1,136 @@
+---
+title: "Visualizing aquaculture production"
+author: "*Compiled on `r date()` by `r Sys.info()['user']`*"
+output: 
+  html_document:
+    css: '~/github/nor-prep/prep/templates/style.css'
+    toc: true
+    number_sections: true
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: '~/github/nor-prep/prep/templates/norway_banner.html'
+  pdf_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source('~/github/nor-prep/prep/src/common.R')
+```
+
+```{r include = FALSE}
+library(janitor)
+library(ggthemes)
+```
+
+# Load data on fisheries catches and aquaculture production per municipality and year
+```{r}
+fishcatch <- vroom::vroom(file.path("../fisheries/data/catch_total.csv"))
+aquaprod <-vroom::vroom(file.path("data/gapfilled_aquaculture_production.csv"))
+```
+
+# Clean the datasets and merge tby municipality and year
+```{r}
+fishcatch_prep <- fishcatch %>% 
+  clean_names(.) %>% 
+  rename(municip = municip_name) %>% 
+  mutate(municip = replace(municip, municip == "Guovdageaidnu-Kautokeino", "Kautokeino")) %>% 
+  mutate(municip = replace(municip, municip %in% c("Bjarkoy_2013", "Harstad_2013"), "Harstad")) %>% 
+  mutate(municip = replace(municip, municip == "Skjerstad_2005", "Bodo")) %>% 
+  mutate(municip_number = replace(municip_number, municip %in% c("Bjarkoy_2013", "Harstad_2013"), 1903)) %>% 
+  mutate(municip_number = replace(municip_number, municip == "Skjerstad_2005", 1804)) %>% 
+  group_by(year, municip_number, municip) %>% 
+  summarize(catch = sum(total_catch)) 
+
+aquaprod_prep <- aquaprod %>% 
+  select(-c(feed_kg, county, gapfilled))
+
+total_prod <- fishcatch_prep %>% 
+  filter(year >= 2005) %>% 
+  full_join(aquaprod_prep, by = c("year", "municip_number", "municip")) 
+```
+
+Aquaculture data is in kg, so I will divide it by 1000 to make tons
+```{r}
+convert_to_ton <- function(x){
+  tons <- x/1000
+  tons
+}
+
+totprod_prep <- total_prod %>% 
+  mutate_at(vars(production_final), 
+            ~ convert_to_ton(.))  %>% 
+  rename(aquaprod = production_final) %>% 
+  pivot_longer(cols = c(catch, aquaprod), 
+               names_to = "production_type",
+               values_to = "tons") %>% 
+  mutate(county = case_when(
+    municip_number >= 1800 & municip_number < 1900 ~ "Nordland",
+    municip_number >= 1900 & municip_number < 2000 ~ "Troms",
+    municip_number >= 2000  ~ "Finnmark",
+  )) 
+```
+
+## Creating ggplot theme 
+```{r}
+theme_food <- function(...) {
+  theme_stata(scheme = "s1color") +
+    theme(
+      axis.text.x = element_text(
+        size = 8, angle = 90, hjust = 1, vjust = 0.5,
+        face = "bold"
+      ),
+     axis.text.y = element_text(size = 10, angle = 0, face = "bold"),
+      axis.title.y = element_text(margin = margin(t = 0, r = 15, b = 0, l = 0), face = "bold", size = 12),
+      plot.title = element_text(hjust = 0.5, vjust = 0.5, face = "bold"),
+      axis.ticks.x = element_line(size = 0.5),
+      axis.ticks.length = unit(0.2, "cm"),
+      strip.text = element_text(size = 10, face = "bold"),
+      strip.background = element_rect(fill = "bisque", color ="bisque"),
+      panel.background = element_rect(fill = "white"),
+      plot.background = element_rect(fill = "ivory"),
+      panel.grid.major.y = element_line(color = "grey", size = 0.7)
+    )
+}
+```
+
+
+# Plots
+```{r}
+
+breaks1 <- seq(2005, 2020, by = 1)
+labels1 <- as.character(breaks1)
+labels1[!breaks1 %% 2 == 0] <- ""
+
+
+county_names <- list("Finnmark", "Nordland", "Troms")
+
+counties_df <- split(totprod_prep, totprod_prep$county)
+
+plots_food <- map2(
+  counties_df,
+  names(counties_df),
+  ~ ggplot(
+    data = .x,
+    mapping = aes(x = year, y = tons, fill = production_type)
+  ) +
+    geom_bar(stat = "identity", position = "fill") +
+    ggtitle(.y) +
+    facet_wrap(municip ~ .) +
+    scale_x_continuous(breaks = breaks1, labels = labels1) +
+    labs(y = "Total food production (tons)", x = "") +
+    theme_food() +
+    scale_fill_manual(values = c("mediumblue", "orange3"),  
+      name = "" ,               
+      labels = c(
+        "Aquaculture yield",
+        "Fisheries yield"
+      ))) 
+    
+
+
+file_names <- paste0("figs/compare_fish_aqua_prod", "_", county_names, ".pdf")
+map2(file_names, plots_food, ggsave)
+
+```
