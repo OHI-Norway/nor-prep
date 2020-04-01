@@ -1,0 +1,55 @@
+---
+title: "aquaculture_formulas"
+author: "Marina"
+date: "3/11/2020"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+
+
+**Annual production**
+
+We calculated total annual aquaculture production per municipality, as follows:
+$$
+\begin{equation}
+Tot.prod = \triangle Biomass + Harvest - Discard - Seeded\ smolts
+\end{equation}
+$$
+ 
+
+
+
+
+**Economic feed conversion ratio (eFCR)**
+
+$$
+\begin{equation}
+eFCR = \frac{Feed \ used,\ kg}{Biomass\ produced,\ kg}
+\end{equation}
+$$
+
+
+**Lice prevalence**
+
+$$
+\begin{equation}
+Lice \ index = \sum_{i = 1}^{N \ of \ sites}[\frac{n \ weeks\ below \ threshold}{total\ weeks}]
+\end{equation}
+$$
+
+
+
+**Environmentlal monitoring - MOM B scores**
+$$
+\begin{equation}
+MOMB \ index  = 1 - (\frac{MTB_{farms \ scored \ 3 \ and \ 4}}{MTB_{municipality \ total}})
+\end{equation} 
+$$ 
+
+

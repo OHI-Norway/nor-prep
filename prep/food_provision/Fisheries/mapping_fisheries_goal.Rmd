@@ -76,7 +76,7 @@ ohikom <-allkommuner[allkommuner$KOMM %in% komlist$Komnum,]
 kommuner.pol <- spTransform(ohikom, CRS("+proj=longlat +ellps=GRS80"))
 ```
 
-```{r fig.width = 6, fig.height=6, dpi=200 }
+```{r fig.width = 6, fig.height=6, dpi=200}
 map.komm <- norway.map + geom_path(kommuner.pol, mapping = aes(x = long, y = lat, group = id), color = 'steelblue',  size = .4)
 map.komm
 ```
@@ -285,7 +285,7 @@ norway.layer2<- ggplot()  +
 norway.layer2   
 ```
 
-# Map verion 3: the whole Norway without neighbour countries
+# Map version 3: the whole Norway without neighbour countries
 ```{r}
 norway_admin <- read_sf("../../administrative/raw/shapefiles/NO_Fylker/NO_Fylker_pol.shp")
 ```

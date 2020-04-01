@@ -19,13 +19,14 @@ library(readxl)
 library(ggthemes)
 library(scales)
 library(zoo)
+library(readr)
 ```
 
 
 # Load the data tables
 ```{r}
-stocks_stat <- read.csv("data/stock_scores.csv")
-catch <-read.csv("data/area_weighted_catch_and_catchscore.csv")
+stocks_stat <- read_csv("data/stock_scores.csv")
+catch <-read_csv("data/area_weighted_catch_and_catchscore.csv")
 ```
 
 ## Overview of fisheries data and scores with ggplots:
@@ -54,7 +55,6 @@ ggplot(plot_catches, aes(x = Year, y = catch_prop, fill= Species))+
   theme_hc()+
   scale_fill_viridis_d(option = "D") 
 ```
-
 
 
 ## Total catch per species and municipality (figures are uploaded as pdf) 
@@ -113,6 +113,50 @@ ggsave(paste0("figs/catch_", cty, "_", sp, ".pdf"), plot)
 
 
 ```
+
+# Catch of all species per municipality
+I use the same loop as in the chunk above but do not nest by species.
+```{r}
+for(i in 1:length(counties))
+  {
+  cty <- counties[i]
+  
+  df <- catch_bycounty %>%
+    filter(county == cty) %>% 
+    group_by(Year,
+             Municip_number,
+             Municip_name_new,
+             county) %>% 
+    summarise(all_catches = sum(Total_catch_new)) %>% 
+    mutate(log_all_catches = log(all_catches + 1))
+    
+    
+plot <- ggplot(df)+
+      geom_col(aes(x = Year, y = log_all_catches), fill = "dodgerblue4")+
+      facet_wrap(Municip_name_new  ~ .) +
+      scale_x_continuous(breaks = breaks1, labels = labels1)+
+      scale_y_continuous(limits = c(0,12), breaks = seq(0, 12, by = 2)) +
+      labs(y = "log(Total catch)", x = "") +
+      ggtitle(cty)+
+      theme_stata(scheme = "s1color") +
+      theme(legend.position = "none", 
+            axis.text.x = element_text(size = 5, angle = 90, hjust = 0.5, vjust = 0.5, face = "bold"),
+            axis.text.y = element_text(size = 6, face = "bold", hjust = 0.5, vjust = 0.5, margin = margin(t = 0, r = 2, b = 0, l = 0)),
+            plot.title = element_text(hjust=0.5, vjust=0.5),
+            axis.ticks.x = element_line(size = 0.5),
+            axis.ticks.length = unit(0.2, "cm"))
+           
+            
+ggsave(paste0("figs/catch_all_species", cty, ".pdf"), plot)
+  
+}
+  
+
+
+```
+
+
+
 
 # How SSB per species varied accross years in relation to Blim and Bmsy?
 ```{r message=FALSE}

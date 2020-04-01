@@ -81,8 +81,6 @@ $~$
 
 
 
-
-
 ## Just another example of alighning equations
   $$
 \begin{aligned}
@@ -132,6 +130,64 @@ $$
   (W_{FP\ i,k} *Fisheries\ score_{i,k}) + (1 - W_{FP\ i,k})*Aquaculture\ score_{i,k}  
 \end{multline}
 $$
+
+
+
+
+# B-score and F-score if we would include penalty for under-fishing and buffer around MSYBtrigger
+
+
+
+
+
+ $$
+\begin{equation}
+  B_{score} =
+    \begin{cases}
+      \frac{\frac{SSB}{MSYBtrigger}}{0.8} & \text{if $\frac{SSB}{MSYBtrigger} \le 0.8$}\\
+    \\
+      1 & \text{if $0.8  \ge\frac{SSB}{MSYBtrigger} < 1.5 $}\\
+    \\
+      \frac{4 - \frac{SSB}{MSYBtrigger}}{2.5}  & \text{ if $\frac{SSB}{MSYBtrigger} \ge 1.5$}
+    \end{cases}       
+\end{equation}
+ $$
+
+$~$
+$~$
+$~$
+$~$
+$~$
+$~$
+
+ $$
+\begin{equation}
+  F_{score} =
+    \begin{cases}
+    0  & \text{if $\frac{SSB}{MSYBtrigger} \le 0.8$ and $\frac{F}{Fmsy} > \frac{SSB}{MSYBtrigger}+ 1.5$}\\
+    \\  
+    \frac{\frac{F}{Fmsy}}{\frac{SSB}{MSYBtigger} - 0.2} & \text{if $\frac{SSB}{MSYBtrigger} \le 0.8$ and $\frac{F}{Fmsy} < \frac{SSB}{MSYBtrigger} - 0.2$}\\
+      \\
+      \\
+       \frac{\frac{SSB}{MSYBtrigger}+1.5 -\frac{F}{Fmsy}}{1.5} & \text{if $\frac{SSB}{MSYBtrigger} < 0.8$ and $\frac{SSB}{MSYBtrigger}+0.2 < \frac{F}{Fmsy} < \frac{SSB}{MSYBtrigger} +1.5$}
+      \\
+      \\
+      1  & \text{if $\frac{SSB}{MSYBtrigger} < 0.8$ and $\frac{SSB}{MSYBtrigger}-0.2 < \frac{F}{Fmsy} < \frac{SSB}{MSYBtrigger}+0.2$}\\
+      \\
+      \\
+      \frac{\frac{F}{Fmsy}}{0.8} & \text{if $\frac{SSB}{MSYBtrigger} \ge 0.8$ and $\frac{F}{Fmsy} < 0.8$}\\
+      \\
+      \\
+      1 & \text{if $\frac{SSB}{MSYBtrigger} \ge 0.8$ and   $0.8 \le \frac{F}{Fmsy} < 1.2$}\\
+      \\
+      \\
+      \frac{2.5 - \frac{F}{Fmsy}}{1.3} & \text{if $\frac{SSB}{MSYBtrigger} \ge 0.8$  and $\frac{F}{Fmsy} \ge 1.2$}\\
+    \end{cases}       
+\end{equation}
+ $$
+ 
+
+
 
 
 
