@@ -32,6 +32,6 @@ age_finnmark_prep <- age_finnmark %>%
   mutate(municip_name = zoo::na.locf(municip_name)) %>% 
    mutate(year = zoo::na.locf(year)) %>% 
   filter(!str_detect(.$municip_name,
-                    pattern = "^Totalt." ))
+                    pattern = "^Total." ))
 ```
 
