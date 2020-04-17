@@ -1,32 +1,44 @@
 ---
-title: "The Small-Scale Fisheries Indicator"
+title: "The Small-Scale Fisheries Indicator- recruitment"
 author: "Sigrid Engen"
 date: "6 4 2020"
 output: html_document
 ---
 
+## Load packages 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
-
+library(tidyverse)
+library(readxl)
+#library(devtools)
+#devtools::install_github('nacnudus/unpivotr')
+#library(unipivotr)
 ```
 
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+## Load data
+```{r , include=FALSE}
+age_finnmark <- read_excel(file.path("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/data/Age_full_time_employed_fishers_1983_2019.xlsx"),                   sheet = 1, skip = 5)
 ```
 
-## Including Plots
+## Data cleaning
 
-You can also embed plots, for example:
+#https://nacnudus.github.io/unpivotr/articles/worked-examples.html 
+#https://www.r-bloggers.com/tidying-messy-excel-data-tidyxl/ 
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r}
+age_finnmark_prep <- age_finnmark %>% 
+  rename(municip_name = ...1, 
+         municip_numb = ...2,
+         age = ...3,
+        "2019" = "20191)") %>% 
+  mutate(municip_name = zoo::na.locf(municip_name)) %>% # fills in municipality name in NA columns 
+  mutate(municip_numb = zoo::na.locf(municip_numb)) %>% 
+  filter(!str_detect(.$municip_name,
+                    pattern = "^Total." ))%>%  #Remove rows that show total no of fishers
+  gather(key = Year, value= count, -municip_name, -municip_numb, -age) #reshape format of table
+
+
+Hammerfest_old<-filter(age_finnmark_prep, municip_numb == "2001")
+
 ```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

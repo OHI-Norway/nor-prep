@@ -11,7 +11,7 @@ output:
     theme: cerulean
     highlight: haddock
     includes: 
-      in_header: "C:/github/nor-prep/prep/templates/norway_banner.html"
+      in_header: "C:/Users/sigrid.engen/github/nor-prep/prep/templates/norway_banner.html"
   pdf_document:
     toc: true
 ---
@@ -32,13 +32,13 @@ library(prettymapr)
 ### Load data
 ```{r}
 #Norway counties
-Norway<-readOGR(dsn="C://github//nor-prep//prep//administrative//raw", "NO_Fylker_pol")
+Norway<-readOGR(dsn="C:/Users/sigrid.engen/github/nor-prep/prep/administrative/raw//shapefiles/NO_Fylker", "NO_Fylker_pol")
 #Ocean area
-ocean<-readOGR(dsn="C://github//nor-prep//prep//administrative//raw", "NO_Havflate_pol")
+ocean<-readOGR(dsn="C:/Users/sigrid.engen/github/nor-prep/prep/administrative/raw/shapefiles/NO_Havflate", "NO_Havflate_pol")
 #Municipalities 
-municip<-readOGR(dsn="C://github//nor-prep//prep//administrative//raw", "NO_AdminOmrader_pol")
+municip<-readOGR(dsn="C:/Users/sigrid.engen/github/nor-prep/prep/administrative/raw/shapefiles/NO_AdminOmrader", "NO_AdminOmrader_pol")
 #Norway counties
-counties<-readOGR(dsn="C://github//nor-prep//prep//administrative//raw","NO_Fylker_pol")
+counties<-readOGR(dsn="C:/Users/sigrid.engen/github/nor-prep/prep/administrative/raw/shapefiles/NO_Fylker","NO_Fylker_pol")
 #Study municipalities
 stud.munic<-read.table("komlist.csv", header=TRUE, sep=";")
 ```
