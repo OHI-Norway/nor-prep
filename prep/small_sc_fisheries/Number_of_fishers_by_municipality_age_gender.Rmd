@@ -242,34 +242,3 @@ fish<-fish%>%
 
 ```
 
-
-```{r}
-plot <- ggplot(df2)+
-
-      geom_col(aes(x = Year, y = log_catch), fill = "dodgerblue4")+
-
-      facet_wrap(Municip_name_new  ~ .) +
-
-      scale_x_continuous(breaks = breaks1, labels = labels1)+
-
-      scale_y_continuous(limits = c(0,12), breaks = seq(0, 12, by = 2)) +
-
-      labs(y = "log(Total catch)", x = "") +
-
-      ggtitle(paste(cty, "_", sp))+
-
-      theme_stata(scheme = "s1color") +
-
-      theme(legend.position = "none", 
-
-            axis.text.x = element_text(size = 5, angle = 90, hjust = 0.5, vjust = 0.5, face = "bold"),
-
-            axis.text.y = element_text(size = 6, face = "bold", hjust = 0.5, vjust = 0.5, margin = margin(t = 0, r = 2, b = 0, l = 0)),
-
-            plot.title = element_text(hjust=0.5, vjust=0.5),
-
-            axis.ticks.x = element_line(size = 0.5),
-
-            axis.ticks.length = unit(0.2, "cm"))
-``` 
-
