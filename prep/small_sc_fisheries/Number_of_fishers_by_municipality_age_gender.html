@@ -371,13 +371,33 @@ summary {
 
 <div id="load-packages" class="section level2">
 <h2>Load packages</h2>
+<pre class="r"><code>library(tidyverse)
+library(readxl)</code></pre>
 </div>
 <div id="load-data" class="section level2">
 <h2>Load data</h2>
+<div id="fishers-main-occupation" class="section level3">
+<h3>Fishers main occupation</h3>
+<pre class="r"><code>age_finnmark &lt;- read_excel(file.path(&quot;C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/data/Age_full_time_employed_fishers_1983_2019.xlsx&quot;),                   sheet = 1, skip = 5)
+age_troms &lt;- read_excel(file.path(&quot;C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/data/Age_full_time_employed_fishers_1983_2019.xlsx&quot;),                   sheet = 2, skip = 5)
+age_nordland &lt;- read_excel(file.path(&quot;C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/data/Age_full_time_employed_fishers_1983_2019.xlsx&quot;),                   sheet = 3, skip = 5)</code></pre>
+</div>
+<div id="fishers-part-time-occupation" class="section level3">
+<h3>Fishers part time occupation</h3>
+<pre class="r"><code>age_finnmark_part &lt;- read_excel(file.path(&quot;C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/data/Age_part_time_employed_fishers1983_2019.xlsx&quot;),                   sheet = 1, skip = 5)
+age_troms_part &lt;- read_excel(file.path(&quot;C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/data/Age_part_time_employed_fishers1983_2019.xlsx&quot;),                   sheet = 2, skip = 5)
+age_nordland_part &lt;- read_excel(file.path(&quot;C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/data/Age_part_time_employed_fishers1983_2019.xlsx&quot;),                   sheet = 3, skip = 5)</code></pre>
+</div>
+<div id="administrative-data" class="section level3">
+<h3>Administrative data</h3>
+<pre class="r"><code>municip&lt;-read.csv(file.path(&quot;C:/Users/sigrid.engen/github/nor-prep/prep/administrative/komlist.csv&quot;), sep=&quot;;&quot;)</code></pre>
+</div>
 </div>
 <div id="data-cleaning" class="section level2">
 <h2>Data cleaning</h2>
-<p>#<a href="https://nacnudus.github.io/unpivotr/articles/worked-examples.html" class="uri">https://nacnudus.github.io/unpivotr/articles/worked-examples.html</a> #<a href="https://www.r-bloggers.com/tidying-messy-excel-data-tidyxl/" class="uri">https://www.r-bloggers.com/tidying-messy-excel-data-tidyxl/</a></p>
+</div>
+<div id="fishers---main-occupation" class="section level2">
+<h2>Fishers - main occupation</h2>
 <pre class="r"><code>age_finnmark_prep &lt;- age_finnmark %&gt;% 
   rename(municip_name = ...1, 
          municip_numb = ...2,
@@ -386,9 +406,244 @@ summary {
   mutate(municip_name = zoo::na.locf(municip_name)) %&gt;% # fills in municipality name in NA columns 
   mutate(municip_numb = zoo::na.locf(municip_numb)) %&gt;% 
   filter(!str_detect(.$municip_name,
-                    pattern = &quot;^Total.&quot; ))  #Remove rows that show total no of fishers
+                    pattern = &quot;^Total.&quot; ))%&gt;%  #Remove rows that show total no of fishers
+  gather(key = year, value= count, -municip_name, -municip_numb, -age) #reshape format of table
 
-Hammerfest_old&lt;-filter(age_finnmark_prep, municip_numb == &quot;2002&quot;)</code></pre>
+age_finnmark_prep[is.na(age_finnmark_prep)] &lt;- 0 #replace NA values with zero. NA values are zero in all cases except where municipalities merged/changed                                                 #names, which will be fixed in the following
+
+Hammerfest_old&lt;-filter(age_finnmark_prep, municip_numb == &quot;2001&quot;)
+Soroysund&lt;-filter(age_finnmark_prep, municip_numb == &quot;2016&quot;)
+
+Hammerfest_new&lt;-filter(age_finnmark_prep, municip_numb == &quot;2004&quot;) 
+
+Hammerfest_df&lt;-mutate(Hammerfest_new, count = Hammerfest_old$count+Hammerfest_new$count + Soroysund$count) #pooling merged municipalitiess
+
+age_finnmark_final&lt;-left_join(age_finnmark_prep, Hammerfest_df, by =c(&quot;municip_numb&quot;,&quot;age&quot;,&quot;year&quot;)) %&gt;%
+  mutate(main_occupation = ifelse(municip_numb == &quot;2004&quot;, count.y, count.x)) %&gt;%
+  select(-c(count.x, count.y,municip_name.y))%&gt;%
+  rename(municip_name = municip_name.x)%&gt;%
+  filter(!municip_numb %in% c(&quot;2016&quot;, &quot;2001&quot;, &quot;2099&quot;))%&gt;% #remove Sørøysund 2016, Hammerfest 2001 and uoppgitt kommune 2099
+  complete(nesting(municip_name, municip_numb,year), age, fill = list(main_occupation = 0))%&gt;% # add rows for age not included
+  mutate(county = &quot;Finnmark&quot;)
+
+head(age_finnmark_final)</code></pre>
+<pre><code>## # A tibble: 6 x 6
+##   municip_name municip_numb year  age   main_occupation county  
+##   &lt;chr&gt;               &lt;dbl&gt; &lt;chr&gt; &lt;chr&gt;           &lt;dbl&gt; &lt;chr&gt;   
+## 1 Alta                 2012 1983  &lt;20                18 Finnmark
+## 2 Alta                 2012 1983  20-29              60 Finnmark
+## 3 Alta                 2012 1983  30-39              53 Finnmark
+## 4 Alta                 2012 1983  40-49              35 Finnmark
+## 5 Alta                 2012 1983  50-59              28 Finnmark
+## 6 Alta                 2012 1983  60-66              21 Finnmark</code></pre>
+<pre class="r"><code>age_troms_prep &lt;- age_troms %&gt;% 
+  rename(municip_name = ...1, 
+         municip_numb = ...2,
+         age = ...3,
+        &quot;2019&quot; = &quot;20191)&quot;) %&gt;% 
+  mutate(municip_name = zoo::na.locf(municip_name)) %&gt;% # fills in municipality name in NA columns 
+  mutate(municip_numb = zoo::na.locf(municip_numb)) %&gt;% 
+  filter(!str_detect(.$municip_name,
+                    pattern = &quot;^Total.&quot; ))%&gt;%  #Remove rows that show total no of fishers
+  gather(key = year, value= count, -municip_name, -municip_numb, -age) #reshape format of table
+
+age_troms_prep[is.na(age_troms_prep)] &lt;- 0 #replace NA values with zero. 
+Harstad_old&lt;-filter(age_troms_prep, municip_numb == &quot;1901&quot;)
+Bjarkoy&lt;-filter(age_troms_prep, municip_numb == &quot;1915&quot;)
+Harstad_new&lt;-filter(age_troms_prep, municip_numb == &quot;1903&quot;) 
+
+Harstad_df&lt;-mutate(Harstad_new, count = Harstad_old$count+Harstad_new$count + Bjarkoy$count) #pooling merged municipalities
+
+age_troms_final&lt;-left_join(age_troms_prep, Harstad_df, by =c(&quot;municip_numb&quot;,&quot;age&quot;,&quot;year&quot;))%&gt;%
+  mutate(main_occupation = ifelse(municip_numb == &quot;1903&quot;, count.y, count.x)) %&gt;%
+  select(-c(count.x, count.y,municip_name.y))%&gt;%
+  rename(municip_name = municip_name.x)%&gt;%
+  filter(!municip_numb %in% c(&quot;1915&quot;, &quot;1901&quot;))%&gt;% #remove Bjarkøy 1915, Harstad 1901
+  complete(nesting(municip_name, municip_numb,year), age, fill = list(main_occupation = 0))%&gt;%# add rows for age not included
+  mutate(county = &quot;Troms&quot;)
+head(age_troms_final)</code></pre>
+<pre><code>## # A tibble: 6 x 6
+##   municip_name municip_numb year  age   main_occupation county
+##   &lt;chr&gt;               &lt;dbl&gt; &lt;chr&gt; &lt;chr&gt;           &lt;dbl&gt; &lt;chr&gt; 
+## 1 Balsfjord            1933 1983  &lt;20                 6 Troms 
+## 2 Balsfjord            1933 1983  20-29              71 Troms 
+## 3 Balsfjord            1933 1983  30-39              34 Troms 
+## 4 Balsfjord            1933 1983  40-49              35 Troms 
+## 5 Balsfjord            1933 1983  50-59              33 Troms 
+## 6 Balsfjord            1933 1983  60-66              21 Troms</code></pre>
+<pre class="r"><code>age_nordland_prep &lt;- age_nordland %&gt;% 
+  rename(municip_name = ...1, 
+         municip_numb = ...2,
+         age = ...3,
+        &quot;2019&quot; = &quot;20191)&quot;) %&gt;% 
+  mutate(municip_name = zoo::na.locf(municip_name)) %&gt;% # fills in municipality name in NA columns 
+  mutate(municip_numb = zoo::na.locf(municip_numb)) %&gt;% 
+  filter(!str_detect(.$municip_name,
+                    pattern = &quot;^Total.&quot; ))%&gt;%  #Remove rows that show total no of fishers
+  gather(key = year, value= count, -municip_name, -municip_numb, -age) #reshape format of table
+
+age_nordland_prep[is.na(age_nordland_prep)] &lt;- 0 #replace NA values with zero. 
+
+age_nordland_final&lt;-age_nordland_prep%&gt;%
+  rename(main_occupation = count)%&gt;%
+  complete(nesting(municip_name, municip_numb,year), age, fill = list(main_occupation = 0)) %&gt;%# add rows for age not included
+  mutate(county = &quot;Nordland&quot;) #add variable county
+
+head(age_nordland_final)</code></pre>
+<pre><code>## # A tibble: 6 x 6
+##   municip_name municip_numb year  age   main_occupation county  
+##   &lt;chr&gt;               &lt;dbl&gt; &lt;chr&gt; &lt;chr&gt;           &lt;dbl&gt; &lt;chr&gt;   
+## 1 Alstahaug            1820 1983  &lt;20                11 Nordland
+## 2 Alstahaug            1820 1983  20-29              20 Nordland
+## 3 Alstahaug            1820 1983  30-39              21 Nordland
+## 4 Alstahaug            1820 1983  40-49              17 Nordland
+## 5 Alstahaug            1820 1983  50-59              12 Nordland
+## 6 Alstahaug            1820 1983  60-66              15 Nordland</code></pre>
+<pre class="r"><code>main&lt;-rbind(age_finnmark_final,age_troms_final,age_nordland_final)</code></pre>
+</div>
+<div id="data-cleaning-1" class="section level2">
+<h2>Data cleaning</h2>
+<div id="fishers---part-time-occupation" class="section level3">
+<h3>Fishers - part time occupation</h3>
+<pre class="r"><code>age_finnmark_prep_2 &lt;- age_finnmark_part %&gt;% 
+  rename(municip_name = ...1, 
+         municip_numb = ...2,
+         age = ...3,
+        &quot;2019&quot; = &quot;20191)&quot;) %&gt;% 
+  mutate(municip_name = zoo::na.locf(municip_name)) %&gt;% # fills in municipality name in NA columns 
+  mutate(municip_numb = zoo::na.locf(municip_numb)) %&gt;% 
+  filter(!str_detect(.$municip_name,
+                    pattern = &quot;^Total.&quot; ))%&gt;%  #Remove rows that show total no of fishers
+  gather(key = year, value= count, -municip_name, -municip_numb, -age) #reshape format of table
+
+age_finnmark_prep_2[is.na(age_finnmark_prep_2)] &lt;- 0 #replace NA values with zero. NA values are zero in all cases except where municipalities merged/changed                                                 #names, which will be fixed in the following
+
+Hammerfest_old&lt;-filter(age_finnmark_prep_2, municip_numb == &quot;2001&quot;)
+Soroysund&lt;-filter(age_finnmark_prep_2, municip_numb == &quot;2016&quot;)
+
+Hammerfest_new&lt;-filter(age_finnmark_prep_2, municip_numb == &quot;2004&quot;) 
+
+Hammerfest_df&lt;-mutate(Hammerfest_new, count = Hammerfest_old$count+Hammerfest_new$count + Soroysund$count) #pooling merged municipalitiess
+
+age_finnmark_part_final&lt;-left_join(age_finnmark_prep_2, Hammerfest_df, by =c(&quot;municip_numb&quot;,&quot;age&quot;,&quot;year&quot;)) %&gt;%
+  mutate(part_time_occupation = ifelse(municip_numb == &quot;2004&quot;, count.y, count.x)) %&gt;%
+  select(-c(count.x, count.y,municip_name.y))%&gt;%
+  rename(municip_name = municip_name.x)%&gt;%
+  filter(!municip_numb %in% c(&quot;2016&quot;, &quot;2001&quot;, &quot;2099&quot;))%&gt;% #remove Sørøysund 2016, Hammerfest 2001 and uoppgitt kommune 2099
+  complete(nesting(municip_name, municip_numb,year), age, fill = list(part_time_occupation = 0))%&gt;% # add rows for age not included
+  mutate(county = &quot;Finnmark&quot;)
+
+head(age_finnmark_part_final)</code></pre>
+<pre><code>## # A tibble: 6 x 6
+##   municip_name municip_numb year  age   part_time_occupation county  
+##   &lt;chr&gt;               &lt;dbl&gt; &lt;chr&gt; &lt;chr&gt;                &lt;dbl&gt; &lt;chr&gt;   
+## 1 Alta                 2012 1983  &lt;20                      4 Finnmark
+## 2 Alta                 2012 1983  20-29                    2 Finnmark
+## 3 Alta                 2012 1983  30-39                   10 Finnmark
+## 4 Alta                 2012 1983  40-49                    4 Finnmark
+## 5 Alta                 2012 1983  50-59                    9 Finnmark
+## 6 Alta                 2012 1983  60-66                   11 Finnmark</code></pre>
+<pre class="r"><code>age_troms_prep_2 &lt;- age_troms_part %&gt;% 
+  rename(municip_name = ...1, 
+         municip_numb = ...2,
+         age = ...3,
+        &quot;2019&quot; = &quot;20191)&quot;) %&gt;% 
+  mutate(municip_name = zoo::na.locf(municip_name)) %&gt;% # fills in municipality name in NA columns 
+  mutate(municip_numb = zoo::na.locf(municip_numb)) %&gt;% 
+  filter(!str_detect(.$municip_name,
+                    pattern = &quot;^Total.&quot; ))%&gt;%  #Remove rows that show total no of fishers
+  gather(key = year, value= count, -municip_name, -municip_numb, -age) #reshape format of table
+
+age_troms_prep_2[is.na(age_troms_prep_2)] &lt;- 0 #replace NA values with zero. 
+Harstad_old&lt;-filter(age_troms_prep_2, municip_numb == &quot;1901&quot;)
+Bjarkoy&lt;-filter(age_troms_prep_2, municip_numb == &quot;1915&quot;)
+Harstad_new&lt;-filter(age_troms_prep_2, municip_numb == &quot;1903&quot;) 
+
+Harstad_df&lt;-mutate(Harstad_new, count = Harstad_old$count+Harstad_new$count + Bjarkoy$count) #pooling merged municipalities
+
+age_troms_part_final&lt;-left_join(age_troms_prep_2, Harstad_df, by =c(&quot;municip_numb&quot;,&quot;age&quot;,&quot;year&quot;))%&gt;%
+  mutate(part_time_occupation = ifelse(municip_numb == &quot;1903&quot;, count.y, count.x)) %&gt;%
+  select(-c(count.x, count.y,municip_name.y))%&gt;%
+  rename(municip_name = municip_name.x)%&gt;%
+  filter(!municip_numb %in% c(&quot;1915&quot;, &quot;1901&quot;))%&gt;% #remove Bjarkøy 1915, Harstad 1901
+  complete(nesting(municip_name, municip_numb,year), age, fill = list(part_time_occupation = 0))%&gt;%# add rows for age not included
+  mutate(county = &quot;Troms&quot;)
+
+head(age_troms_part_final)</code></pre>
+<pre><code>## # A tibble: 6 x 6
+##   municip_name municip_numb year  age   part_time_occupation county
+##   &lt;chr&gt;               &lt;dbl&gt; &lt;chr&gt; &lt;chr&gt;                &lt;dbl&gt; &lt;chr&gt; 
+## 1 Balsfjord            1933 1983  &lt;20                      1 Troms 
+## 2 Balsfjord            1933 1983  20-29                    5 Troms 
+## 3 Balsfjord            1933 1983  30-39                    8 Troms 
+## 4 Balsfjord            1933 1983  40-49                    5 Troms 
+## 5 Balsfjord            1933 1983  50-59                    2 Troms 
+## 6 Balsfjord            1933 1983  60-66                   10 Troms</code></pre>
+<pre class="r"><code>age_nordland_prep_2 &lt;- age_nordland_part %&gt;% 
+  rename(municip_name = ...1, 
+         municip_numb = ...2,
+         age = ...3,
+        &quot;2019&quot; = &quot;20191)&quot;) %&gt;% 
+  mutate(municip_name = zoo::na.locf(municip_name)) %&gt;% # fills in municipality name in NA columns 
+  mutate(municip_numb = zoo::na.locf(municip_numb)) %&gt;% 
+  filter(!str_detect(.$municip_name,
+                    pattern = &quot;^Total.&quot; ))%&gt;%  #Remove rows that show total no of fishers
+  gather(key = year, value= count, -municip_name, -municip_numb, -age) #reshape format of table
+
+age_nordland_prep_2[is.na(age_nordland_prep_2)] &lt;- 0 #replace NA values with zero. 
+
+age_nordland_part_final&lt;-age_nordland_prep_2%&gt;%
+  rename(part_time_occupation = count)%&gt;%
+  complete(nesting(municip_name, municip_numb,year), age, fill = list(part_time_occupation = 0)) %&gt;%# add rows for age not included
+  mutate(county = &quot;Nordland&quot;) #add variable county
+
+head(age_nordland_part_final)</code></pre>
+<pre><code>## # A tibble: 6 x 6
+##   municip_name municip_numb year  age   part_time_occupation county  
+##   &lt;chr&gt;               &lt;dbl&gt; &lt;chr&gt; &lt;chr&gt;                &lt;dbl&gt; &lt;chr&gt;   
+## 1 Alstahaug            1820 1983  &lt;20                      0 Nordland
+## 2 Alstahaug            1820 1983  20-29                    6 Nordland
+## 3 Alstahaug            1820 1983  30-39                    4 Nordland
+## 4 Alstahaug            1820 1983  40-49                    5 Nordland
+## 5 Alstahaug            1820 1983  50-59                   10 Nordland
+## 6 Alstahaug            1820 1983  60-66                    5 Nordland</code></pre>
+<pre class="r"><code>part_time&lt;-rbind(age_finnmark_part_final,age_troms_part_final,age_nordland_part_final)
+
+head(part_time)</code></pre>
+<pre><code>## # A tibble: 6 x 6
+##   municip_name municip_numb year  age   part_time_occupation county  
+##   &lt;chr&gt;               &lt;dbl&gt; &lt;chr&gt; &lt;chr&gt;                &lt;dbl&gt; &lt;chr&gt;   
+## 1 Alta                 2012 1983  &lt;20                      4 Finnmark
+## 2 Alta                 2012 1983  20-29                    2 Finnmark
+## 3 Alta                 2012 1983  30-39                   10 Finnmark
+## 4 Alta                 2012 1983  40-49                    4 Finnmark
+## 5 Alta                 2012 1983  50-59                    9 Finnmark
+## 6 Alta                 2012 1983  60-66                   11 Finnmark</code></pre>
+<pre class="r"><code>#main and part-time files should have the same number of rows. Why not?
+#d&lt;- anti_join(main, part_time, by=c(&quot;municip_numb&quot;, &quot;year&quot;, &quot;age&quot;)) #test if there are rows in main not included in part time
+#e&lt;-anti_join(part_time,main, by=c(&quot;municip_numb&quot;, &quot;year&quot;, &quot;age&quot;)) #test if there are rows in part time not included in main
+#looks like Bardu, Hattfjeldal and Grane are not in the part-time occupation file. 
+
+fish&lt;-full_join(main, part_time, by=c(&quot;municip_numb&quot;, &quot;year&quot;, &quot;age&quot;))%&gt;%
+  select(-c(&quot;county.y&quot;, &quot;municip_name.y&quot;))%&gt;%
+  rename(municip_name = municip_name.x, 
+         county = county.x
+         )
+
+fish&lt;-fish[,c(6,1:5,7)] #move county column first
+fish[is.na(fish)] &lt;- 0 #replace NA values with zero.
+
+#fish&lt;-fish%&gt;%
+#  mutate_if(sapply(fish, is.character), as.factor) #change characters to factors
+#fish$municip_numb&lt;-as.factor(fish$municip_numb) #change on numeric variable to factor
+
+#look at which municipalities are in main and not in study municipalities list
+#f&lt;-anti_join(main, municip, by=c(&quot;municip_numb&quot;=&quot;Komnum&quot;))
+#f$municip_numb&lt;-as.factor(f$municip_numb) #change on numeric variable to factor
+#levels(f$municip_numb) #look which municipalities are not in study municipalities list
+fish&lt;-fish%&gt;%
+  filter(!municip_numb %in% c(&quot;1825&quot;,&quot;1826&quot;,&quot;1839&quot;,&quot;1842&quot;,&quot;1922&quot;,&quot;2011&quot;,&quot;2021&quot;)) #remove municipalites not included in study muncipalities</code></pre>
+</div>
 </div>
 
 
