@@ -1,0 +1,172 @@
+---
+title: "Calculating water area status score"
+author: "Marina Espinasse"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    css: '~/github/nor-prep/prep/templates/style.css'
+    toc: true
+    number_sections: true
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: '~/github/nor-prep/prep/templates/norway_banner.html'
+  pdf_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE)
+# source('~/github/nor-prep/prep/src/common.R')
+```
+
+```{r include = FALSE}
+library(ggplot2)
+library(sf)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(dplyr)
+```
+
+# Loading chemical and ecological status shape files
+```{r}
+komlist <-read.csv("../administrative/komlist.csv", sep = ";")
+modified_status <- read.csv("data/quantitative_status_strongly_modified_areas.csv")
+unmodified_status <- read.csv("data/quantitative_status_unmodified_areas.csv")
+water_mcp <- read.csv("data/municipalities_and_water_entities_table.csv")
+```
+
+
+```{r}
+water_shp <- st_read("data/shapefiles/Kystvann20200415.gdb")
+all_mcp <-st_read(dsn = "/Users/marinaespinasse/github/nor-prep/prep/administrative/raw/shapefiles/NO_AdminOmrader")
+```
+# Prepare data layers
+Select only the municipalities that we use in the project. 
+```{r}
+komlist <-filter(komlist, !Name == "NonCoast")
+ohikom <-all_mcp[all_mcp$KOMM %in% komlist$Komnum,] 
+
+```
+
+# Plot polygons of water entities and municipalities 
+To see how the two layers aligh
+```{r}
+world <- ne_countries(scale = "medium", returnclass = "sf")
+mcpsf <- sf::st_as_sf(ohikom, coords= c("long", "lat"),crs = 4326, agr="identity")
+```
+
+```{r}
+water_shp_north <- water_shp[water_shp$Vannregion %in% c("Finnmark", "Troms", "Nordland"), ] 
+```
+
+
+```{r fig.width=5, fig.height=5}
+plot1 <- ggplot(data = world) +
+   geom_sf(fill = "antiquewhite1") +
+   geom_sf(data = mcpsf, fill = "grey", alpha = 0.001,color = "navy", size = 0.5) + 
+   geom_sf(data = water_shp_north, fill = "grey", alpha = 0.001,color = "darkred", size = 0.5) +
+   coord_sf(xlim = c(10, 32), ylim = c(65,72), expand = FALSE)+
+   labs(x = "", y = "")+
+   scale_y_continuous(breaks = 66:72)+
+   theme(panel.grid.major = element_line(color = gray(0.5), linetype = "dashed", 
+        size = 0.5), 
+        panel.background = element_rect(fill = "aliceblue"),
+        axis.ticks= element_line(size = 1),
+        axis.ticks.length = unit(0.2, "cm"),
+        axis.text = element_text(size = 15, colour = "black"),
+        plot.title = element_text(size = 15, hjust = 0.5, vjust = 0.5),
+        legend.text = element_text(face = "bold"),
+        legend.title = element_text(face = "bold"))
+plot1
+```
+# Calcualte the area of water entity within each municipality
+First, make coordinate reference system in the two layers similar.
+```{r}
+st_crs(mcpsf)
+st_crs(water_shp_north)
+```
+Indeed CRS are different between the two and we need to make them similar.
+
+```{r}
+water_shp_north_trans <- st_transform(water_shp_north, crs = 32633)
+st_crs(water_shp_north_trans)
+```
+
+
+```{r}
+entity_within_mcp <- st_intersection(mcpsf, water_shp_north_trans)
+
+entity_within_mcp_prep <- entity_within_mcp %>% 
+  select(NAVN,
+         KOMM,
+         VannforekomstID,
+         Vannforekomstnavn,
+         geometry)
+
+```
+
+Calcualate the area of each intersection
+```{r}
+entity_within_mcp_prep$area <-st_area(entity_within_mcp_prep)
+
+plot2 <- ggplot(data = world) +
+   geom_sf(fill = "antiquewhite1") +
+   geom_sf(data = mcpsf, fill = "grey", alpha = 0.001,color = "navy", size = 0.5) + 
+   geom_sf(data = entity_within_mcp_prep, fill = "green", alpha = 0.4,color = "darkgreen", size = 0.1) +
+   coord_sf(xlim = c(10, 32), ylim = c(65,72), expand = FALSE)+
+   labs(x = "", y = "")+
+   scale_y_continuous(breaks = 66:72)+
+   theme(panel.grid.major = element_line(color = gray(0.5), linetype = "dashed", 
+        size = 0.5), 
+        panel.background = element_rect(fill = "aliceblue"),
+        axis.ticks= element_line(size = 1),
+        axis.ticks.length = unit(0.2, "cm"),
+        axis.text = element_text(size = 15, colour = "black"),
+        plot.title = element_text(size = 15, hjust = 0.5, vjust = 0.5),
+        legend.text = element_text(face = "bold"),
+        legend.title = element_text(face = "bold"))
+plot2
+  
+```
+
+Prepare a final table with area and clean the column names
+```{r}
+water_mcp_area <- entity_within_mcp_prep %>% 
+  rename(municip_name = NAVN,
+         municip_number = KOMM,
+         entity_id = VannforekomstID,
+         entity_name = Vannforekomstnavn,
+         area_m2 = area) %>% 
+ mutate(water_entity_id = stringr::str_c(entity_name, "_", entity_id)) %>% 
+  st_set_geometry(., NULL) %>% 
+  select(municip_name, municip_number, water_entity_id, area_m2)
+
+#write.csv(water_mcp_area, "data/water_entity_n_area_per_mcp.csv", row.names = F)
+```
+
+
+
+
+##########Example of overlaying shapefiles on top of each other from OHI NE##########
+We overlay statistical areas with our regions to select just the statistical areas that overlap with our regions.
+
+```{r ohi_stat_areas}
+ohi_stat_areas          <- st_intersection(rgns, stat_shp) #intersects statistical areas with OHI regions
+ohi_stat_areas$ohi_area <- st_area(ohi_stat_areas) #calculate area of each overlapped polygon
+ggplot(ohi_stat_areas) +
+  geom_sf(aes(fill = rgn_name)) +
+  geom_sf(data = ne_states, fill = "beige") +
+  theme_bw() +
+  labs(title = "Statistical areas overlapped with OHI regions") 
+```
+
+Calculate proportion of each statistical area in our OHI regions. For statistical areas that overlap with OHI regions, we can use proportional area overlap to adjust catch. We assume that catch is evenly distributed across each statistical area.
+
+```{r prop_stat_areas_in_ohi_rgns}
+calc_prop_area <- ohi_stat_areas %>%
+  group_by(Id) %>%
+  mutate(ohi_rgn_prop_area = ohi_area/stat_area) #this column tells us how much of each OHI sub-region falls within the statistical area in our region
+
+```
+###########################################
