@@ -135,7 +135,7 @@ komlist_complete <- rbind(komlist_prep, komnames_updated_prep)
 
 
 Separate the list of water entities and the respective municipalities, put the resultant table in a long format.
-There is a mess with municipalities' numbers. Some of them are written as 3 digits (which is wrong!), because a tailing zero is missing and I have to manually add it. All municipalities' numbers starting with "50**" can be deleted - they belong to Trondelag county.
+There is a mess with municipalities' numbers. Some of them are written as 3 digits, because a tailing zero is missing and I have to manually add it. All municipalities' numbers starting with "50**" can be deleted - they belong to Trondelag county.
 ```{r}
 water_mcp <- status_prep3 %>% 
   select(water_entity_id, kom1:kom9) %>% 
@@ -250,11 +250,13 @@ water_mcp_prep3 <- water_mcp_prep2 %>%
   left_join(komlist, by = c("municip_name" = "Name")) %>% 
   rename(municip_number_old = Komnum) %>% 
   select(-Kid) %>% 
-  select(municip_name, municip_number, municip_number_old)
+  select(municip_name, municip_number, municip_number_old, water_entity_id)
 ```
+
+Save the table
 ```{r}
-write.csv(water_mcp_prep3, "data/municipalities_and_water_entities_table.csv",
-          row.names = FALSE)
+# write.csv(water_mcp_prep3, "data/municipalities_and_water_entities_table.csv",
+#           row.names = FALSE)
 ```
 
 
