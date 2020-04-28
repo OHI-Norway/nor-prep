@@ -1,0 +1,62 @@
+---
+title: "Extract coordinates study municipalities"
+author: "Sigrid Engen"
+date: "27 4 2020"
+output: html_document
+---
+#Load packages
+```{r}
+library(sp)
+```
+#Load data
+```{r}
+#Municipalities 
+municip<-readOGR(dsn="C:/Users/sigrid.engen/github/nor-prep/prep/administrative/raw/shapefiles/NO_AdminOmrader", "NO_AdminOmrader_pol")
+```
+
+## Extract coordinates & save csv
+
+```{r}
+#remove value 999Noncoast
+stud.munic<- stud.munic[-c(82),]
+
+#Change municipalnumber of Harstad from 1901 to the correct 1903. THe muncipality was merged with Bjarkjøy in 2013 and went from 
+#number 1901 to 1903. The polygon in the shapefile reflects this merger (Harstad includes Bjarkøy) but the number is wrong. 
+
+municip@data[municip@data$KOMM == "1901", "KOMM"] <- "1903"
+
+#extract subset of data (studymunicipalities from komlist.csv) from spatialpolygonsdataframe
+muni_sub <- municip[municip$KOMM %in% c(1804L, 1805L, 1811L, 1812L, 1813L, 1815L, 1816L, 1818L, 1820L, 
+          1822L, 1824L, 1827L, 1828L, 1832L, 1833L, 1834L, 1835L, 1836L, 
+          1837L, 1838L, 1840L, 1841L, 1845L, 1848L, 1849L, 1850L, 1851L, 
+          1852L, 1853L, 1854L, 1856L, 1857L, 1859L, 1860L, 1865L, 1866L, 
+          1867L, 1868L, 1870L, 1871L, 1874L, 1902L, 1903L, 1911L, 1913L, 
+          1917L, 1919L, 1920L, 1923L, 1924L, 1925L, 1926L, 1927L, 1928L, 
+          1929L, 1931L, 1933L, 1936L, 1938L, 1939L, 1940L, 1941L, 1942L, 
+          1943L, 2002L, 2003L, 2004L, 2012L, 2014L, 2015L, 2017L, 2018L, 
+          2019L, 2020L, 2022L, 2023L, 2024L, 2025L, 2027L, 2028L, 2030L
+          ), ]
+
+Study.municipalities<- SpatialPointsDataFrame(gCentroid(muni_sub, byid=TRUE),muni_sub@data, match.ID=FALSE)                                                                            
+coords<- data.frame(Study.municipalities@coords)
+
+munic_reg<-data.frame(Study.municipalities@data$NAVN, Study.municipalities@data$KOMM)
+
+dat<-data.frame(coords, munic_reg)
+colnames(dat)<-c("x", "y", "Municipality", "Muni_Number")
+
+dat$Municipality<-as.character(dat$Municipality)
+
+dat$Municipality<-revalue(dat$Municipality, c("VÃ¦rÃ¸y"="Vaeroey", "BÃ¸" ="Boe", "LÃ¸dingen" ="Loedingen", "AndÃ¸y" ="Andoeya", "TromsÃ¸"="Tromsoe", "BÃ¥tsfjord"="Baatsfjord", "SÃ¸mna" ="Soemna", 
+                            "TrÃ¦na"="Traena", "VÃ¥gan" ="Vaagan", "TranÃ¸y"="Tranoey", "MÃ¥sÃ¸y"="Maasoey", "BrÃ¸nnÃ¸y"= "Broennoey", "DÃ¸nna"="Doenna", "VestvÃ¥gÃ¸y"="Vestvaagoey",
+                            "Ã\230ksnes"="oeksnes", "SkÃ¥nland"="Skaanland",  "VadsÃ¸"="Vadsoe", "LurÃ¸y" ="Luroey", "GildeskÃ¥l"="Gildeskaal", "BodÃ¸"="Bodoe", "VardÃ¸"="Vardoe", 
+                            "RÃ¸st"="Roest", "SÃ¸rfold"="Soerfold", "KvÃ¦fjord"="Kvaefjord", "SÃ¸rreisa"="Soerreisa", "KarlsÃ¸y"="Karlsoey", "SÃ¸r-Varanger"="Soer-Varanger", 
+                            "BerlevÃ¥g"="Berlevaag", "MelÃ¸y"="Meloey", "DyrÃ¸y"="Dyroey", "KvÃ¦nangen"="Kvaenangen", "HerÃ¸y"="Heroey", "RÃ¸dÃ¸y"="Roedoey", "HamarÃ¸y"="Hamaroey", 
+                            "MÃ¥lselv"="Maalselv", "KÃ¥fjord"="Kaafjord", "SkjervÃ¸y"="Skjervoey"))
+
+
+
+#write.csv(dat, "C:/Users/sigrid.engen/github/nor-prep/prep/administrative/coordinates_centroid_study_municipalities.csv")
+
+```
+

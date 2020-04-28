@@ -1,0 +1,121 @@
+---
+title: "Number and age of fishers"
+author: "Sigrid Engen"
+date: "27 4 2020"
+output: html_document
+---
+## Load packages
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(rgdal)
+library(tidyverse)
+library(raster)
+#library(plyr)
+library(scatterpie)
+library(ggthemes)
+```
+## Load data
+### Fishers main occupation
+```{r} 
+#Fishers
+fishers<-read.csv("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/data/number_age_parttime_fulltime_fishers.csv")
+#Norway counties
+Norway<-readOGR(dsn="C:/Users/sigrid.engen/github/nor-prep/prep/administrative/raw//shapefiles/NO_Fylker", "NO_Fylker_pol")
+#Municipalities 
+municip<-readOGR(dsn="C:/Users/sigrid.engen/github/nor-prep/prep/administrative/raw/shapefiles/NO_AdminOmrader", "NO_AdminOmrader_pol")
+#Study municipalities
+stud_municip<-read.csv(file.path("C:/Users/sigrid.engen/github/nor-prep/prep/administrative/komlist.csv"), sep=";") 
+#Study muncipalities centroid - coordinates 
+centroid<-read.csv(file.path("C:/Users/sigrid.engen/github/nor-prep/prep/administrative/coordinates_centroid_study_municipalities.csv")) 
+```
+## Plot data
+### Number of fishers 2018
+```{r} 
+fishers_main_2018<-fishers%>% 
+  group_by(municip_numb,year)%>%
+  summarise(tot_main = sum(main_occupation))%>%
+  filter(year == "2018")
+# obs group by not working when plyr loaded after dplyr https://stackoverflow.com/questions/26923862/why-are-my-dplyr-group-by-summarize-not-working-properly-name-collision-with 
+#detach(package:plyr)
+
+#extract Northern-Norway
+counties<-subset(Norway,NAVN=="Troms" | NAVN=="Finnmark" | NAVN=="Nordland")
+#extract municipalities in Northern Norway
+municip.stud<-crop(municip, counties)
+
+#make map object for use in ggplot https://github.com/tidyverse/ggplot2/wiki/plotting-polygon-shapefiles
+municip.stud@data$id = rownames(municip.stud@data) #explicitly identifies attribute rows by the .dbf offset.
+municip.stud.points = fortify(municip.stud, region="id") #melts the polygons into points, tags each point with the id value of the corresponding attribute row, and tags each point with values from the polygon from which the point was derived.
+municip.stud.df = plyr::join(municip.stud.points, municip.stud@data, by="id") #joins the points to their corresponding attributes 
+
+p<-ggplot(municip.stud) + 
+  aes(long,lat,group=group) + 
+  geom_polygon(fill="grey") +
+  geom_path(color="white") +
+  coord_equal() +
+  scale_fill_brewer("Northern Norway")
+
+fishers_main_2018_2<-left_join(fishers_main_2018,centroid, by=c("municip_numb" = "Muni_Number"))%>%
+  mutate(radius = tot_main*100)
+  
+p + geom_scatterpie(data = fishers_main_2018_2, 
+                  aes(x, y, r = radius),
+                  cols = c("tot_main"))
+#good ref to scatter plots on maps https://www.brodrigues.co/blog/2018-10-27-lux_elections_analysis/              
+
+```
+##left to do - add legend and proportion parttime vs full time fisher
+
+## Plot number of fishers through time
+```{r}
+
+county <- unique(fishers$county) 
+
+for(i in 1:length(county))
+  {
+  cty <- county[i]
+
+  df <- fishers %>%
+    filter(county == cty) %>% 
+    group_by(year,
+             municip_numb,
+             municip_name,
+             county) %>% 
+    summarise(main_fishers = sum(main_occupation)) 
+
+    
+plot <- ggplot(df)+
+      geom_col(aes(x = year, y = main_fishers), fill = "dodgerblue4")+
+      facet_wrap(municip_name  ~ .) +
+      labs(y = "Number of fishers", x = "") +
+      ggtitle(cty)+
+      theme(legend.position = "none", 
+            axis.text.x = element_text(size = 5, angle = 90, hjust = 0.5, vjust = 0.5, face = "bold"),
+            axis.text.y = element_text(size = 6, face = "bold", hjust = 0.5, vjust = 0.5, margin = margin(t = 0, r = 2, b = 0, l = 0)),
+            plot.title = element_text(hjust=0.5, vjust=0.5),
+            axis.ticks.x = element_line(size = 0.5),
+            axis.ticks.length = unit(0.2, "cm"))
+
+ggsave(paste0("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/figs/fishers_fulltime", cty, ".pdf"), plot)
+
+}
+```
+## Plot number of fishers through time by age
+```{r}
+
+f<-fishers%>%
+  filter(county == "Finnmark")
+
+p2<-ggplot(f, aes(x = year, y = main_occupation)) +
+  facet_wrap(municip_name  ~ .) +
+  geom_line(aes(color = age, linetype = age)) + 
+  scale_color_manual(values = c("darkred", "steelblue", "green", "yellow", "orange", "lightgreen", "red", "darkblue"))
+
+
+plot(p2)
+
+```
+
+
+
+
