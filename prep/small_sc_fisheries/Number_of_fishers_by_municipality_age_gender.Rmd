@@ -1,5 +1,5 @@
 ---
-title: "The Small-Scale Fisheries - number and age of fishers"
+title: "Small-Scale Fisheries - number and age of fishers"
 author: "Sigrid Engen"
 date: "6 4 2020"
 output: html_document
