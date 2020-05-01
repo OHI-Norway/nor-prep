@@ -1,0 +1,180 @@
+---
+title: "Cleaning & plotting female fishers data"
+author: "Sigrid Engen"
+date: "29 4 2020"
+output: html_document
+---
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning=FALSE)
+```
+
+## Load packages
+```{r setup, include=TRUE}
+library(readxl)
+library(tidyverse)
+```
+
+## Load data
+```{r, warning=FALSE}
+lady_full <-read_excel(file.path("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/data/Female_full_time_employed_fishers1990_2019.xlsx"), col_types = c("guess", "skip", "guess", "numeric", "guess", "guess","numeric"))
+                       
+lady_part <-read_excel(file.path("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/data/Female_part_time_employed_fishers1990_2019.xlsx"), col_types = c("guess", "skip", "guess", "numeric", "guess", "guess","numeric"))
+
+municip<-read.csv(file.path("C:/Users/sigrid.engen/github/nor-prep/prep/administrative/komlist.csv"), sep=";")
+```
+
+### Data cleaning
+```{r}
+lady<-rbind(lady_full,lady_part) #merge data tables 
+lady[, c(1:2, 4:5)]<-lapply(lady[,c(1:2, 4:5)], factor) #change to factors
+
+lady<-lady%>% 
+  rename(year = År, 
+         municip_numb = Kommunenummer,
+         municip_name = Kommune,
+         county = Fylke,
+         main_parttime = "Manntall status", 
+         female_fishers = "Antall personer") %>%
+  filter(municip_numb >= 1800 & 
+           municip_numb < 5000) %>%
+ #filter(Fylke == c("Finnmark", "Troms", "Nordland")) #tried filtering with county variable - led to missing rows/data
+  complete(nesting(municip_name, municip_numb, main_parttime, county), 
+           year, 
+           fill = list(female_fishers = 0)) %>%# add rows for year not included
+  complete(nesting(municip_name, municip_numb, year, county), 
+           main_parttime, 
+           fill = list(female_fishers = 0))# add rows for main_parttime not included
+
+Hammerfest_old<-filter(lady, municip_numb == "2001")
+Soroysund<-filter(lady, municip_numb == "2016")
+Hammerfest_new<-filter(lady, municip_numb == "2004") 
+
+Hammerfest_df<-mutate(Hammerfest_new, 
+                      female_fishers = Hammerfest_old$female_fishers + 
+                        Hammerfest_new$female_fishers + 
+                        Soroysund$female_fishers) #pooling merged municipalities
+
+lady_final_1<-left_join(lady, Hammerfest_df, by =c("municip_numb","main_parttime","year")) %>%
+  mutate(female_fishers = 
+           ifelse(municip_numb == "2004", 
+                  female_fishers.y, 
+                  female_fishers.x)) %>% #return female_fishers.y for rows with Hammerfest 2004 & female_fishers.x if not
+  select(-c(female_fishers.y, 
+            female_fishers.x, 
+            county.y, 
+            municip_name.y)) %>% #remove reduntant variables
+  rename(municip_name = municip_name.x,
+         county = county.x)%>%
+  filter(!municip_numb %in% 
+           c("2016", "2001")) #remove Sørøysund 2016, Hammerfest 2001 
+
+Harstad_old<-filter(lady, municip_numb == "1901")
+Bjarkoy<-filter(lady, municip_numb == "1915")
+Harstad_new<-filter(lady, municip_numb == "1903") 
+
+Harstad_df<-mutate(Harstad_new, 
+                   female_fishers = Harstad_old$female_fishers + 
+                     Harstad_new$female_fishers + 
+                     Bjarkoy$female_fishers) #pooling merged municipalities
+
+lady_final_2<-left_join(lady_final_1, 
+                       Harstad_df, 
+                       by =c("municip_numb","main_parttime","year")) %>%
+  mutate(female_fishers = 
+           ifelse(municip_numb == "1903", 
+                  female_fishers.y, 
+                  female_fishers.x)) %>% #return female_fishers.y for rows with Hammerfest 2004 & female_fishers.x if not
+  select(-c(female_fishers.y, 
+            female_fishers.x, 
+            county.y, 
+            municip_name.y))%>% #remove reduntant variables
+  rename(municip_name = municip_name.x,
+         county = county.x)%>%
+  filter(!municip_numb %in% 
+           c("1901", "1915")) #remove Bjarkøy 1915, Harstad 1901
+
+lady_final_3 <- lady_final_2 %>%
+  spread(key = "main_parttime", 
+         value = "female_fishers") %>% 
+  rename(main_occupation = A, 
+         part_time_occupation = B)
+
+## Checking that number of female fishers in excel files where total number of female fishers in the region over all years is 7131 (1957 main occupation and 5174 parttime)
+
+sum(lady_final_3$main_occupation)
+
+sum(lady_final_3$part_time_occupation)  
+
+#Writecsv
+```
+
+## Plotting female fishers
+```{r}
+county <- unique(lady_final$county) 
+
+for(i in 1:length(county))
+  {
+  cty <- county[i]
+
+  df <- lady_final %>%
+    filter(county == cty) %>% 
+    group_by(year,
+             municip_numb,
+             municip_name,
+             county) %>% 
+    summarise(main_fishers = sum(main_occupation)) 
+
+    
+plot <- ggplot(df)+
+      geom_col(aes(x = year, y = main_fishers), fill = "dodgerblue4")+
+      facet_wrap(municip_name  ~ .) +
+      labs(y = "Number of fishers", x = "") +
+      ggtitle(cty)+
+      theme(legend.position = "none", 
+            axis.text.x = element_text(size = 5, angle = 90, hjust = 0.5, vjust = 0.5, face = "bold"),
+            axis.text.y = element_text(size = 6, face = "bold", hjust = 0.5, vjust = 0.5, margin = margin(t = 0, r = 2, b = 0, l = 0)),
+            plot.title = element_text(hjust=0.5, vjust=0.5),
+            axis.ticks.x = element_line(size = 0.5),
+            axis.ticks.length = unit(0.2, "cm"))
+
+ggsave(paste0("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/figs/female_fishers_fulltime", cty, ".pdf"), plot)
+
+}
+```
+## Plot number of fishers through time - part time occupation
+```{r}
+
+county <- unique(lady_final_3$county) 
+
+for(i in 1:length(county))
+  {
+  cty <- county[i]
+
+  df <- lady_final_3 %>%
+    filter(county == cty) %>% 
+    group_by(year,
+             municip_numb,
+             municip_name,
+             county) %>% 
+    summarise(part_fishers = sum(part_time_occupation)) 
+
+    
+plot <- ggplot(df)+
+      geom_col(aes(x = year, y = part_fishers), fill = "dodgerblue4")+
+      facet_wrap(municip_name  ~ .) +
+      labs(y = "Number of fishers", x = "") +
+      ggtitle(cty)+
+      theme(legend.position = "none", 
+            axis.text.x = element_text(size = 5, angle = 90, hjust = 0.5, vjust = 0.5, face = "bold"),
+            axis.text.y = element_text(size = 6, face = "bold", hjust = 0.5, vjust = 0.5, margin = margin(t = 0, r = 2, b = 0, l = 0)),
+            plot.title = element_text(hjust=0.5, vjust=0.5),
+            axis.ticks.x = element_line(size = 0.5),
+            axis.ticks.length = unit(0.2, "cm"))
+
+ggsave(paste0("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/figs/female_fishers_parttime", cty, ".pdf"), plot)
+
+}
+```
+
+
