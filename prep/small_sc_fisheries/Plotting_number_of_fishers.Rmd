@@ -4,8 +4,12 @@ author: "Sigrid Engen"
 date: "27 4 2020"
 output: html_document
 ---
+```{r, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning=FALSE)
+```
 ## Load packages
-```{r setup, include=FALSE}
+```{r, message = FALSE}
+
 library(rgdal)
 library(tidyverse)
 library(raster)
@@ -16,7 +20,7 @@ library(forcats)
 library(ggplot2)
 ```
 ## Load data
-```{r} 
+```{r, message = FALSE} 
 #Fishers
 fishers<-read.csv("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/data/number_age_parttime_fulltime_fishers.csv")
 
@@ -33,7 +37,7 @@ stud_municip<-read.csv(file.path("C:/Users/sigrid.engen/github/nor-prep/prep/adm
 centroid<-read.csv(file.path("C:/Users/sigrid.engen/github/nor-prep/prep/administrative/coordinates_centroid_study_municipalities.csv")) 
 ```
 ## Clean fishers data
-```{r}
+```{r, message = FALSE}
 #rename some long municipality names
 
 fishers<-fishers%>%
@@ -51,7 +55,7 @@ fishers<-fishers%>%
 
 ## Plot data 
 ### Number of fishers 2018 - spatial scatterpie
-```{r} 
+```{r, message = FALSE} 
 fishers_main_2018<-fishers%>% 
   dplyr::group_by(municip_numb,
            year)%>%
@@ -162,7 +166,7 @@ plot <- ggplot(df)+
             axis.ticks.x = element_line(size = 0.5),
             axis.ticks.length = unit(0.2, "cm"))
 
-ggsave(paste0("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/figs/fishers_parttime", cty, ".pdf"), plot)
+#ggsave(paste0("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/figs/fishers_parttime", cty, ".pdf"), plot)
 
 }
 ```
@@ -209,7 +213,7 @@ plot <- ggplot(df)+
             axis.ticks.x = element_line(size = 0.5),
             axis.ticks.length = unit(0.2, "cm"))
 
-ggsave(paste0("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/figs/fishers_fulltime_age", cty, ".pdf"), plot)
+#ggsave(paste0("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/figs/fishers_fulltime_age", cty, ".pdf"), plot)
 
 }
 
@@ -256,10 +260,12 @@ plot <- ggplot(df)+
             axis.ticks.x = element_line(size = 0.5),
             axis.ticks.length = unit(0.2, "cm"))
 
-ggsave(paste0("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/figs/fishers_parttime_age", cty, ".pdf"), plot)
+#ggsave(paste0("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/figs/fishers_parttime_age", cty, ".pdf"), plot)
 
 }
-
 ```
+## Next plot proportions of full time vs part time through time
+## also make html file https://kbroman.org/knitr_knutshell/pages/Rmarkdown.html 
+
 
 

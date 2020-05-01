@@ -55,9 +55,9 @@ Hammerfest_new<-filter(age_finnmark_prep, municip_numb == "2004")
 
 Hammerfest_df<-mutate(Hammerfest_new, count = Hammerfest_old$count+Hammerfest_new$count + Soroysund$count) #pooling merged municipalitiess
 
-age_finnmark_final<-left_join(age_finnmark_prep, Hammerfest_df, by =c("municip_numb","age","year")) %>%
-  mutate(main_occupation = ifelse(municip_numb == "2004", count.y, count.x)) %>%
-  select(-c(count.x, count.y,municip_name.y))%>%
+age_finnmark_final<-left_join(age_finnmark_prep, Hammerfest_df, by =c("municip_numb","age","year"))%>%
+  mutate(main_occupation = ifelse(municip_numb == "2004", count.y, count.x)) %>% #return count.y for rows with Hammerfest 2004 & count.x if not
+  select(-c(count.x, count.y,municip_name.y)) %>%
   rename(municip_name = municip_name.x)%>%
   filter(!municip_numb %in% c("2016", "2001", "2099"))%>% #remove Sørøysund 2016, Hammerfest 2001 and uoppgitt kommune 2099
   complete(nesting(municip_name, municip_numb,year), age, fill = list(main_occupation = 0))%>% # add rows for age not included
@@ -146,7 +146,7 @@ Soroysund<-filter(age_finnmark_prep_2, municip_numb == "2016")
 
 Hammerfest_new<-filter(age_finnmark_prep_2, municip_numb == "2004") 
 
-Hammerfest_df<-mutate(Hammerfest_new, count = Hammerfest_old$count+Hammerfest_new$count + Soroysund$count) #pooling merged municipalitiess
+Hammerfest_df<-mutate(Hammerfest_new, count = Hammerfest_old$count+Hammerfest_new$count + Soroysund$count) #pooling merged municipalities
 
 age_finnmark_part_final<-left_join(age_finnmark_prep_2, Hammerfest_df, by =c("municip_numb","age","year")) %>%
   mutate(part_time_occupation = ifelse(municip_numb == "2004", count.y, count.x)) %>%
