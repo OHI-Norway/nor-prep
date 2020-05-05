@@ -1,6 +1,6 @@
 # SMALL SCALE FISHERIES GOAL
 
-This goal measures the status of the small scale fishereis and the access to small scale fisheries in the coastal communities of Norther Norway. 
+This goal measures the status of the small scale fishereis and the access to small scale fisheries in the coastal communities of Northern-Norway. 
 
 **Data sources**
 
