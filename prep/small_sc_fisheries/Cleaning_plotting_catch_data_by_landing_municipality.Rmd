@@ -1,0 +1,54 @@
+---
+title: "Small-scale fisheries - cleaning and plotting catch data"
+author: "Sigrid Engen"
+date: "5 5 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning=FALSE)
+```
+
+## Load packages 
+```{r}
+library(tidyverse)
+library(readxl)
+library(plyr)
+library(fuzzyjoin)
+```
+
+## Load data
+```{r}
+catch<-read_excel(file.path("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/data/Catch_data_landing_municipality_vessel_municipality2000_2019.xlsx"))
+
+munic<-read.csv(file.path("C:/Users/sigrid.engen/github/nor-prep/prep/administrative/komlist.csv"), sep=";")
+```
+## Data cleaning
+
+```{r}
+catch[, c(1:7)]<-lapply(catch[,c(1:7)], factor) #change to factors
+catch$`Measure Values` <- gsub(',','.',catch$`Measure Values`) #change , to .
+catch$`Measure Values` <- as.numeric(catch$`Measure Values`) #change to numeric
+
+catch_prep<-catch%>% 
+  dplyr::rename(year = Fangstår, 
+         vessel_county = Fartøyfylke, 
+         vessel_municip = Fartøykommune,
+         landing_county = `Landingsfylke/-kommune`,
+         landing_municip = Landingskommune,
+         tonnes_NOK = `Measure Names`,
+         amount = `Measure Values`
+         )%>%
+  select(-c(`Fartøynasjonalitet gruppe`))
+
+catch_prep$tonnes_NOK<-plyr::revalue(catch_prep$tonnes_NOK, c("Fangstverdi (1000 kr)" = "NOK", "Rundvekt (tonn)" = "tonnes"))
+
+catch_prep<- catch_prep%>%spread(key = tonnes_NOK, value= amount) #reshape format of table
+
+left_joined <- catch_prep %>%
+  stringdist_left_join(munic, by = c(vessel_municip = "Name"), max_dist = 1)
+
+```
+
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
