@@ -6,7 +6,7 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning=FALSE)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning=TRUE)
 ```
 
 ## Load packages 
@@ -15,6 +15,9 @@ library(tidyverse)
 library(readxl)
 library(plyr)
 library(fuzzyjoin)
+library(stringr)
+library(forcats)
+library(tsibble) # for fill_gaps
 ```
 
 ## Load data
@@ -24,31 +27,473 @@ catch<-read_excel(file.path("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc
 munic<-read.csv(file.path("C:/Users/sigrid.engen/github/nor-prep/prep/administrative/komlist.csv"), sep=";")
 ```
 ## Data cleaning
+```{r}
+#change to factors
+catch[, c(1:2,4:5,7)]<-lapply(catch[,c(1:2,4:5,7)], factor) 
+
+#change , to .
+catch$`Measure Values` <- gsub(',','.',catch$`Measure Values`)
+
+#change to numeric
+catch$`Measure Values` <- as.numeric(catch$`Measure Values`) 
+
+# reformatting names to match the names in komlist.csv
+catch$Fartøykommune <- gsub("Ø", "O", catch$Fartøykommune) #replace ø with o
+catch$Fartøykommune <- gsub("Å", "A", catch$Fartøykommune) #replace Å with A
+catch$Fartøykommune <- gsub("Æ", "AE", catch$Fartøykommune) #replace Å with A
+catch$Fartøykommune<- gsub("UNJARGGA-NESSEBY", "NESSEBY", catch$Fartøykommune)
+catch$Fartøykommune<- gsub("DEATNU-TANA", "TANA", catch$Fartøykommune)
+catch$Fartøykommune<- gsub("GAIVUOTNA-KAFJORD", "KAFJORD", catch$Fartøykommune)
+catch$Fartøykommune<- gsub("BO i Nordland", "BO", catch$Fartøykommune)
+catch$Fartøykommune<- gsub("HEROY i Nordland", "HEROY", catch$Fartøykommune)
+
+catch$Fartøykommune<- gsub("BJARKOY", "HARSTAD", catch$Fartøykommune)  # Bjarkoy has merged with Harstad
+catch$Fartøykommune<- gsub("SKJERSTAD", "BODO", catch$Fartøykommune)  # SKjerstad has merged with Bodø
+
+catch$Fartøykommune<-str_to_title(catch$Fartøykommune) #change from uppercase to first uppercase then lowercase
+
+catch$Landingskommune <- gsub("Ø", "O", catch$Landingskommune) 
+catch$Landingskommune <- gsub("Å", "A", catch$Landingskommune) 
+catch$Landingskommune <- gsub("Æ", "AE", catch$Landingskommune) 
+catch$Landingskommune<- gsub("UNJARGGA-NESSEBY", "NESSEBY", catch$Landingskommune)
+catch$Landingskommune<- gsub("DEATNU-TANA", "TANA", catch$Landingskommune)
+catch$Landingskommune<- gsub("GAIVUOTNA-KAFJORD", "KAFJORD", catch$Landingskommune)
+catch$Landingskommune<- gsub("BO i Nordland", "BO", catch$Landingskommune)
+catch$Landingskommune<- gsub("HEROY i Nordland", "HEROY", catch$Landingskommune)
+
+catch$Landingskommune<- gsub("BJARKOY", "HARSTAD", catch$Landingskommune)  # Bjarkoy has merged with Harstad
+catch$Landingskommune<- gsub("SKJERSTAD", "BODO", catch$Landingskommune)  # SKjerstad has merged with Bodø
+
+catch$Landingskommune<-str_to_title(catch$Landingskommune) 
+
+```
 
 ```{r}
-catch[, c(1:7)]<-lapply(catch[,c(1:7)], factor) #change to factors
-catch$`Measure Values` <- gsub(',','.',catch$`Measure Values`) #change , to .
-catch$`Measure Values` <- as.numeric(catch$`Measure Values`) #change to numeric
-
-catch_prep<-catch%>% 
-  dplyr::rename(year = Fangstår, 
+# Renaming & filtering
+catch_prep <- catch %>% 
+  dplyr::rename(year = Fangstår,  # renaming column names
          vessel_county = Fartøyfylke, 
          vessel_municip = Fartøykommune,
          landing_county = `Landingsfylke/-kommune`,
          landing_municip = Landingskommune,
-         tonnes_NOK = `Measure Names`,
+         tonnes_1000NOK = `Measure Names`,
          amount = `Measure Values`
-         )%>%
-  select(-c(`Fartøynasjonalitet gruppe`))
+         ) %>%
+  dplyr::select(-c(`Fartøynasjonalitet gruppe`)) %>%
+  filter(landing_county %in% c("Finnmark", "Troms", "Nordland")) # selecting only landing municip in Northern-Norway
 
-catch_prep$tonnes_NOK<-plyr::revalue(catch_prep$tonnes_NOK, c("Fangstverdi (1000 kr)" = "NOK", "Rundvekt (tonn)" = "tonnes"))
+# Rename levels of factor
+catch_prep$tonnes_1000NOK<-plyr::revalue(
+  catch_prep$tonnes_1000NOK, 
+  c("Fangstverdi (1000 kr)" = 
+      "landings_NOK", 
+    "Rundvekt (tonn)" = 
+      "landings_tonnes"))  
 
-catch_prep<- catch_prep%>%spread(key = tonnes_NOK, value= amount) #reshape format of table
+# collapse rows where Bodø and Harstad have several entries for a given year due to renaming Skjerstad and Bjarkoy
+catch_prep_merge<- catch_prep %>%
+    dplyr::group_by(
+    vessel_municip,
+    landing_municip,
+    tonnes_1000NOK,
+    year) %>% 
+  dplyr::summarise(amount = sum(amount))
+  
+# there are a few NA values. Some where the amount in tonnes exist but no value in NOK and vice versa. Should gap fill 
 
-left_joined <- catch_prep %>%
-  stringdist_left_join(munic, by = c(vessel_municip = "Name"), max_dist = 1)
+```
+## Gap filling
+```{r}
+# Ultimate aim is replacing missing values for either catch in tonnes or in NOK for a given combination of vessel_muncipality, landing municipaity and year with the average value in NOK for one tonne catch for a given landing municipality.This is possible since we know either catch in tonnnes or catch in NOK and can use that for estimating the other based on the average that year for that landing municipality
+
+# get the names and year of landing municipalities with missing data
+
+catch_prep_gap<- catch_prep_merge %>% 
+  filter(!complete.cases(amount)) %>% #retrive rows with NA - i.e., not complete cases
+  ungroup() %>%
+  dplyr::select(c(landing_municip, year))%>%
+  distinct()
+
+catch_prep_gap_2<- inner_join(catch_prep_merge, catch_prep_gap, by=c("landing_municip", "year"))
+
+#check if number of NAs matches original file (i.e., 19)
+#sum(is.na(catch_prep_merge$amount))
+#sum(is.na(catch_prep_gap_2$amount))
+
+## Reshape format of table, but first.. 
+##fix this error https://www.r-bloggers.com/workaround-for-tidyrspread-with-duplicate-row-identifiers/ 
+catch_prep_gap_3 <- catch_prep_gap_2 %>%
+  dplyr::group_by(tonnes_1000NOK) %>% 
+  dplyr::mutate(grouped_id = row_number()) 
+
+#reshape with spread function
+catch_prep_gap_4 <- catch_prep_gap_3 %>%
+  spread(
+  key = tonnes_1000NOK, 
+  value = amount) %>% 
+  select(-grouped_id)
+  #dplyr::rename(Name = landing_municip) # rename column name to get left_join to work around this error https://github.com/mkearney/tweetbotornot/issues/25 
+
+#check if number of NAs matches original file (i.e., 19)
+#sum(is.na(catch_prep_gap_4$landings_NOK))
+#sum(is.na(catch_prep_gap_4$landings_tonnes))
+
+#get average NOK per tonnes catch per year for gap filling
+catch_prep_gap_ton<- catch_prep_gap_4 %>%
+  mutate(landings_NOK = 
+           coalesce(
+             landings_NOK, 
+             0)) %>%              #replace na with zero to be able to summarise
+  mutate(landings_tonnes = 
+           coalesce(
+             landings_tonnes, 
+             0)) %>%              #replace na with zero to be able to summarise
+  group_by(year, 
+           landing_municip) %>%
+  dplyr::summarise(total_landings_tonnes = sum(landings_tonnes)
+                   )
+
+catch_prep_gap_NOK<- catch_prep_gap_4 %>%
+  mutate(landings_NOK = 
+           coalesce(
+             landings_NOK, 
+             0)) %>%              #replace na with zero to be able to summarise
+  mutate(landings_tonnes = 
+           coalesce(
+             landings_tonnes, 
+             0)) %>%              #replace na with zero to be able to summarise
+  group_by(year, 
+           landing_municip) %>%
+  dplyr::summarise(total_landings_NOK = sum(landings_NOK)
+                   )
+
+catch_prep_gap_final<- left_join(catch_prep_gap_ton, 
+                                 catch_prep_gap_NOK, 
+                                 by=c("year","landing_municip")
+                                 )
+
+catch_prep_gap_final<- catch_prep_gap_final%>%
+  mutate(NOK_per_tonnes = 
+           total_landings_NOK/total_landings_tonnes
+         )
+
+
+e <- catch_prep_merge %>% 
+ dplyr::filter(!complete.cases(amount)) %>%  #retrive rows with NA - i.e., not complete cases
+  ungroup() %>%
+  dplyr::select(c(landing_municip, vessel_municip, year))
+
+fill_values<- inner_join(catch_prep_merge, e, by = c("vessel_municip", "landing_municip", "year"))
+
+#reshape with spread function
+fill_values <- fill_values %>%
+  spread(
+  key = tonnes_1000NOK, 
+  value = amount)
+
+fill_values<- left_join(fill_values, catch_prep_gap_final, by= c("landing_municip", "year"))
+
+#final values to use to replace NAs in main file
+fill_values <- fill_values %>%
+  select(-total_landings_tonnes, -total_landings_NOK) %>%
+  mutate(landings_NOK = ifelse(is.na(landings_NOK),NOK_per_tonnes*landings_tonnes, landings_NOK)) %>%
+  mutate(landings_tonnes = ifelse(is.na(landings_tonnes), landings_NOK/NOK_per_tonnes, landings_tonnes)) %>%
+  select(-NOK_per_tonnes)
+
+```
+
+```{r}
+## Reshape format of table, but first.. 
+##fix this error https://www.r-bloggers.com/workaround-for-tidyrspread-with-duplicate-row-identifiers/ 
+catch_prep_spread <- catch_prep_merge %>%
+  dplyr::group_by(tonnes_1000NOK) %>% 
+  dplyr::mutate(grouped_id = row_number()) 
+
+#reshape with spread function
+catch_prep_spread <- catch_prep_spread %>%
+  spread(
+  key = tonnes_1000NOK, 
+  value = amount) %>% 
+  select(-grouped_id)
+  #dplyr::rename(Name = landing_municip) # rename column name to get left_join to work around this error https://github.com/mkearney/tweetbotornot/issues/25 
+
+# add the municipality number of study municipalites
+catch_prep_spread<- dplyr::left_join(catch_prep_spread, munic, by =c("landing_municip" = "Name"))
+
+# remove kautokeino municipality 
+catch_prep_spread<- catch_prep_spread %>%
+  filter(landing_municip != "Guovdageaidnu-Kautokeino") 
+
+# clean data a bit more
+catch_prep_spread<- catch_prep_spread %>%
+  dplyr::rename(landing_municip_numb = Komnum) %>%
+  select(-("Kid")) %>%
+  mutate(landing_county = ifelse(landing_municip_numb %in% 1804:1874, "Nordland",
+                                     ifelse(landing_municip_numb %in% 1902:1943, "Troms",
+                                            ifelse(landing_municip_numb %in% 2002:2030, "Finnmark", "Missing"
+                                              ))))
+```
+## Gap filling con't
+```{r}
+# join main file with new values to be used to replace NAs
+catch_prep_spread <- left_join(catch_prep_spread, fill_values, by = c("year", "landing_municip", "vessel_municip"))
+
+#add new average values to main dataset 
+catch_prep_spread<- catch_prep_spread %>%
+  mutate(landings_NOK = ifelse(is.na(landings_NOK.x),landings_NOK.y, landings_NOK.x)) %>%
+  mutate(landings_tonnes = ifelse(is.na(landings_tonnes.x), landings_tonnes.y, landings_tonnes.x)) %>%
+  select(-landings_NOK.x, -landings_tonnes.x, -landings_NOK.y, -landings_tonnes.y)
+  
+```
+
+```{r}
+### origin of vessels that land in a given municipality
+#Not correct n_vessel_munic<-catch_prep_spread %>%
+  #dplyr::group_by(year, 
+  #                landing_municip) %>%
+ # dplyr::summarise(number_vessel_munic = n())
 
 ```
 
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r}
+#summarize to get total landings in municipality per year
+##by value in NOK
+catch_total_NOK <- catch_prep_spread %>% 
+    group_by(year,
+           landing_municip) %>% 
+  dplyr::summarise(total_landings_NOK = sum(landings_NOK), options(scipen=999)) %>%  # the options scipen is to avoid scientific format (e) 
+  mutate(total_landings_NOK = as.numeric(total_landings_NOK)) %>%
+  select(-c("options(scipen = 999)"))
+
+##by weight (tonnes)
+catch_total_tonnes <- catch_prep_spread %>% 
+    group_by(year,
+           landing_municip) %>% 
+    dplyr::summarise(total_landings_tonnes = sum(landings_tonnes))
+
+##Extract local landings i.e., the rows where vessels municipality = landing municipality
+catch_local <- catch_prep_spread %>%
+  filter_(~landing_municip == vessel_municip) 
+
+```
+
+### New dataset with local and total landings 
+```{r}
+#create data frame with all combinations of year and municipality
+landing_municip<- levels(as.factor(catch_prep_spread$landing_municip))
+
+df<- data.frame(year = as.numeric(rep(seq(2000, 2019), 81))) %>%
+  arrange(desc(year)) 
+df<- cbind(df, landing_municip)
+df$year<- as.factor(df$year)
+
+# Check if data frame has all the combinations of year and municipality
+#df %>%
+ # group_by(year) %>%
+ # mutate(unique_types = n_distinct(n))
+
+#add values to data frame on local and total catch
+final <- left_join(df, catch_local, by = c("year", "landing_municip"))
+final_2 <- left_join(final, catch_total_NOK, by = c("year", "landing_municip"))
+final_3 <- left_join(final_2, catch_total_tonnes, by = c("year", "landing_municip"))
+
+#some renaming of column names
+final_3 <- final_3 %>%
+  dplyr::rename(
+    local_landings_NOK = landings_NOK, 
+    local_landings_tonnes = landings_tonnes
+  )
+
+final_4<- final_3 %>%
+  mutate(proportion_local_NOK = 
+           (local_landings_NOK/total_landings_NOK) * 100, 
+         proportion_local_tonnes = 
+           (local_landings_tonnes/total_landings_tonnes) * 100, 
+         mean_NOK_per_tonnes = total_landings_NOK/total_landings_tonnes)
+
+
+
+#write.csv(catch_prep,"C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/data/Catch_local_total_2000_2019.csv")
+```
+## Plotting 
+### Local landings - i.e., landings by vessels from same municipality
+
+```{r}
+#local landings in tonnes
+p <- ggplot(final_4)+
+      geom_col(aes(x = year, y = local_landings_tonnes), fill = "dodgerblue4")+
+      facet_wrap(landing_municip ~ .) +
+      labs(y = "Landings by local fishers in tonnes", x = "") +
+      ggtitle("")+
+      theme(legend.position = "none", 
+            axis.text.x = element_text(size = 5, angle = 90, hjust = 0.5, vjust = 0.5, face = "bold"),
+            axis.text.y = element_text(size = 6, face = "bold", hjust = 0.5, vjust = 0.5, margin = margin(t = 0, r = 2, b = 0, l = 0)),
+            plot.title = element_text(hjust=0.5, vjust=0.5),
+            axis.ticks.x = element_line(size = 0.5),
+            axis.ticks.length = unit(0.2, "cm"))
+
+ggsave(paste0("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/figs/total_catch_by_local_fishers_tonnes.pdf"), p)
+
+#proportion local landings tonnes
+p <- ggplot(final_4)+
+      geom_col(aes(x = year, y = proportion_local_tonnes), fill = "dodgerblue4")+
+      facet_wrap(landing_municip ~ .) +
+      labs(y = "Proportion of landings by local fishers in tonnes", x = "") +
+      ggtitle("")+
+      theme(legend.position = "none", 
+            axis.text.x = element_text(size = 5, angle = 90, hjust = 0.5, vjust = 0.5, face = "bold"),
+            axis.text.y = element_text(size = 6, face = "bold", hjust = 0.5, vjust = 0.5, margin = margin(t = 0, r = 2, b = 0, l = 0)),
+            plot.title = element_text(hjust=0.5, vjust=0.5),
+            axis.ticks.x = element_line(size = 0.5),
+            axis.ticks.length = unit(0.2, "cm"))
+
+ggsave(paste0("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/figs/proportion_catch_by_local_fishers_tonnes.pdf"), p)
+
+# local landings in NOK
+p <- ggplot(final_4)+
+      geom_col(aes(x = year, y = local_landings_NOK), fill = "dodgerblue4")+
+      facet_wrap(landing_municip ~ .) +
+      labs(y = "Landings by local fishers in (1000) NOK", x = "") +
+      ggtitle("")+
+      theme(legend.position = "none", 
+            axis.text.x = element_text(size = 5, angle = 90, hjust = 0.5, vjust = 0.5, face = "bold"),
+            axis.text.y = element_text(size = 6, face = "bold", hjust = 0.5, vjust = 0.5, margin = margin(t = 0, r = 2, b = 0, l = 0)),
+            plot.title = element_text(hjust=0.5, vjust=0.5),
+            axis.ticks.x = element_line(size = 0.5),
+            axis.ticks.length = unit(0.2, "cm"))
+
+ggsave(paste0("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/figs/total_catch_by_local_fishers_NOK.pdf"), p)
+
+#proportion local landings NOK
+
+p <- ggplot(final_4) +
+      geom_col(aes(x = year, y = proportion_local_NOK), fill = "dodgerblue4") +
+      facet_wrap(landing_municip ~ .) +
+      labs(y = "Proportion of landings by local fishers in (1000) NOK", x = "") +
+      ggtitle("")+
+      theme(legend.position = "none", 
+            axis.text.x = element_text(size = 5, angle = 90, hjust = 0.5, vjust = 0.5, face = "bold"),
+            axis.text.y = element_text(size = 6, face = "bold", hjust = 0.5, vjust = 0.5, margin = margin(t = 0, r = 2, b = 0, l = 0)),
+            plot.title = element_text(hjust=0.5, vjust=0.5),
+            axis.ticks.x = element_line(size = 0.5),
+            axis.ticks.length = unit(0.2, "cm"))
+
+ggsave(paste0("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/figs/proportion_catch_by_local_fishers_NOK.pdf"), p)
+
+```
+### Total landings 
+```{r}
+#Total landings in tonnes
+p <- ggplot(final_4)+
+      geom_col(aes(x = year, y = total_landings_tonnes), fill = "dodgerblue4")+
+      #scale_y_log10() +
+      facet_wrap(landing_municip ~ .) +
+      labs(y = "Total landings in tonnes", x = "") +
+      ggtitle("")+
+      theme(legend.position = "none", 
+            axis.text.x = element_text(size = 5, angle = 90, hjust = 0.5, vjust = 0.5, face = "bold"),
+            axis.text.y = element_text(size = 6, face = "bold", hjust = 0.5, vjust = 0.5, margin = margin(t = 0, r = 2, b = 0, l = 0)),
+            plot.title = element_text(hjust=0.5, vjust=0.5),
+            axis.ticks.x = element_line(size = 0.5),
+            axis.ticks.length = unit(0.2, "cm"))
+
+ggsave(paste0("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/figs/total_landings_tonnes.pdf"), p)
+
+#Total landings in NOK
+p <- ggplot(final_4)+
+      geom_col(aes(x = year, y = total_landings_NOK), fill = "dodgerblue4")+
+      facet_wrap(landing_municip ~ .) +
+      labs(y = "Total landings in (1000) NOK", x = "") +
+      ggtitle("")+
+      theme(legend.position = "none", 
+            axis.text.x = element_text(size = 5, angle = 90, hjust = 0.5, vjust = 0.5, face = "bold"),
+            axis.text.y = element_text(size = 6, face = "bold", hjust = 0.5, vjust = 0.5, margin = margin(t = 0, r = 2, b = 0, l = 0)),
+            plot.title = element_text(hjust=0.5, vjust=0.5),
+            axis.ticks.x = element_line(size = 0.5),
+            axis.ticks.length = unit(0.2, "cm"))
+
+ggsave(paste0("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/figs/total_landings_NOK.pdf"), p)
+
+
+```
+
+## Which municipalities have fish landing sites
+
+```{r}
+
+```
+
+```{r}
+
+# Create dataset
+data <- catch_prep_local %>%
+  filter(year == 2000)%>%
+  filter(landing_county == c("Finnmark", "Troms", "Nordland"))%>%
+  select(-c("vessel_county", "vessel_municip", "landings_tonnes"))
+
+# Set a number of 'empty bar' to add at the end of each group
+empty_bar <- 3
+to_add <- data.frame( matrix(NA, empty_bar*nlevels(data$landing_county), ncol(data)) )
+colnames(to_add) <- colnames(data)
+to_add$landing_county <- rep(levels(data$landing_county), each=empty_bar)
+data <- rbind(data, to_add)
+data <- data %>% arrange(landing_county)
+data$id <- seq(1, nrow(data))
+
+# Get the name and the y position of each label
+label_data <- data
+number_of_bar <- nrow(label_data)
+angle <- 90 - 360 * (label_data$id-0.5) /number_of_bar     # I substract 0.5 because the letter must have the angle of the center of the bars. Not extreme right(1) or extreme left (0)
+label_data$hjust <- ifelse( angle < -90, 1, 0)
+label_data$angle <- ifelse(angle < -90, angle+180, angle)
+
+# prepare a data frame for base lines
+base_data <- data %>% 
+  group_by(landing_county) %>% 
+  summarize(start=min(id), end=max(id) - empty_bar) %>% 
+  rowwise() %>% 
+  mutate(title=mean(c(start, end)))
+
+# prepare a data frame for grid (scales)
+grid_data <- base_data
+grid_data$end <- grid_data$end[ c( nrow(grid_data), 1:nrow(grid_data)-1)] + 1
+grid_data$start <- grid_data$start - 1
+grid_data <- grid_data[-1,]
+
+# Make the plot
+p <- ggplot(data, aes(x=as.factor(id), y=landings_NOK, fill=landing_county)) +       # Note that id is a factor. If x is numeric, there is some space between the first bar
+  
+  geom_bar(aes(x=as.factor(id), y=landings_NOK, fill=landing_county), stat="identity", alpha=0.5) +
+  
+  # Add a val=100/75/50/25 lines. I do it at the beginning to make sur barplots are OVER it.
+  geom_segment(data=grid_data, aes(x = end, y = 80, xend = start, yend = 80), colour = "grey", alpha=1, size=0.3 , inherit.aes = FALSE ) +
+  geom_segment(data=grid_data, aes(x = end, y = 60, xend = start, yend = 60), colour = "grey", alpha=1, size=0.3 , inherit.aes = FALSE ) +
+  geom_segment(data=grid_data, aes(x = end, y = 40, xend = start, yend = 40), colour = "grey", alpha=1, size=0.3 , inherit.aes = FALSE ) +
+  geom_segment(data=grid_data, aes(x = end, y = 20, xend = start, yend = 20), colour = "grey", alpha=1, size=0.3 , inherit.aes = FALSE ) +
+  
+  # Add text showing the value of each 100/75/50/25 lines
+  annotate("text", x = rep(max(data$id),4), y = c(20, 40, 60, 80), label = c("20", "40", "60", "80") , color="grey", size=3 , angle=0, fontface="bold", hjust=1) +
+  
+  geom_bar(aes(x=as.factor(id), y=landings_NOK, fill=landing_county), stat="identity", alpha=0.5) +
+  ylim(-100,120) +
+  theme_minimal() +
+  theme(
+    legend.position = "none",
+    axis.text = element_blank(),
+    axis.title = element_blank(),
+    panel.grid = element_blank(),
+    plot.margin = unit(rep(-1,4), "cm") 
+  ) +
+  coord_polar() + 
+  geom_text(data=label_data, aes(x=id, y=value+10, label=individual, hjust=hjust), color="black", fontface="bold",alpha=0.6, size=2.5, angle= label_data$angle, inherit.aes = FALSE ) +
+  
+  # Add base line information
+  geom_segment(data=base_data, aes(x = start, y = -5, xend = end, yend = -5), colour = "black", alpha=0.8, size=0.6 , inherit.aes = FALSE )  +
+  geom_text(data=base_data, aes(x = title, y = -18, label=landing_county), hjust=c(1,1,0,0), colour = "black", alpha=0.8, size=4, fontface="bold", inherit.aes = FALSE)
+
+p
+
+
+```
+
