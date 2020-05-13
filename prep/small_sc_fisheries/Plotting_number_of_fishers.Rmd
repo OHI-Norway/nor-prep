@@ -132,7 +132,7 @@ plot <- ggplot(df)+
             axis.ticks.x = element_line(size = 0.5),
             axis.ticks.length = unit(0.2, "cm"))
 
-ggsave(paste0("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/figs/fishers_fulltime", cty, ".pdf"), plot)
+#ggsave(paste0("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/figs/fishers_fulltime", cty, ".pdf"), plot)
 
 }
 ```
