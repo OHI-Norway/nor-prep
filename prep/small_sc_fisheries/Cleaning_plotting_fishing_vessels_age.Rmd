@@ -1,0 +1,361 @@
+---
+title: "Cleaning fishing vessels & age data"
+author: "Sigrid Engen"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    css: 'C:/Users/sigrid.engen/github/nor-prep/prep/templates/style.css'
+    toc: true
+    number_sections: true
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: 'C:/Users/sigrid.engen/github/nor-prep/prep/templates/norway_banner.html'
+  pdf_document:
+    toc: true
+
+---
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning=FALSE)
+```
+
+## Load packages
+```{r setup, include=TRUE}
+library(readxl)
+library(tidyverse)
+library(plyr)
+```
+
+## Load data
+```{r, warning=FALSE}
+vessels <-read_excel(file.path("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/data/Average_age_fishing_vessels_by_length_2019_1980.xlsx"), skip = 3)
+                       
+municip<-read.csv(file.path("C:/Users/sigrid.engen/github/nor-prep/prep/administrative/komlist.csv"), sep=";")
+```
+## Data cleaning
+### Renaming, filtering & completing
+```{r}
+vessels_NN<- vessels %>%
+  dplyr::rename(
+    year = "År", 
+    county = "Fylke",  
+    average_age = "Gjennomsnittsalder", 
+    municip_numb = "Kommune (kode)", 
+    municipality = "Kommune", 
+    vessel_length = "Lende (kode)", 
+    number_of_vessels = "Antall fartøy") %>%
+  filter(county %in% c("Finnmark", "Troms", "Nordland")) %>%
+  complete(nesting(municip_numb, 
+                  year), 
+           vessel_length,
+           fill = list(number_of_vessels = 0)
+           ) %>%  # for each combination of muncipality number and year - add all 6 vessel lengths (use municipality number and not name as #there are more municipality numbers (n=87) than municipality names (n=85) because some municipalities changed numbers and not names in the #study period  
+  complete(nesting(municip_numb, 
+                   vessel_length), 
+           year, 
+           fill = list(number_of_vessels = 0)
+           ) # for each combination of municipality number and vessel length add missing years
+
+#remove rows where the complete function makes duplicate rows for Hammerfest (2004) and Harstad (1903) for the years prior to their formation
+vessels_NN<-vessels_NN[!(vessels_NN$municip_numb=="2004" & vessels_NN$year > 1979 & vessels_NN$year < 1992 ),]
+vessels_NN<-vessels_NN[!(vessels_NN$municip_numb=="1903" & vessels_NN$year > 1979 & vessels_NN$year < 2013 ),]
+
+#check the number of entries for each combination of year, vessel length and municipality - should be equal except for harstad 1903 and #Hammerfest 2004
+vessels_check<- vessels_NN %>%
+  group_by(vessel_length, 
+       municip_numb) %>%
+  dplyr::summarise(count = n())
+
+#Data frame with all combinations of year, vessel length and municipality should contain 40*87*6 = 20880 rows (minus rows deleted from #Hammerfest 1980-1991 and Harstad 1980-2012)
+#levels(as.factor(vessels_NN$municip_numb))
+#levels(as.factor(vessels_NN$vessel_length))
+#levels(as.factor(vessels_NN$year))
+```
+### Pool merged municipalites
+#### Hammerfest
+```{r}
+# clean merged municipalities - i.e., remove old municip and transfer values to new muncip 
+
+Hammerfest_old<-filter(vessels_NN, 
+                       municip_numb == "2001", 
+                       year > 1979 & year < 1992  # select only years that apply
+                       )
+
+Soroysund<-filter(vessels_NN, 
+                  municip_numb == "2016", 
+                  year > 1979 & year < 1992  # select only years that apply
+                  )
+
+Hammerfest_df<- left_join(Hammerfest_old, Soroysund, by =c("year", "vessel_length"))
+
+Hammerfest_df<- Hammerfest_df %>% 
+  mutate(number_of_vessels = 
+           number_of_vessels.x + number_of_vessels.y)%>%
+  mutate(average_age= 
+           ((number_of_vessels.x*average_age.x)+
+              (number_of_vessels.y*average_age.y))/
+           (number_of_vessels.x+number_of_vessels.y)) %>% #merging values using combined mean https://www.statisticshowto.com/combined-mean/ 
+  mutate(average_age = 
+           ifelse(is.na(average_age), 
+                  average_age.x, 
+                  average_age)) %>% #return average.age.x (which is Hammerfest_old) for rows with NA (which is caused by missing value in #Sørøysund) and return the combined average of hammerfest_old and Sørøysund if not NA 
+  mutate(average_age = 
+           ifelse(is.na(average_age), 
+                  average_age.y, 
+                  average_age)) %>% #return average.age.y (which is Sørøysund) for rows with NA (which is caused by missing value in #Hammerfest_old) and return the combined average of hammerfest_old and Sørøysund if not NA 
+  select(c(municip_numb.x,  # keep certain variables and in the right order (similar to vessel_NN)
+           vessel_length,
+           year, 
+           average_age,
+           county.x,
+           municipality.x,
+           number_of_vessels)) %>%
+  mutate(county.x = "Finnmark", 
+         municip_numb.x = "2004", 
+         municipality.x = "HAMMERFEST") %>%  # Revalue variables
+  dplyr::rename(county = "county.x",
+                municip_numb = "municip_numb.x", 
+                municipality = "municipality.x")
+
+#check the number of entries for each combination of year, vessel length and municipality - should be equal
+vessels_check<- Hammerfest_df %>%
+ group_by(municipality, 
+         vessel_length) %>%
+ dplyr::summarise(count = n())  
+```
+#### Harstad
+```{r}
+# clean merged municipalities - i.e., remove old municip and transfer values to new muncip 
+#Harstad municipality expanded in 2013 to include Bjarkøy. The municipality number prior to 2013 was 1901 and in 2013 it became 1903.
+
+Harstad_old<-filter(vessels_NN, 
+                       municip_numb == "1901", 
+                       year > 1979 & year < 2013 # select only years that apply
+                       )
+
+Bjarkoy<-filter(vessels_NN, 
+                  municip_numb == "1915", 
+                  year > 1979 & year < 2013  # select only years that apply
+                  )
+
+Harstad_df<- left_join(Harstad_old, Bjarkoy, by =c("year", "vessel_length"))
+
+Harstad_df<- Harstad_df %>% 
+  mutate(number_of_vessels = 
+           number_of_vessels.x + number_of_vessels.y)%>%
+  mutate(average_age= 
+           ((number_of_vessels.x*average_age.x)+
+              (number_of_vessels.y*average_age.y))/
+           (number_of_vessels.x+number_of_vessels.y)) %>%  #merging values using combined mean https://www.statisticshowto.com/combined-mean/ 
+  mutate(average_age = 
+           ifelse(is.na(average_age), 
+                  average_age.x, 
+                  average_age)) %>% #return average.age.x for rows with NA and return the combined average (i.e, average age) if not NA
+  mutate(average_age = 
+           ifelse(is.na(average_age), 
+                  average_age.y, 
+                  average_age)) %>% #return average.age.y for rows with NA and return the combined average (i.e, average age) if not NA 
+  select(c(municip_numb.x,  # keep certain variables and in the right order (similar to vessel_NN)
+           vessel_length,
+           year, 
+           average_age,
+           county.x,
+           municipality.x,
+           number_of_vessels)) %>%
+  mutate(county.x = "Troms", 
+         municip_numb.x = "1903", 
+         municipality.x = "HARSTAD") %>%  # Revalue variables
+  dplyr::rename(county = "county.x",
+                municip_numb = "municip_numb.x", 
+                municipality = "municipality.x")
+
+#check the number of entries for each combination of year, vessel length and municipality - should be equal
+vessels_check<- Harstad_df %>%
+ group_by(year, 
+         municipality) %>%
+ dplyr::summarise(count = n())    
+```
+#### Bodo
+```{r}
+# clean merged municipalities - i.e., remove old municip and transfer values to new muncip 
+# Bodø municipality expanded in 2005 to include Skjerstad. Bodøs municipality number was 1804 both before and after merger. Skjerstads #municipality number was 1842
+
+Bodo<-filter(vessels_NN, 
+                       municip_numb == "1804", 
+                       year > 1979 & year < 2005 # select only years that apply
+                       )
+
+Skjerstad<-filter(vessels_NN, 
+                  municip_numb == "1842", 
+                  year > 1979 & year < 2005  # select only years that apply
+                  )
+
+Bodo_new<-filter(vessels_NN, 
+                       municip_numb == "1804", 
+                       year > 2004  # select only years that apply
+                       )
+
+Bodo_df<- left_join(Bodo, Skjerstad, by =c("year", "vessel_length"))
+
+Bodo_df<- Bodo_df %>% 
+  mutate(number_of_vessels = 
+           number_of_vessels.x + number_of_vessels.y)%>%
+  mutate(average_age= 
+           ((number_of_vessels.x*average_age.x)+
+              (number_of_vessels.y*average_age.y))/
+           (number_of_vessels.x+number_of_vessels.y)) %>%  #merging values using combined mean https://www.statisticshowto.com/combined-mean/ 
+  mutate(average_age = 
+           ifelse(is.na(average_age), 
+                  average_age.x, 
+                  average_age)) %>% #return average.age.x for rows with NA and return the combined average (i.e, average age) if not NA
+  mutate(average_age = 
+           ifelse(is.na(average_age), 
+                  average_age.y, 
+                  average_age)) %>% #return average.age.y for rows with NA and return the combined average (i.e, average age) if not NA 
+  select(c(municip_numb.x,  # keep certain variables and in the right order (similar to vessel_NN)
+           vessel_length,
+           year, 
+           average_age,
+           county.x,
+           municipality.x,
+           number_of_vessels)) %>%
+  dplyr::rename(county = "county.x",
+                municip_numb = "municip_numb.x", 
+                municipality = "municipality.x")
+
+Bodo_df <- rbind(Bodo_df, Bodo_new) 
+
+Bodo_df<- Bodo_df %>% 
+   mutate(county = "Nordland", 
+         municip_numb = "1804", 
+         municipality = "BODØ")   # Revalue variables
+
+#check the number of entries for each combination of year, vessel length and municipality - should be equal
+vessels_check<- Bodo_df %>%
+ group_by(municipality, 
+         vessel_length) %>%
+ dplyr::summarise(count = n())  
+
+```
+
+### Merging data
+```{r merging data tables 2}
+
+vessels_final<-vessels_NN %>%
+    filter(!municip_numb %in% c("2016", "2001", "1901", "1915", "1842", "1804", "1839")) #remove Sørøysund (2016), Hammerfest_old (2001), Harstad_old (1901), Bjarkoy (1915), Skjerstad (1842) and Bodo old (1804 - note same number, thus have to filter vessels_NN before rbind with Bodo_df) and municipality not included in study muncipalities (i.e., Beiarn 1839)
+
+vessels_final_merge<-rbind(vessels_final, Hammerfest_df, Harstad_df, Bodo_df)
+
+#add new column with new municipality names
+municip$Komnum<-as.factor(municip$Komnum) #change on numeric variable to factor
+
+vessels_final_merge$vessel_length<-as.factor(vessels_final_merge$vessel_length) #change on numeric variable to factor
+
+vessels_final_merge<- left_join(vessels_final_merge, municip, by = c("municip_numb"="Komnum"))
+
+vessels_final_merge<- vessels_final_merge %>%
+  select(-municipality, 
+         -Kid, 
+         -county) %>%
+  dplyr::rename(
+    municipality = "Name"
+  ) %>%
+  mutate(county = ifelse(municip_numb %in% 1804:1874, "Nordland",                             #add new variable
+                                     ifelse(municip_numb  %in% 1902:1943, "Troms",
+                                            ifelse(municip_numb  %in% 2002:2030, "Finnmark", "Missing"
+                                              ))))
+
+#change the naming of levels in variable vessel length
+vessels_final_merge$vessel_length<- revalue(vessels_final_merge$vessel_length, c("0-9,99m" = "0to9.99m", "10-10,99m" = "10to10.99m", "11-14,99m" = "11to14.99m", "15-20,99m" = "15to20.99m", "21-27,99m" = "21to27.99m", "28 m og over" = "28_and_larger"))
+
+
+#Data frame with all combinations of year, vessel length and municipality should contain xx rows
+#levels(as.factor(vessels_final_merge$municip_numb))
+levels(as.factor(vessels_final_merge$vessel_length))
+#levels(as.factor(vessels_final_merge$year))
+  
+#vessels_check<- vessels_final_merge %>%
+# group_by(municip_numb, 
+ #        vessel_length) %>%
+ #dplyr::summarise(count = n())
+
+#look at which municipalities are in main and not in study municipalities list
+#municip$Komnum<-as.factor(municip$Komnum) #change on numeric variable to factor
+#f<-anti_join(vessels_final_merge, municip, by=c("municip_numb"="Komnum"))
+#levels(as.factor(f$municip_numb)) #look which municipalities are not in study municipalities list
+
+```
+## Plotting data
+### Finnmark
+```{r}
+
+vessels_final_merge_fin<- vessels_final_merge%>%
+  filter(county == "Finnmark")
+
+p <- ggplot(vessels_final_merge_fin)+
+      geom_line(aes(x = year, y = average_age, color = vessel_length)) +
+      facet_wrap(municipality  ~ .) +
+      scale_color_manual(values = c("darkred", "steelblue", "darkgreen", "black", "orange", "blue"))+
+      labs(y = "Average age of fishing vessels", x = "") +
+      ggtitle("Finnmark")+
+      theme(legend.position = "bottom",
+            legend.title = element_blank(), 
+            axis.text.x = element_text(size = 5, angle = 90, hjust = 0.5, vjust = 0.5, face = "bold"),
+            axis.text.y = element_text(size = 6, face = "bold", hjust = 0.5, vjust = 0.5, margin = margin(t = 0, r = 2, b = 0, l = 0)),
+            plot.title = element_text(hjust=0.5, vjust=0.5),
+            axis.ticks.x = element_line(size = 0.5),
+            axis.ticks.length = unit(0.2, "cm"))
+
+ggsave(paste0("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/figs/Vessels_average_age_Finnmark.pdf"), p)
+
+```
+
+### Troms
+```{r}
+
+vessels_final_merge_troms<- vessels_final_merge%>%
+  filter(county == "Troms")
+
+p <- ggplot(vessels_final_merge_troms)+
+      geom_line(aes(x = year, y = average_age, color = vessel_length)) +
+      facet_wrap(municipality  ~ .) +
+      scale_color_manual(values = c("darkred", "steelblue", "darkgreen", "black", "orange", "blue"))+
+      labs(y = "Average age of fishing vessels", x = "") +
+      ggtitle("Troms")+
+      theme(legend.position = "bottom",
+            legend.title = element_blank(), 
+            axis.text.x = element_text(size = 5, angle = 90, hjust = 0.5, vjust = 0.5, face = "bold"),
+            axis.text.y = element_text(size = 6, face = "bold", hjust = 0.5, vjust = 0.5, margin = margin(t = 0, r = 2, b = 0, l = 0)),
+            plot.title = element_text(hjust=0.5, vjust=0.5),
+            axis.ticks.x = element_line(size = 0.5),
+            axis.ticks.length = unit(0.2, "cm"))
+
+ggsave(paste0("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/figs/Vessels_average_age_Troms.pdf"), p)
+
+
+```
+### Nordland
+```{r}
+
+vessels_final_merge_nordl<- vessels_final_merge%>%
+  filter(county == "Nordland")
+
+p <- ggplot(vessels_final_merge_nordl)+
+      geom_line(aes(x = year, y = average_age, color = vessel_length)) +
+      facet_wrap(municipality  ~ .) +
+      scale_color_manual(values = c("darkred", "steelblue", "darkgreen", "black", "orange", "blue"))+
+      labs(y = "Average age of fishing vessels", x = "") +
+      ggtitle("Nordland")+
+      theme(legend.position = "bottom",
+            legend.title = element_blank(), 
+            axis.text.x = element_text(size = 5, angle = 90, hjust = 0.5, vjust = 0.5, face = "bold"),
+            axis.text.y = element_text(size = 6, face = "bold", hjust = 0.5, vjust = 0.5, margin = margin(t = 0, r = 2, b = 0, l = 0)),
+            plot.title = element_text(hjust=0.5, vjust=0.5),
+            axis.ticks.x = element_line(size = 0.5),
+            axis.ticks.length = unit(0.2, "cm"))
+
+ggsave(paste0("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/figs/Vessels_average_age_Nordland.pdf"), p)
+
+
+```
