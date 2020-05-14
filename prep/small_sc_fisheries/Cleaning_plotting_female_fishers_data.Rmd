@@ -1,10 +1,20 @@
 ---
-title: "Cleaning & plotting female fishers data"
+title: "Cleaning fishing vessels & age data"
 author: "Sigrid Engen"
-date: "29 4 2020"
-output: html_document
----
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    css: 'C:/Users/sigrid.engen/github/nor-prep/prep/templates/style.css'
+    toc: true
+    number_sections: true
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: 'C:/Users/sigrid.engen/github/nor-prep/prep/templates/norway_banner.html'
+  pdf_document:
+    toc: true
 
+---
 ```{r, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning=FALSE)
 ```
@@ -24,7 +34,7 @@ lady_part <-read_excel(file.path("C:/Users/sigrid.engen/github/nor-prep/prep/sma
 municip<-read.csv(file.path("C:/Users/sigrid.engen/github/nor-prep/prep/administrative/komlist.csv"), sep=";")
 ```
 
-### Data cleaning
+## Data cleaning
 ```{r}
 lady<-rbind(lady_full,lady_part) #merge data tables 
 lady[, c(1:2, 4:5)]<-lapply(lady[,c(1:2, 4:5)], factor) #change to factors
@@ -37,23 +47,34 @@ lady<-lady%>%
          main_parttime = "Manntall status", 
          female_fishers = "Antall personer") %>%
   filter(municip_numb >= 1800 & 
-           municip_numb < 5000) %>%
- #filter(Fylke == c("Finnmark", "Troms", "Nordland")) #tried filtering with county variable - led to missing rows/data
-  complete(nesting(municip_name, municip_numb, main_parttime, county), 
+           municip_numb < 5000) %>%  # extract the data from Finnmark, Troms, Nordland
+ complete(nesting(municip_name, 
+                  municip_numb, 
+                  main_parttime, 
+                  county), 
            year, 
            fill = list(female_fishers = 0)) %>%# add rows for year not included
-  complete(nesting(municip_name, municip_numb, year, county), 
+  complete(nesting(municip_name, 
+                   municip_numb, 
+                   year, 
+                   county), 
            main_parttime, 
            fill = list(female_fishers = 0))# add rows for main_parttime not included
 
-Hammerfest_old<-filter(lady, municip_numb == "2001")
-Soroysund<-filter(lady, municip_numb == "2016")
-Hammerfest_new<-filter(lady, municip_numb == "2004") 
+Hammerfest_old<-filter(lady, 
+                       municip_numb == "2001"
+                       )
+
+Soroysund<-filter(lady, 
+                  municip_numb == "2016"
+                  )
+
+Hammerfest_new<-filter(lady, 
+                       municip_numb == "2004"
+                       ) 
 
 Hammerfest_df<-mutate(Hammerfest_new, 
-                      female_fishers = Hammerfest_old$female_fishers + 
-                        Hammerfest_new$female_fishers + 
-                        Soroysund$female_fishers) #pooling merged municipalities
+                      female_fishers = Hammerfest_old$female_fishers + Hammerfest_new$female_fishers + Soroysund$female_fishers) #pooling merged municipalities
 
 lady_final_1<-left_join(lady, Hammerfest_df, by =c("municip_numb","main_parttime","year")) %>%
   mutate(female_fishers = 

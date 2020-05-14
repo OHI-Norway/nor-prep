@@ -1,8 +1,19 @@
 ---
-title: "Number and age of fishers"
+title: "Cleaning number & age of fishers data"
 author: "Sigrid Engen"
-date: "27 4 2020"
-output: html_document
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    css: 'C:/Users/sigrid.engen/github/nor-prep/prep/templates/style.css'
+    toc: true
+    number_sections: true
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: 'C:/Users/sigrid.engen/github/nor-prep/prep/templates/norway_banner.html'
+  pdf_document:
+    toc: true
+
 ---
 ```{r, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning=FALSE)

@@ -217,21 +217,10 @@ catch_prep_spread <- catch_prep_spread %>%
   select(-grouped_id)
   #dplyr::rename(Name = landing_municip) # rename column name to get left_join to work around this error https://github.com/mkearney/tweetbotornot/issues/25 
 
-# add the municipality number of study municipalites
-catch_prep_spread<- dplyr::left_join(catch_prep_spread, munic, by =c("landing_municip" = "Name"))
-
 # remove kautokeino municipality 
 catch_prep_spread<- catch_prep_spread %>%
   filter(landing_municip != "Guovdageaidnu-Kautokeino") 
 
-# clean data a bit more
-catch_prep_spread<- catch_prep_spread %>%
-  dplyr::rename(landing_municip_numb = Komnum) %>%
-  select(-("Kid")) %>%
-  mutate(landing_county = ifelse(landing_municip_numb %in% 1804:1874, "Nordland",
-                                     ifelse(landing_municip_numb %in% 1902:1943, "Troms",
-                                            ifelse(landing_municip_numb %in% 2002:2030, "Finnmark", "Missing"
-                                              ))))
 ```
 ## Gap filling con't
 ```{r}
@@ -310,11 +299,23 @@ final_4<- final_3 %>%
            (local_landings_NOK/total_landings_NOK) * 100, 
          proportion_local_tonnes = 
            (local_landings_tonnes/total_landings_tonnes) * 100, 
-         mean_NOK_per_tonnes = total_landings_NOK/total_landings_tonnes)
+         mean_NOK_per_tonnes = total_landings_NOK/total_landings_tonnes) %>%
+  select(-vessel_municip)
 
+# add the municipality number of study municipalites
+final_4<- dplyr::left_join(final_4, munic, by =c("landing_municip" = "Name"))
 
+# clean data a bit more
+final_4<- final_4 %>%
+  dplyr::rename(landing_municip_numb = Komnum)%>%
+  mutate(landing_county = ifelse(landing_municip_numb %in% 1804:1874, "Nordland",                             #add new variable
+                                     ifelse(landing_municip_numb %in% 1902:1943, "Troms",
+                                            ifelse(landing_municip_numb %in% 2002:2030, "Finnmark", "Missing"
+                                              )))) %>%
+  replace(is.na(.), 0)%>%                                                                                      #replace NA in all columns
+  select(landing_municip_numb, landing_municip, landing_county, year, local_landings_NOK:mean_NOK_per_tonnes, -Kid)  # rearrange order of columns
 
-#write.csv(catch_prep,"C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/data/Catch_local_total_2000_2019.csv")
+#write.csv(final_4,"C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/data/Catch_local_total_ladnings_2000_2019.csv")
 ```
 ## Plotting 
 ### Local landings - i.e., landings by vessels from same municipality
@@ -418,7 +419,7 @@ ggsave(paste0("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/fig
 
 ```
 
-## Which municipalities have fish landing sites
+
 
 ```{r}
 
@@ -495,5 +496,66 @@ p <- ggplot(data, aes(x=as.factor(id), y=landings_NOK, fill=landing_county)) +  
 p
 
 
+```
+
+```{r}
+# Libraries
+library(tidyverse)
+ 
+# Create dataset
+data <- data.frame(
+  id=seq(1,60),
+  individual=paste( "Mister ", seq(1,60), sep=""),
+  value=sample( seq(10,100), 60, replace=T)
+)
+
+# Create dataset
+data <- final_4 %>%
+  filter(year == 2000)%>%
+  select(landing_municip, total_landings_tonnes)%>%
+  mutate(id = seq(1,81))
+
+
+# ----- This section prepare a dataframe for labels ---- #
+# Get the name and the y position of each label
+label_data <- data
+ 
+# calculate the ANGLE of the labels
+number_of_bar <- nrow(label_data)
+angle <-  90 - 360 * (label_data$id-0.5) /number_of_bar     # I substract 0.5 because the letter must have the angle of the center of the bars. Not extreme right(1) or extreme left (0)
+ 
+# calculate the alignment of labels: right or left
+# If I am on the left part of the plot, my labels have currently an angle < -90
+label_data$hjust<-ifelse( angle < -90, 1, 0)
+ 
+# flip angle BY to make them readable
+label_data$angle<-ifelse(angle < -90, angle+180, angle)
+# ----- ------------------------------------------- ---- #
+
+# Start the plot
+p <- ggplot(data, aes(x=as.factor(id), y=total_landings_tonnes)) +       # Note that id is a factor. If x is numeric, there is some space between the first bar
+  
+  # This add the bars with a blue color
+  geom_bar(stat="identity", fill=alpha("skyblue", 0.7)) +
+  
+  # Limits of the plot = very important. The negative value controls the size of the inner circle, the positive one is useful to add size over each bar
+  ylim(-150,1000) +
+  
+  # Custom the theme: no axis title and no cartesian grid
+  theme_minimal() +
+  theme(
+    axis.text = element_blank(),
+    axis.title = element_blank(),
+    panel.grid = element_blank(),
+    plot.margin = unit(rep(-1,4), "cm")      # Adjust the margin to make in sort labels are not truncated!
+  ) +
+  
+  # This makes the coordinate polar instead of cartesian.
+  coord_polar(start = 0) +
+  
+  # Add the labels, using the label_data dataframe that we have created before
+  geom_text(data=label_data, aes(x=id, y=total_landings_tonnes+10, label=landing_municip, hjust=hjust), color="black", fontface="bold",alpha=0.6, size=2.5, angle= label_data$angle, inherit.aes = FALSE ) 
+ 
+p
 ```
 

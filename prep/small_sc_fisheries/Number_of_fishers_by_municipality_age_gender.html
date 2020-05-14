@@ -609,24 +609,61 @@ summary {
 <div id="nordland" class="section level4">
 <h4><span class="header-section-number">0.3.1.3</span> Nordland</h4>
 <div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb9-1" title="1">age_nordland_prep &lt;-<span class="st"> </span>age_nordland <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb9-2" title="2"><span class="st">  </span>dplyr<span class="op">::</span><span class="kw">rename</span>(<span class="dt">municip_name =</span> ...<span class="dv">1</span>, </a>
+<a class="sourceLine" id="cb9-2" title="2"><span class="st">  </span>dplyr<span class="op">::</span><span class="kw">rename</span>(<span class="dt">municip_name =</span> ...<span class="dv">1</span>,  <span class="co">#rename headers </span></a>
 <a class="sourceLine" id="cb9-3" title="3">         <span class="dt">municip_numb =</span> ...<span class="dv">2</span>,</a>
 <a class="sourceLine" id="cb9-4" title="4">         <span class="dt">age =</span> ...<span class="dv">3</span>,</a>
 <a class="sourceLine" id="cb9-5" title="5">        <span class="st">&quot;2019&quot;</span> =<span class="st"> &quot;20191)&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb9-6" title="6"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">municip_name =</span> zoo<span class="op">::</span><span class="kw">na.locf</span>(municip_name)) <span class="op">%&gt;%</span><span class="st"> </span><span class="co"># fills in municipality name in NA columns </span></a>
-<a class="sourceLine" id="cb9-7" title="7"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">municip_numb =</span> zoo<span class="op">::</span><span class="kw">na.locf</span>(municip_numb)) <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb9-8" title="8"><span class="st">  </span><span class="kw">filter</span>(<span class="op">!</span><span class="kw">str_detect</span>(.<span class="op">$</span>municip_name,</a>
-<a class="sourceLine" id="cb9-9" title="9">                    <span class="dt">pattern =</span> <span class="st">&quot;^Total.&quot;</span> ))<span class="op">%&gt;%</span><span class="st">  </span><span class="co">#Remove rows that show total no of fishers</span></a>
-<a class="sourceLine" id="cb9-10" title="10"><span class="st">  </span><span class="kw">gather</span>(<span class="dt">key =</span> year, <span class="dt">value=</span> count, <span class="op">-</span>municip_name, <span class="op">-</span>municip_numb, <span class="op">-</span>age) <span class="co">#reshape format of table</span></a>
-<a class="sourceLine" id="cb9-11" title="11"></a>
-<a class="sourceLine" id="cb9-12" title="12">age_nordland_prep[<span class="kw">is.na</span>(age_nordland_prep)] &lt;-<span class="st"> </span><span class="dv">0</span> <span class="co">#replace NA values with zero. </span></a>
-<a class="sourceLine" id="cb9-13" title="13"></a>
-<a class="sourceLine" id="cb9-14" title="14">age_nordland_final&lt;-age_nordland_prep<span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb9-15" title="15"><span class="st">  </span>dplyr<span class="op">::</span><span class="kw">rename</span>(<span class="dt">main_occupation =</span> count)<span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb9-16" title="16"><span class="st">  </span><span class="kw">complete</span>(<span class="kw">nesting</span>(municip_name, municip_numb,year), age, <span class="dt">fill =</span> <span class="kw">list</span>(<span class="dt">main_occupation =</span> <span class="dv">0</span>)) <span class="op">%&gt;%</span><span class="co"># add rows for age not included</span></a>
-<a class="sourceLine" id="cb9-17" title="17"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">county =</span> <span class="st">&quot;Nordland&quot;</span>) <span class="co">#add variable county</span></a>
-<a class="sourceLine" id="cb9-18" title="18"></a>
-<a class="sourceLine" id="cb9-19" title="19"><span class="kw">head</span>(age_nordland_final)</a></code></pre></div>
+<a class="sourceLine" id="cb9-6" title="6"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">municip_name =</span> </a>
+<a class="sourceLine" id="cb9-7" title="7">           zoo<span class="op">::</span><span class="kw">na.locf</span>(municip_name)) <span class="op">%&gt;%</span><span class="st">     </span><span class="co"># fills in municipality name in NA columns </span></a>
+<a class="sourceLine" id="cb9-8" title="8"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">municip_numb =</span> </a>
+<a class="sourceLine" id="cb9-9" title="9">           zoo<span class="op">::</span><span class="kw">na.locf</span>(municip_numb)) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb9-10" title="10"><span class="st">  </span><span class="kw">filter</span>(<span class="op">!</span><span class="kw">str_detect</span>(.<span class="op">$</span>municip_name,</a>
+<a class="sourceLine" id="cb9-11" title="11">                    <span class="dt">pattern =</span> <span class="st">&quot;^Total.&quot;</span> )) <span class="op">%&gt;%</span><span class="st">   </span><span class="co">#Remove rows that show total no of fishers</span></a>
+<a class="sourceLine" id="cb9-12" title="12"><span class="st">  </span><span class="kw">gather</span>(<span class="dt">key =</span> year, </a>
+<a class="sourceLine" id="cb9-13" title="13">         <span class="dt">value=</span> count, </a>
+<a class="sourceLine" id="cb9-14" title="14">         <span class="op">-</span>municip_name, </a>
+<a class="sourceLine" id="cb9-15" title="15">         <span class="op">-</span>municip_numb, </a>
+<a class="sourceLine" id="cb9-16" title="16">         <span class="op">-</span>age)                                  <span class="co">#reshape format of table</span></a>
+<a class="sourceLine" id="cb9-17" title="17"></a>
+<a class="sourceLine" id="cb9-18" title="18"><span class="co">#replace NA values with zero. NA values are zero in all cases except where municipalities merged/changed  </span></a>
+<a class="sourceLine" id="cb9-19" title="19">age_nordland_prep[<span class="kw">is.na</span>(age_nordland_prep)] &lt;-<span class="st"> </span><span class="dv">0</span>  </a>
+<a class="sourceLine" id="cb9-20" title="20"></a>
+<a class="sourceLine" id="cb9-21" title="21"><span class="co"># Filter out municipalities involved in merger.Bodø municipality expanded in 2005 to include Skjerstad. </span></a>
+<a class="sourceLine" id="cb9-22" title="22"><span class="co"># Bodøs municipality number was 1804 both before and after merger. Skjerstads municipality number was 1842</span></a>
+<a class="sourceLine" id="cb9-23" title="23">Bodo_old&lt;-<span class="kw">filter</span>(</a>
+<a class="sourceLine" id="cb9-24" title="24">  age_nordland_prep, </a>
+<a class="sourceLine" id="cb9-25" title="25">  municip_numb <span class="op">==</span><span class="st"> &quot;1804&quot;</span></a>
+<a class="sourceLine" id="cb9-26" title="26">  )</a>
+<a class="sourceLine" id="cb9-27" title="27"></a>
+<a class="sourceLine" id="cb9-28" title="28">Skjerstad&lt;-<span class="kw">filter</span>(age_nordland_prep, </a>
+<a class="sourceLine" id="cb9-29" title="29">                  municip_numb <span class="op">==</span><span class="st"> &quot;1842&quot;</span></a>
+<a class="sourceLine" id="cb9-30" title="30">                  )</a>
+<a class="sourceLine" id="cb9-31" title="31"></a>
+<a class="sourceLine" id="cb9-32" title="32"><span class="co"># make new variable where all fishers from both Bodø and Skjerstad are included  </span></a>
+<a class="sourceLine" id="cb9-33" title="33">Bodo_df&lt;-<span class="kw">mutate</span>(Bodo_old,</a>
+<a class="sourceLine" id="cb9-34" title="34">                      <span class="dt">count =</span> Bodo_old<span class="op">$</span>count <span class="op">+</span><span class="st"> </span>Skjerstad<span class="op">$</span>count) </a></code></pre></div>
+<pre><code>## Warning in Bodo_old$count + Skjerstad$count: longer object length is not a
+## multiple of shorter object length</code></pre>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb11-1" title="1"><span class="co"># make final file with updated numbers for fishers in Bodo/Skjerstad</span></a>
+<a class="sourceLine" id="cb11-2" title="2">age_nordland_final&lt;-dplyr<span class="op">::</span><span class="kw">left_join</span>(age_nordland_prep, Bodo_df, </a>
+<a class="sourceLine" id="cb11-3" title="3">                              <span class="dt">by =</span><span class="kw">c</span>(<span class="st">&quot;municip_numb&quot;</span>,<span class="st">&quot;age&quot;</span>,<span class="st">&quot;year&quot;</span>)) <span class="op">%&gt;%</span><span class="st">  </span><span class="co">#join bodo.df with main data frame</span></a>
+<a class="sourceLine" id="cb11-4" title="4"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">main_occupation =</span> <span class="kw">ifelse</span>(municip_numb <span class="op">==</span><span class="st"> &quot;1804&quot;</span>, count.y, count.x)) <span class="op">%&gt;%</span><span class="st"> </span><span class="co">#return count.y for rows with Bodo 1804 &amp; count.x if not</span></a>
+<a class="sourceLine" id="cb11-5" title="5"><span class="st">  </span><span class="kw">select</span>(<span class="op">-</span><span class="kw">c</span>(count.x, </a>
+<a class="sourceLine" id="cb11-6" title="6">            count.y,</a>
+<a class="sourceLine" id="cb11-7" title="7">            municip_name.y)) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb11-8" title="8"><span class="st">  </span>dplyr<span class="op">::</span><span class="kw">rename</span>(<span class="dt">municip_name =</span> municip_name.x) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb11-9" title="9"><span class="st">  </span><span class="kw">filter</span>(<span class="op">!</span>municip_numb <span class="op">%in%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb11-10" title="10"><span class="st">           </span><span class="kw">c</span>(<span class="st">&quot;1842&quot;</span>)) <span class="op">%&gt;%</span><span class="st"> </span><span class="co">#remove skjerstad 1842</span></a>
+<a class="sourceLine" id="cb11-11" title="11"><span class="st">  </span><span class="kw">complete</span>(<span class="kw">nesting</span>(</a>
+<a class="sourceLine" id="cb11-12" title="12">    municip_name, </a>
+<a class="sourceLine" id="cb11-13" title="13">    municip_numb,</a>
+<a class="sourceLine" id="cb11-14" title="14">    year), </a>
+<a class="sourceLine" id="cb11-15" title="15">    age, </a>
+<a class="sourceLine" id="cb11-16" title="16">    <span class="dt">fill =</span> <span class="kw">list</span>(<span class="dt">main_occupation =</span> <span class="dv">0</span>)) <span class="op">%&gt;%</span><span class="st"> </span><span class="co"># add rows for age not already included to complete dataset</span></a>
+<a class="sourceLine" id="cb11-17" title="17"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">county =</span> <span class="st">&quot;Nordland&quot;</span>)  <span class="co">#make new variable to specify the county</span></a>
+<a class="sourceLine" id="cb11-18" title="18"></a>
+<a class="sourceLine" id="cb11-19" title="19"></a>
+<a class="sourceLine" id="cb11-20" title="20"><span class="kw">head</span>(age_nordland_final)</a></code></pre></div>
 <pre><code>## # A tibble: 6 x 6
 ##   municip_name municip_numb year  age   main_occupation county  
 ##   &lt;chr&gt;               &lt;dbl&gt; &lt;chr&gt; &lt;chr&gt;           &lt;dbl&gt; &lt;chr&gt;   
@@ -639,42 +676,69 @@ summary {
 </div>
 <div id="merging-data" class="section level4">
 <h4><span class="header-section-number">0.3.1.4</span> Merging data</h4>
-<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb11-1" title="1">main&lt;-<span class="kw">rbind</span>(age_finnmark_final,age_troms_final,age_nordland_final)</a></code></pre></div>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb13-1" title="1">main&lt;-<span class="kw">rbind</span>(age_finnmark_final,age_troms_final,age_nordland_final)</a></code></pre></div>
 </div>
 </div>
 <div id="fishers---part-time-occupation" class="section level3">
 <h3><span class="header-section-number">0.3.2</span> Fishers - part time occupation</h3>
 <div id="finnmark-1" class="section level4">
 <h4><span class="header-section-number">0.3.2.1</span> Finnmark</h4>
-<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb12-1" title="1">age_finnmark_prep_<span class="dv">2</span> &lt;-<span class="st"> </span>age_finnmark_part <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb12-2" title="2"><span class="st">  </span>dplyr<span class="op">::</span><span class="kw">rename</span>(<span class="dt">municip_name =</span> ...<span class="dv">1</span>, </a>
-<a class="sourceLine" id="cb12-3" title="3">         <span class="dt">municip_numb =</span> ...<span class="dv">2</span>,</a>
-<a class="sourceLine" id="cb12-4" title="4">         <span class="dt">age =</span> ...<span class="dv">3</span>,</a>
-<a class="sourceLine" id="cb12-5" title="5">        <span class="st">&quot;2019&quot;</span> =<span class="st"> &quot;20191)&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb12-6" title="6"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">municip_name =</span> zoo<span class="op">::</span><span class="kw">na.locf</span>(municip_name)) <span class="op">%&gt;%</span><span class="st"> </span><span class="co"># fills in municipality name in NA columns </span></a>
-<a class="sourceLine" id="cb12-7" title="7"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">municip_numb =</span> zoo<span class="op">::</span><span class="kw">na.locf</span>(municip_numb)) <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb12-8" title="8"><span class="st">  </span><span class="kw">filter</span>(<span class="op">!</span><span class="kw">str_detect</span>(.<span class="op">$</span>municip_name,</a>
-<a class="sourceLine" id="cb12-9" title="9">                    <span class="dt">pattern =</span> <span class="st">&quot;^Total.&quot;</span> ))<span class="op">%&gt;%</span><span class="st">  </span><span class="co">#Remove rows that show total no of fishers</span></a>
-<a class="sourceLine" id="cb12-10" title="10"><span class="st">  </span><span class="kw">gather</span>(<span class="dt">key =</span> year, <span class="dt">value=</span> count, <span class="op">-</span>municip_name, <span class="op">-</span>municip_numb, <span class="op">-</span>age) <span class="co">#reshape format of table</span></a>
-<a class="sourceLine" id="cb12-11" title="11"></a>
-<a class="sourceLine" id="cb12-12" title="12">age_finnmark_prep_<span class="dv">2</span>[<span class="kw">is.na</span>(age_finnmark_prep_<span class="dv">2</span>)] &lt;-<span class="st"> </span><span class="dv">0</span> <span class="co">#replace NA values with zero. NA values are zero in all cases except where municipalities merged/changed                                                 #names, which will be fixed in the following</span></a>
-<a class="sourceLine" id="cb12-13" title="13"></a>
-<a class="sourceLine" id="cb12-14" title="14">Hammerfest_old&lt;-<span class="kw">filter</span>(age_finnmark_prep_<span class="dv">2</span>, municip_numb <span class="op">==</span><span class="st"> &quot;2001&quot;</span>)</a>
-<a class="sourceLine" id="cb12-15" title="15">Soroysund&lt;-<span class="kw">filter</span>(age_finnmark_prep_<span class="dv">2</span>, municip_numb <span class="op">==</span><span class="st"> &quot;2016&quot;</span>)</a>
-<a class="sourceLine" id="cb12-16" title="16"></a>
-<a class="sourceLine" id="cb12-17" title="17">Hammerfest_new&lt;-<span class="kw">filter</span>(age_finnmark_prep_<span class="dv">2</span>, municip_numb <span class="op">==</span><span class="st"> &quot;2004&quot;</span>) </a>
-<a class="sourceLine" id="cb12-18" title="18"></a>
-<a class="sourceLine" id="cb12-19" title="19">Hammerfest_df&lt;-<span class="kw">mutate</span>(Hammerfest_new, <span class="dt">count =</span> Hammerfest_old<span class="op">$</span>count<span class="op">+</span>Hammerfest_new<span class="op">$</span>count <span class="op">+</span><span class="st"> </span>Soroysund<span class="op">$</span>count) <span class="co">#pooling merged municipalities</span></a>
-<a class="sourceLine" id="cb12-20" title="20"></a>
-<a class="sourceLine" id="cb12-21" title="21">age_finnmark_part_final&lt;-<span class="kw">left_join</span>(age_finnmark_prep_<span class="dv">2</span>, Hammerfest_df, <span class="dt">by =</span><span class="kw">c</span>(<span class="st">&quot;municip_numb&quot;</span>,<span class="st">&quot;age&quot;</span>,<span class="st">&quot;year&quot;</span>)) <span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb12-22" title="22"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">part_time_occupation =</span> <span class="kw">ifelse</span>(municip_numb <span class="op">==</span><span class="st"> &quot;2004&quot;</span>, count.y, count.x)) <span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb12-23" title="23"><span class="st">  </span><span class="kw">select</span>(<span class="op">-</span><span class="kw">c</span>(count.x, count.y,municip_name.y))<span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb12-24" title="24"><span class="st">  </span>dplyr<span class="op">::</span><span class="kw">rename</span>(<span class="dt">municip_name =</span> municip_name.x)<span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb12-25" title="25"><span class="st">  </span><span class="kw">filter</span>(<span class="op">!</span>municip_numb <span class="op">%in%</span><span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;2016&quot;</span>, <span class="st">&quot;2001&quot;</span>, <span class="st">&quot;2099&quot;</span>))<span class="op">%&gt;%</span><span class="st"> </span><span class="co">#remove Sørøysund 2016, Hammerfest 2001 and uoppgitt kommune 2099</span></a>
-<a class="sourceLine" id="cb12-26" title="26"><span class="st">  </span><span class="kw">complete</span>(<span class="kw">nesting</span>(municip_name, municip_numb,year), age, <span class="dt">fill =</span> <span class="kw">list</span>(<span class="dt">part_time_occupation =</span> <span class="dv">0</span>))<span class="op">%&gt;%</span><span class="st"> </span><span class="co"># add rows for age not included</span></a>
-<a class="sourceLine" id="cb12-27" title="27"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">county =</span> <span class="st">&quot;Finnmark&quot;</span>)</a>
-<a class="sourceLine" id="cb12-28" title="28"></a>
-<a class="sourceLine" id="cb12-29" title="29"><span class="kw">head</span>(age_finnmark_part_final)</a></code></pre></div>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb14-1" title="1">age_finnmark_prep_<span class="dv">2</span> &lt;-<span class="st"> </span>age_finnmark_part <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb14-2" title="2"><span class="st">  </span>dplyr<span class="op">::</span><span class="kw">rename</span>(<span class="dt">municip_name =</span> ...<span class="dv">1</span>, </a>
+<a class="sourceLine" id="cb14-3" title="3">         <span class="dt">municip_numb =</span> ...<span class="dv">2</span>,</a>
+<a class="sourceLine" id="cb14-4" title="4">         <span class="dt">age =</span> ...<span class="dv">3</span>,</a>
+<a class="sourceLine" id="cb14-5" title="5">        <span class="st">&quot;2019&quot;</span> =<span class="st"> &quot;20191)&quot;</span>) <span class="op">%&gt;%</span><span class="st">                      </span><span class="co">#Rename headers</span></a>
+<a class="sourceLine" id="cb14-6" title="6"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">municip_name =</span> </a>
+<a class="sourceLine" id="cb14-7" title="7">           zoo<span class="op">::</span><span class="kw">na.locf</span>(municip_name)) <span class="op">%&gt;%</span><span class="st">            </span><span class="co"># fills in municipality name in NA columns </span></a>
+<a class="sourceLine" id="cb14-8" title="8"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">municip_numb =</span> </a>
+<a class="sourceLine" id="cb14-9" title="9">           zoo<span class="op">::</span><span class="kw">na.locf</span>(municip_numb)) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb14-10" title="10"><span class="st">  </span><span class="kw">filter</span>(<span class="op">!</span><span class="kw">str_detect</span>(.<span class="op">$</span>municip_name,</a>
+<a class="sourceLine" id="cb14-11" title="11">                    <span class="dt">pattern =</span> <span class="st">&quot;^Total.&quot;</span> ))<span class="op">%&gt;%</span><span class="st">  </span><span class="co">#Remove rows that show total no of fishers</span></a>
+<a class="sourceLine" id="cb14-12" title="12"><span class="st">  </span><span class="kw">gather</span>(<span class="dt">key =</span> year, </a>
+<a class="sourceLine" id="cb14-13" title="13">         <span class="dt">value=</span> count, </a>
+<a class="sourceLine" id="cb14-14" title="14">         <span class="op">-</span>municip_name, </a>
+<a class="sourceLine" id="cb14-15" title="15">         <span class="op">-</span>municip_numb, </a>
+<a class="sourceLine" id="cb14-16" title="16">         <span class="op">-</span>age)                                 <span class="co">#reshape format of table</span></a>
+<a class="sourceLine" id="cb14-17" title="17"></a>
+<a class="sourceLine" id="cb14-18" title="18"><span class="co">#replace NA values with zero. NA values are zero in all cases except where municipalities merged/changed                                      </span></a>
+<a class="sourceLine" id="cb14-19" title="19">age_finnmark_prep_<span class="dv">2</span>[<span class="kw">is.na</span>(age_finnmark_prep_<span class="dv">2</span>)] &lt;-<span class="st"> </span><span class="dv">0</span> </a>
+<a class="sourceLine" id="cb14-20" title="20"></a>
+<a class="sourceLine" id="cb14-21" title="21"><span class="co"># Filter out municipalities involved in merger.Hammerfest municipality expanded in 1992 to include Sørøysund. </span></a>
+<a class="sourceLine" id="cb14-22" title="22"><span class="co"># Hammerfests municipality number prior to 1992 was 2001 and in 1992 it became 2004</span></a>
+<a class="sourceLine" id="cb14-23" title="23">Hammerfest_old&lt;-<span class="kw">filter</span>(age_finnmark_prep_<span class="dv">2</span>, </a>
+<a class="sourceLine" id="cb14-24" title="24">                       municip_numb <span class="op">==</span><span class="st"> &quot;2001&quot;</span></a>
+<a class="sourceLine" id="cb14-25" title="25">                       )</a>
+<a class="sourceLine" id="cb14-26" title="26"></a>
+<a class="sourceLine" id="cb14-27" title="27">Soroysund&lt;-<span class="kw">filter</span>(age_finnmark_prep_<span class="dv">2</span>, </a>
+<a class="sourceLine" id="cb14-28" title="28">                  municip_numb <span class="op">==</span><span class="st"> &quot;2016&quot;</span></a>
+<a class="sourceLine" id="cb14-29" title="29">                  )</a>
+<a class="sourceLine" id="cb14-30" title="30"></a>
+<a class="sourceLine" id="cb14-31" title="31">Hammerfest_new&lt;-<span class="kw">filter</span>(age_finnmark_prep_<span class="dv">2</span>, </a>
+<a class="sourceLine" id="cb14-32" title="32">                       municip_numb <span class="op">==</span><span class="st"> &quot;2004&quot;</span></a>
+<a class="sourceLine" id="cb14-33" title="33">                       ) </a>
+<a class="sourceLine" id="cb14-34" title="34"></a>
+<a class="sourceLine" id="cb14-35" title="35"><span class="co"># make new variable where all fishers from both sorøysund and hammerfest are included </span></a>
+<a class="sourceLine" id="cb14-36" title="36">Hammerfest_df&lt;-<span class="kw">mutate</span>(Hammerfest_new, </a>
+<a class="sourceLine" id="cb14-37" title="37">                      <span class="dt">count =</span> Hammerfest_old<span class="op">$</span>count<span class="op">+</span>Hammerfest_new<span class="op">$</span>count <span class="op">+</span><span class="st"> </span>Soroysund<span class="op">$</span>count) </a>
+<a class="sourceLine" id="cb14-38" title="38"></a>
+<a class="sourceLine" id="cb14-39" title="39"><span class="co"># make final file with updated numbers for fishers in Hammerfest/Sorøysund</span></a>
+<a class="sourceLine" id="cb14-40" title="40">age_finnmark_part_final&lt;-<span class="kw">left_join</span>(age_finnmark_prep_<span class="dv">2</span>, Hammerfest_df, </a>
+<a class="sourceLine" id="cb14-41" title="41">                                   <span class="dt">by =</span><span class="kw">c</span>(<span class="st">&quot;municip_numb&quot;</span>,<span class="st">&quot;age&quot;</span>,<span class="st">&quot;year&quot;</span>)) <span class="op">%&gt;%</span><span class="st">   </span><span class="co">#join hammerfest.df with main data frame</span></a>
+<a class="sourceLine" id="cb14-42" title="42"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">part_time_occupation =</span> <span class="kw">ifelse</span>(municip_numb <span class="op">==</span><span class="st"> &quot;2004&quot;</span>, count.y, count.x)) <span class="op">%&gt;%</span><span class="st"> </span><span class="co">#return count.y when Hammerfest = 2004 &amp; count.x when not</span></a>
+<a class="sourceLine" id="cb14-43" title="43"><span class="st">  </span><span class="kw">select</span>(<span class="op">-</span><span class="kw">c</span>(count.x, </a>
+<a class="sourceLine" id="cb14-44" title="44">            count.y,</a>
+<a class="sourceLine" id="cb14-45" title="45">            municip_name.y)) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb14-46" title="46"><span class="st">  </span>dplyr<span class="op">::</span><span class="kw">rename</span>(<span class="dt">municip_name =</span> municip_name.x) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb14-47" title="47"><span class="st">  </span><span class="kw">filter</span>(<span class="op">!</span>municip_numb <span class="op">%in%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb14-48" title="48"><span class="st">           </span><span class="kw">c</span>(<span class="st">&quot;2016&quot;</span>, <span class="st">&quot;2001&quot;</span>, <span class="st">&quot;2099&quot;</span>))<span class="op">%&gt;%</span><span class="st"> </span><span class="co">#remove Sørøysund 2016, Hammerfest 2001 and uoppgitt kommune 2099</span></a>
+<a class="sourceLine" id="cb14-49" title="49"><span class="st">  </span><span class="kw">complete</span>(<span class="kw">nesting</span>(municip_name, </a>
+<a class="sourceLine" id="cb14-50" title="50">                   municip_numb,</a>
+<a class="sourceLine" id="cb14-51" title="51">                   year), </a>
+<a class="sourceLine" id="cb14-52" title="52">           age, </a>
+<a class="sourceLine" id="cb14-53" title="53">           <span class="dt">fill =</span> <span class="kw">list</span>(<span class="dt">part_time_occupation =</span> <span class="dv">0</span>))<span class="op">%&gt;%</span><span class="st">  </span><span class="co">#add rows for age not already included to complete dataset</span></a>
+<a class="sourceLine" id="cb14-54" title="54"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">county =</span> <span class="st">&quot;Finnmark&quot;</span>)                         <span class="co">#make new variable to specify the county</span></a>
+<a class="sourceLine" id="cb14-55" title="55"></a>
+<a class="sourceLine" id="cb14-56" title="56"><span class="kw">head</span>(age_finnmark_part_final)</a></code></pre></div>
 <pre><code>## # A tibble: 6 x 6
 ##   municip_name municip_numb year  age   part_time_occupation county  
 ##   &lt;chr&gt;               &lt;dbl&gt; &lt;chr&gt; &lt;chr&gt;                &lt;dbl&gt; &lt;chr&gt;   
@@ -687,33 +751,61 @@ summary {
 </div>
 <div id="troms-1" class="section level4">
 <h4><span class="header-section-number">0.3.2.2</span> Troms</h4>
-<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb14-1" title="1">age_troms_prep_<span class="dv">2</span> &lt;-<span class="st"> </span>age_troms_part <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb14-2" title="2"><span class="st">  </span>dplyr<span class="op">::</span><span class="kw">rename</span>(<span class="dt">municip_name =</span> ...<span class="dv">1</span>, </a>
-<a class="sourceLine" id="cb14-3" title="3">         <span class="dt">municip_numb =</span> ...<span class="dv">2</span>,</a>
-<a class="sourceLine" id="cb14-4" title="4">         <span class="dt">age =</span> ...<span class="dv">3</span>,</a>
-<a class="sourceLine" id="cb14-5" title="5">        <span class="st">&quot;2019&quot;</span> =<span class="st"> &quot;20191)&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb14-6" title="6"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">municip_name =</span> zoo<span class="op">::</span><span class="kw">na.locf</span>(municip_name)) <span class="op">%&gt;%</span><span class="st"> </span><span class="co"># fills in municipality name in NA columns </span></a>
-<a class="sourceLine" id="cb14-7" title="7"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">municip_numb =</span> zoo<span class="op">::</span><span class="kw">na.locf</span>(municip_numb)) <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb14-8" title="8"><span class="st">  </span><span class="kw">filter</span>(<span class="op">!</span><span class="kw">str_detect</span>(.<span class="op">$</span>municip_name,</a>
-<a class="sourceLine" id="cb14-9" title="9">                    <span class="dt">pattern =</span> <span class="st">&quot;^Total.&quot;</span> ))<span class="op">%&gt;%</span><span class="st">  </span><span class="co">#Remove rows that show total no of fishers</span></a>
-<a class="sourceLine" id="cb14-10" title="10"><span class="st">  </span><span class="kw">gather</span>(<span class="dt">key =</span> year, <span class="dt">value=</span> count, <span class="op">-</span>municip_name, <span class="op">-</span>municip_numb, <span class="op">-</span>age) <span class="co">#reshape format of table</span></a>
-<a class="sourceLine" id="cb14-11" title="11"></a>
-<a class="sourceLine" id="cb14-12" title="12">age_troms_prep_<span class="dv">2</span>[<span class="kw">is.na</span>(age_troms_prep_<span class="dv">2</span>)] &lt;-<span class="st"> </span><span class="dv">0</span> <span class="co">#replace NA values with zero. </span></a>
-<a class="sourceLine" id="cb14-13" title="13">Harstad_old&lt;-<span class="kw">filter</span>(age_troms_prep_<span class="dv">2</span>, municip_numb <span class="op">==</span><span class="st"> &quot;1901&quot;</span>)</a>
-<a class="sourceLine" id="cb14-14" title="14">Bjarkoy&lt;-<span class="kw">filter</span>(age_troms_prep_<span class="dv">2</span>, municip_numb <span class="op">==</span><span class="st"> &quot;1915&quot;</span>)</a>
-<a class="sourceLine" id="cb14-15" title="15">Harstad_new&lt;-<span class="kw">filter</span>(age_troms_prep_<span class="dv">2</span>, municip_numb <span class="op">==</span><span class="st"> &quot;1903&quot;</span>) </a>
-<a class="sourceLine" id="cb14-16" title="16"></a>
-<a class="sourceLine" id="cb14-17" title="17">Harstad_df&lt;-<span class="kw">mutate</span>(Harstad_new, <span class="dt">count =</span> Harstad_old<span class="op">$</span>count<span class="op">+</span>Harstad_new<span class="op">$</span>count <span class="op">+</span><span class="st"> </span>Bjarkoy<span class="op">$</span>count) <span class="co">#pooling merged municipalities</span></a>
-<a class="sourceLine" id="cb14-18" title="18"></a>
-<a class="sourceLine" id="cb14-19" title="19">age_troms_part_final&lt;-<span class="kw">left_join</span>(age_troms_prep_<span class="dv">2</span>, Harstad_df, <span class="dt">by =</span><span class="kw">c</span>(<span class="st">&quot;municip_numb&quot;</span>,<span class="st">&quot;age&quot;</span>,<span class="st">&quot;year&quot;</span>))<span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb14-20" title="20"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">part_time_occupation =</span> <span class="kw">ifelse</span>(municip_numb <span class="op">==</span><span class="st"> &quot;1903&quot;</span>, count.y, count.x)) <span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb14-21" title="21"><span class="st">  </span><span class="kw">select</span>(<span class="op">-</span><span class="kw">c</span>(count.x, count.y,municip_name.y))<span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb14-22" title="22"><span class="st">  </span>dplyr<span class="op">::</span><span class="kw">rename</span>(<span class="dt">municip_name =</span> municip_name.x)<span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb14-23" title="23"><span class="st">  </span><span class="kw">filter</span>(<span class="op">!</span>municip_numb <span class="op">%in%</span><span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;1915&quot;</span>, <span class="st">&quot;1901&quot;</span>))<span class="op">%&gt;%</span><span class="st"> </span><span class="co">#remove Bjarkøy 1915, Harstad 1901</span></a>
-<a class="sourceLine" id="cb14-24" title="24"><span class="st">  </span><span class="kw">complete</span>(<span class="kw">nesting</span>(municip_name, municip_numb,year), age, <span class="dt">fill =</span> <span class="kw">list</span>(<span class="dt">part_time_occupation =</span> <span class="dv">0</span>))<span class="op">%&gt;%</span><span class="co"># add rows for age not included</span></a>
-<a class="sourceLine" id="cb14-25" title="25"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">county =</span> <span class="st">&quot;Troms&quot;</span>)</a>
-<a class="sourceLine" id="cb14-26" title="26"></a>
-<a class="sourceLine" id="cb14-27" title="27"><span class="kw">head</span>(age_troms_part_final)</a></code></pre></div>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb16-1" title="1">age_troms_prep_<span class="dv">2</span> &lt;-<span class="st"> </span>age_troms_part <span class="op">%&gt;%</span><span class="st"> </span><span class="co"># Rename header</span></a>
+<a class="sourceLine" id="cb16-2" title="2"><span class="st">  </span>dplyr<span class="op">::</span><span class="kw">rename</span>(<span class="dt">municip_name =</span> ...<span class="dv">1</span>, </a>
+<a class="sourceLine" id="cb16-3" title="3">         <span class="dt">municip_numb =</span> ...<span class="dv">2</span>,</a>
+<a class="sourceLine" id="cb16-4" title="4">         <span class="dt">age =</span> ...<span class="dv">3</span>,</a>
+<a class="sourceLine" id="cb16-5" title="5">        <span class="st">&quot;2019&quot;</span> =<span class="st"> &quot;20191)&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb16-6" title="6"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">municip_name =</span> </a>
+<a class="sourceLine" id="cb16-7" title="7">           zoo<span class="op">::</span><span class="kw">na.locf</span>(municip_name)) <span class="op">%&gt;%</span><span class="st"> </span><span class="co"># fills in municipality name in NA columns </span></a>
+<a class="sourceLine" id="cb16-8" title="8"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">municip_numb =</span> </a>
+<a class="sourceLine" id="cb16-9" title="9">           zoo<span class="op">::</span><span class="kw">na.locf</span>(municip_numb)) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb16-10" title="10"><span class="st">  </span><span class="kw">filter</span>(<span class="op">!</span><span class="kw">str_detect</span>(.<span class="op">$</span>municip_name,</a>
+<a class="sourceLine" id="cb16-11" title="11">                    <span class="dt">pattern =</span> <span class="st">&quot;^Total.&quot;</span> ))<span class="op">%&gt;%</span><span class="st">  </span><span class="co">#Remove rows that show total no of fishers</span></a>
+<a class="sourceLine" id="cb16-12" title="12"><span class="st">  </span><span class="kw">gather</span>(<span class="dt">key =</span> year, </a>
+<a class="sourceLine" id="cb16-13" title="13">         <span class="dt">value=</span> count, </a>
+<a class="sourceLine" id="cb16-14" title="14">         <span class="op">-</span>municip_name, </a>
+<a class="sourceLine" id="cb16-15" title="15">         <span class="op">-</span>municip_numb, </a>
+<a class="sourceLine" id="cb16-16" title="16">         <span class="op">-</span>age)                             <span class="co">#reshape format of table</span></a>
+<a class="sourceLine" id="cb16-17" title="17"></a>
+<a class="sourceLine" id="cb16-18" title="18"><span class="co">#replace NA values with zero. NA values are zero in all cases except where municipalities merged/changed </span></a>
+<a class="sourceLine" id="cb16-19" title="19">age_troms_prep_<span class="dv">2</span>[<span class="kw">is.na</span>(age_troms_prep_<span class="dv">2</span>)] &lt;-<span class="st"> </span><span class="dv">0</span> </a>
+<a class="sourceLine" id="cb16-20" title="20"></a>
+<a class="sourceLine" id="cb16-21" title="21"><span class="co"># Filter out municipalities involved in merger.Harstad municipality expanded in 2013 to include Bjarkøy. The municipality number prior to 2013 was 1901 and in 2013 it became 1903.</span></a>
+<a class="sourceLine" id="cb16-22" title="22">Harstad_old&lt;-<span class="kw">filter</span>(age_troms_prep_<span class="dv">2</span>, </a>
+<a class="sourceLine" id="cb16-23" title="23">                    municip_numb <span class="op">==</span><span class="st"> &quot;1901&quot;</span></a>
+<a class="sourceLine" id="cb16-24" title="24">                    )</a>
+<a class="sourceLine" id="cb16-25" title="25"></a>
+<a class="sourceLine" id="cb16-26" title="26">Bjarkoy&lt;-<span class="kw">filter</span>(age_troms_prep_<span class="dv">2</span>, </a>
+<a class="sourceLine" id="cb16-27" title="27">                municip_numb <span class="op">==</span><span class="st"> &quot;1915&quot;</span></a>
+<a class="sourceLine" id="cb16-28" title="28">                )</a>
+<a class="sourceLine" id="cb16-29" title="29"></a>
+<a class="sourceLine" id="cb16-30" title="30">Harstad_new&lt;-<span class="kw">filter</span>(age_troms_prep_<span class="dv">2</span>, </a>
+<a class="sourceLine" id="cb16-31" title="31">                    municip_numb <span class="op">==</span><span class="st"> &quot;1903&quot;</span></a>
+<a class="sourceLine" id="cb16-32" title="32">                    ) </a>
+<a class="sourceLine" id="cb16-33" title="33"><span class="co"># make new variable where all fishers from both Bjarkoy and Harstad are included </span></a>
+<a class="sourceLine" id="cb16-34" title="34">Harstad_df&lt;-<span class="kw">mutate</span>(Harstad_new, </a>
+<a class="sourceLine" id="cb16-35" title="35">                   <span class="dt">count =</span> Harstad_old<span class="op">$</span>count<span class="op">+</span>Harstad_new<span class="op">$</span>count <span class="op">+</span><span class="st"> </span>Bjarkoy<span class="op">$</span>count) </a>
+<a class="sourceLine" id="cb16-36" title="36"></a>
+<a class="sourceLine" id="cb16-37" title="37"><span class="co"># make final file with updated numbers for fishers in Bjarkøy/Harstad</span></a>
+<a class="sourceLine" id="cb16-38" title="38">age_troms_part_final&lt;-<span class="kw">left_join</span>(age_troms_prep_<span class="dv">2</span>, </a>
+<a class="sourceLine" id="cb16-39" title="39">                                Harstad_df, </a>
+<a class="sourceLine" id="cb16-40" title="40">                                <span class="dt">by =</span><span class="kw">c</span>(<span class="st">&quot;municip_numb&quot;</span>,<span class="st">&quot;age&quot;</span>,<span class="st">&quot;year&quot;</span>)) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb16-41" title="41"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">part_time_occupation =</span> <span class="kw">ifelse</span>(municip_numb <span class="op">==</span><span class="st"> &quot;1903&quot;</span>, count.y, count.x)) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb16-42" title="42"><span class="st">  </span><span class="kw">select</span>(<span class="op">-</span><span class="kw">c</span>(count.x, </a>
+<a class="sourceLine" id="cb16-43" title="43">            count.y,</a>
+<a class="sourceLine" id="cb16-44" title="44">            municip_name.y)) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb16-45" title="45"><span class="st">  </span>dplyr<span class="op">::</span><span class="kw">rename</span>(<span class="dt">municip_name =</span> municip_name.x) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb16-46" title="46"><span class="st">  </span><span class="kw">filter</span>(<span class="op">!</span>municip_numb <span class="op">%in%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb16-47" title="47"><span class="st">           </span><span class="kw">c</span>(<span class="st">&quot;1915&quot;</span>, <span class="st">&quot;1901&quot;</span>)) <span class="op">%&gt;%</span><span class="st">                      </span><span class="co">#remove Bjarkøy 1915, Harstad 1901</span></a>
+<a class="sourceLine" id="cb16-48" title="48"><span class="st">  </span><span class="kw">complete</span>(<span class="kw">nesting</span>(municip_name, </a>
+<a class="sourceLine" id="cb16-49" title="49">                   municip_numb,</a>
+<a class="sourceLine" id="cb16-50" title="50">                   year), </a>
+<a class="sourceLine" id="cb16-51" title="51">           age, </a>
+<a class="sourceLine" id="cb16-52" title="52">           <span class="dt">fill =</span> <span class="kw">list</span>(<span class="dt">part_time_occupation =</span> <span class="dv">0</span>))<span class="op">%&gt;%</span><span class="st">   </span><span class="co"># add rows for age not included</span></a>
+<a class="sourceLine" id="cb16-53" title="53"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">county =</span> <span class="st">&quot;Troms&quot;</span>) </a>
+<a class="sourceLine" id="cb16-54" title="54"></a>
+<a class="sourceLine" id="cb16-55" title="55"><span class="kw">head</span>(age_troms_part_final)</a></code></pre></div>
 <pre><code>## # A tibble: 6 x 6
 ##   municip_name municip_numb year  age   part_time_occupation county
 ##   &lt;chr&gt;               &lt;dbl&gt; &lt;chr&gt; &lt;chr&gt;                &lt;dbl&gt; &lt;chr&gt; 
@@ -726,25 +818,60 @@ summary {
 </div>
 <div id="nordland-1" class="section level4">
 <h4><span class="header-section-number">0.3.2.3</span> Nordland</h4>
-<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb16-1" title="1">age_nordland_prep_<span class="dv">2</span> &lt;-<span class="st"> </span>age_nordland_part <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb16-2" title="2"><span class="st">  </span>dplyr<span class="op">::</span><span class="kw">rename</span>(<span class="dt">municip_name =</span> ...<span class="dv">1</span>, </a>
-<a class="sourceLine" id="cb16-3" title="3">         <span class="dt">municip_numb =</span> ...<span class="dv">2</span>,</a>
-<a class="sourceLine" id="cb16-4" title="4">         <span class="dt">age =</span> ...<span class="dv">3</span>,</a>
-<a class="sourceLine" id="cb16-5" title="5">        <span class="st">&quot;2019&quot;</span> =<span class="st"> &quot;20191)&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb16-6" title="6"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">municip_name =</span> zoo<span class="op">::</span><span class="kw">na.locf</span>(municip_name)) <span class="op">%&gt;%</span><span class="st"> </span><span class="co"># fills in municipality name in NA columns </span></a>
-<a class="sourceLine" id="cb16-7" title="7"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">municip_numb =</span> zoo<span class="op">::</span><span class="kw">na.locf</span>(municip_numb)) <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb16-8" title="8"><span class="st">  </span><span class="kw">filter</span>(<span class="op">!</span><span class="kw">str_detect</span>(.<span class="op">$</span>municip_name,</a>
-<a class="sourceLine" id="cb16-9" title="9">                    <span class="dt">pattern =</span> <span class="st">&quot;^Total.&quot;</span> ))<span class="op">%&gt;%</span><span class="st">  </span><span class="co">#Remove rows that show total no of fishers</span></a>
-<a class="sourceLine" id="cb16-10" title="10"><span class="st">  </span><span class="kw">gather</span>(<span class="dt">key =</span> year, <span class="dt">value=</span> count, <span class="op">-</span>municip_name, <span class="op">-</span>municip_numb, <span class="op">-</span>age) <span class="co">#reshape format of table</span></a>
-<a class="sourceLine" id="cb16-11" title="11"></a>
-<a class="sourceLine" id="cb16-12" title="12">age_nordland_prep_<span class="dv">2</span>[<span class="kw">is.na</span>(age_nordland_prep_<span class="dv">2</span>)] &lt;-<span class="st"> </span><span class="dv">0</span> <span class="co">#replace NA values with zero. </span></a>
-<a class="sourceLine" id="cb16-13" title="13"></a>
-<a class="sourceLine" id="cb16-14" title="14">age_nordland_part_final&lt;-age_nordland_prep_<span class="dv">2</span><span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb16-15" title="15"><span class="st">  </span>dplyr<span class="op">::</span><span class="kw">rename</span>(<span class="dt">part_time_occupation =</span> count)<span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb16-16" title="16"><span class="st">  </span><span class="kw">complete</span>(<span class="kw">nesting</span>(municip_name, municip_numb,year), age, <span class="dt">fill =</span> <span class="kw">list</span>(<span class="dt">part_time_occupation =</span> <span class="dv">0</span>)) <span class="op">%&gt;%</span><span class="co"># add rows for age not included</span></a>
-<a class="sourceLine" id="cb16-17" title="17"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">county =</span> <span class="st">&quot;Nordland&quot;</span>) <span class="co">#add variable county</span></a>
-<a class="sourceLine" id="cb16-18" title="18"></a>
-<a class="sourceLine" id="cb16-19" title="19"><span class="kw">head</span>(age_nordland_part_final)</a></code></pre></div>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb18-1" title="1">age_nordland_prep_<span class="dv">2</span> &lt;-<span class="st"> </span>age_nordland_part <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb18-2" title="2"><span class="st">  </span>dplyr<span class="op">::</span><span class="kw">rename</span>(<span class="dt">municip_name =</span> ...<span class="dv">1</span>, </a>
+<a class="sourceLine" id="cb18-3" title="3">         <span class="dt">municip_numb =</span> ...<span class="dv">2</span>,</a>
+<a class="sourceLine" id="cb18-4" title="4">         <span class="dt">age =</span> ...<span class="dv">3</span>,</a>
+<a class="sourceLine" id="cb18-5" title="5">        <span class="st">&quot;2019&quot;</span> =<span class="st"> &quot;20191)&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb18-6" title="6"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">municip_name =</span> </a>
+<a class="sourceLine" id="cb18-7" title="7">           zoo<span class="op">::</span><span class="kw">na.locf</span>(municip_name)) <span class="op">%&gt;%</span><span class="st">                  </span><span class="co"># fills in municipality name in NA columns </span></a>
+<a class="sourceLine" id="cb18-8" title="8"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">municip_numb =</span> </a>
+<a class="sourceLine" id="cb18-9" title="9">           zoo<span class="op">::</span><span class="kw">na.locf</span>(municip_numb)) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb18-10" title="10"><span class="st">  </span><span class="kw">filter</span>(<span class="op">!</span><span class="kw">str_detect</span>(.<span class="op">$</span>municip_name,</a>
+<a class="sourceLine" id="cb18-11" title="11">                    <span class="dt">pattern =</span> <span class="st">&quot;^Total.&quot;</span> ))<span class="op">%&gt;%</span><span class="st">                </span><span class="co">#Remove rows that show total no of fishers</span></a>
+<a class="sourceLine" id="cb18-12" title="12"><span class="st">  </span><span class="kw">gather</span>(<span class="dt">key =</span> year, </a>
+<a class="sourceLine" id="cb18-13" title="13">         <span class="dt">value=</span> count, </a>
+<a class="sourceLine" id="cb18-14" title="14">         <span class="op">-</span>municip_name, </a>
+<a class="sourceLine" id="cb18-15" title="15">         <span class="op">-</span>municip_numb, </a>
+<a class="sourceLine" id="cb18-16" title="16">         <span class="op">-</span>age)                                               <span class="co">#reshape format of table</span></a>
+<a class="sourceLine" id="cb18-17" title="17"></a>
+<a class="sourceLine" id="cb18-18" title="18"><span class="co">#replace NA values with zero. NA values are zero in all cases except where municipalities merged/changed</span></a>
+<a class="sourceLine" id="cb18-19" title="19">age_nordland_prep_<span class="dv">2</span>[<span class="kw">is.na</span>(age_nordland_prep_<span class="dv">2</span>)] &lt;-<span class="st"> </span><span class="dv">0</span>   </a>
+<a class="sourceLine" id="cb18-20" title="20"></a>
+<a class="sourceLine" id="cb18-21" title="21"><span class="co"># Filter out municipalities involved in merger.Bodø municipality expanded in 2005 to include Skjerstad. </span></a>
+<a class="sourceLine" id="cb18-22" title="22"><span class="co"># Bodøs municipality number was 1804 both before and after merger. Skjerstads municipality number was 1842</span></a>
+<a class="sourceLine" id="cb18-23" title="23">Bodo_old&lt;-<span class="kw">filter</span>(</a>
+<a class="sourceLine" id="cb18-24" title="24">  age_nordland_prep_<span class="dv">2</span>, </a>
+<a class="sourceLine" id="cb18-25" title="25">  municip_numb <span class="op">==</span><span class="st"> &quot;1804&quot;</span></a>
+<a class="sourceLine" id="cb18-26" title="26">  )</a>
+<a class="sourceLine" id="cb18-27" title="27"></a>
+<a class="sourceLine" id="cb18-28" title="28">Skjerstad&lt;-<span class="kw">filter</span>(age_nordland_prep_<span class="dv">2</span>, </a>
+<a class="sourceLine" id="cb18-29" title="29">                  municip_numb <span class="op">==</span><span class="st"> &quot;1842&quot;</span></a>
+<a class="sourceLine" id="cb18-30" title="30">                  )</a>
+<a class="sourceLine" id="cb18-31" title="31"></a>
+<a class="sourceLine" id="cb18-32" title="32"><span class="co"># make new variable where all fishers from both Bodø and Skjerstad are included  </span></a>
+<a class="sourceLine" id="cb18-33" title="33">Bodo_df&lt;-<span class="kw">mutate</span>(Bodo_old,</a>
+<a class="sourceLine" id="cb18-34" title="34">                      <span class="dt">count =</span> Bodo_old<span class="op">$</span>count <span class="op">+</span><span class="st"> </span>Skjerstad<span class="op">$</span>count) </a></code></pre></div>
+<pre><code>## Warning in Bodo_old$count + Skjerstad$count: longer object length is not a
+## multiple of shorter object length</code></pre>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb20-1" title="1"><span class="co"># make final file with updated numbers for fishers in Bodo/Skjerstad</span></a>
+<a class="sourceLine" id="cb20-2" title="2">age_nordland_part_final&lt;-dplyr<span class="op">::</span><span class="kw">left_join</span>(age_nordland_prep_<span class="dv">2</span>, Bodo_df, </a>
+<a class="sourceLine" id="cb20-3" title="3">                              <span class="dt">by =</span><span class="kw">c</span>(<span class="st">&quot;municip_numb&quot;</span>,<span class="st">&quot;age&quot;</span>,<span class="st">&quot;year&quot;</span>)) <span class="op">%&gt;%</span><span class="st">  </span><span class="co">#join bodo.df with main data frame</span></a>
+<a class="sourceLine" id="cb20-4" title="4"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">part_time_occupation =</span> <span class="kw">ifelse</span>(municip_numb <span class="op">==</span><span class="st"> &quot;1804&quot;</span>, count.y, count.x)) <span class="op">%&gt;%</span><span class="st"> </span><span class="co">#return count.y for rows with Bodo 1804 &amp; count.x if not</span></a>
+<a class="sourceLine" id="cb20-5" title="5"><span class="st">  </span><span class="kw">select</span>(<span class="op">-</span><span class="kw">c</span>(count.x, </a>
+<a class="sourceLine" id="cb20-6" title="6">            count.y,</a>
+<a class="sourceLine" id="cb20-7" title="7">            municip_name.y)) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb20-8" title="8"><span class="st">  </span>dplyr<span class="op">::</span><span class="kw">rename</span>(<span class="dt">municip_name =</span> municip_name.x) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb20-9" title="9"><span class="st">  </span><span class="kw">filter</span>(<span class="op">!</span>municip_numb <span class="op">%in%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb20-10" title="10"><span class="st">           </span><span class="kw">c</span>(<span class="st">&quot;1842&quot;</span>)) <span class="op">%&gt;%</span><span class="st"> </span><span class="co">#remove skjerstad 1842</span></a>
+<a class="sourceLine" id="cb20-11" title="11"><span class="st">  </span><span class="kw">complete</span>(<span class="kw">nesting</span>(</a>
+<a class="sourceLine" id="cb20-12" title="12">    municip_name, </a>
+<a class="sourceLine" id="cb20-13" title="13">    municip_numb,</a>
+<a class="sourceLine" id="cb20-14" title="14">    year), </a>
+<a class="sourceLine" id="cb20-15" title="15">    age, </a>
+<a class="sourceLine" id="cb20-16" title="16">    <span class="dt">fill =</span> <span class="kw">list</span>(<span class="dt">part_time_occupation =</span> <span class="dv">0</span>)) <span class="op">%&gt;%</span><span class="st"> </span><span class="co"># add rows for age not already included to complete dataset</span></a>
+<a class="sourceLine" id="cb20-17" title="17"><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">county =</span> <span class="st">&quot;Nordland&quot;</span>)  <span class="co">#make new variable to specify the county</span></a>
+<a class="sourceLine" id="cb20-18" title="18"><span class="kw">head</span>(age_nordland_part_final)</a></code></pre></div>
 <pre><code>## # A tibble: 6 x 6
 ##   municip_name municip_numb year  age   part_time_occupation county  
 ##   &lt;chr&gt;               &lt;dbl&gt; &lt;chr&gt; &lt;chr&gt;                &lt;dbl&gt; &lt;chr&gt;   
@@ -757,9 +884,9 @@ summary {
 </div>
 <div id="merging-data-1" class="section level4">
 <h4><span class="header-section-number">0.3.2.4</span> Merging data</h4>
-<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb18-1" title="1">part_time&lt;-<span class="kw">rbind</span>(age_finnmark_part_final,age_troms_part_final,age_nordland_part_final)</a>
-<a class="sourceLine" id="cb18-2" title="2"></a>
-<a class="sourceLine" id="cb18-3" title="3"><span class="kw">head</span>(part_time)</a></code></pre></div>
+<div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb22-1" title="1">part_time&lt;-<span class="kw">rbind</span>(age_finnmark_part_final,age_troms_part_final,age_nordland_part_final)</a>
+<a class="sourceLine" id="cb22-2" title="2"></a>
+<a class="sourceLine" id="cb22-3" title="3"><span class="kw">head</span>(part_time)</a></code></pre></div>
 <pre><code>## # A tibble: 6 x 6
 ##   municip_name municip_numb year  age   part_time_occupation county  
 ##   &lt;chr&gt;               &lt;dbl&gt; &lt;chr&gt; &lt;chr&gt;                &lt;dbl&gt; &lt;chr&gt;   
@@ -769,31 +896,32 @@ summary {
 ## 4 Alta                 2012 1983  40-49                    4 Finnmark
 ## 5 Alta                 2012 1983  50-59                    9 Finnmark
 ## 6 Alta                 2012 1983  60-66                   11 Finnmark</code></pre>
-<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb20-1" title="1"><span class="co">#main and part-time files should have the same number of rows. Why not?</span></a>
-<a class="sourceLine" id="cb20-2" title="2"><span class="co">#d&lt;- anti_join(main, part_time, by=c(&quot;municip_numb&quot;, &quot;year&quot;, &quot;age&quot;)) #test if there are rows in main not included in part time</span></a>
-<a class="sourceLine" id="cb20-3" title="3"><span class="co">#e&lt;-anti_join(part_time,main, by=c(&quot;municip_numb&quot;, &quot;year&quot;, &quot;age&quot;)) #test if there are rows in part time not included in main</span></a>
-<a class="sourceLine" id="cb20-4" title="4"><span class="co">#looks like Bardu, Hattfjeldal and Grane are not in the part-time occupation file. </span></a>
-<a class="sourceLine" id="cb20-5" title="5"></a>
-<a class="sourceLine" id="cb20-6" title="6">fish&lt;-<span class="kw">full_join</span>(main, part_time, <span class="dt">by=</span><span class="kw">c</span>(<span class="st">&quot;municip_numb&quot;</span>, <span class="st">&quot;year&quot;</span>, <span class="st">&quot;age&quot;</span>))<span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb20-7" title="7"><span class="st">  </span><span class="kw">select</span>(<span class="op">-</span><span class="kw">c</span>(<span class="st">&quot;county.y&quot;</span>, <span class="st">&quot;municip_name.y&quot;</span>))<span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb20-8" title="8"><span class="st">  </span>dplyr<span class="op">::</span><span class="kw">rename</span>(<span class="dt">municip_name =</span> municip_name.x, </a>
-<a class="sourceLine" id="cb20-9" title="9">         <span class="dt">county =</span> county.x</a>
-<a class="sourceLine" id="cb20-10" title="10">         )</a>
-<a class="sourceLine" id="cb20-11" title="11"></a>
-<a class="sourceLine" id="cb20-12" title="12">fish&lt;-fish[,<span class="kw">c</span>(<span class="dv">6</span>,<span class="dv">1</span><span class="op">:</span><span class="dv">5</span>,<span class="dv">7</span>)] <span class="co">#move county column first</span></a>
-<a class="sourceLine" id="cb20-13" title="13">fish[<span class="kw">is.na</span>(fish)] &lt;-<span class="st"> </span><span class="dv">0</span> <span class="co">#replace NA values with zero.</span></a>
-<a class="sourceLine" id="cb20-14" title="14"></a>
-<a class="sourceLine" id="cb20-15" title="15"><span class="co">#fish&lt;-fish%&gt;%</span></a>
-<a class="sourceLine" id="cb20-16" title="16"><span class="co">#  mutate_if(sapply(fish, is.character), as.factor) #change characters to factors</span></a>
-<a class="sourceLine" id="cb20-17" title="17"><span class="co">#fish$municip_numb&lt;-as.factor(fish$municip_numb) #change on numeric variable to factor</span></a>
-<a class="sourceLine" id="cb20-18" title="18"></a>
-<a class="sourceLine" id="cb20-19" title="19"><span class="co">#look at which municipalities are in main and not in study municipalities list</span></a>
-<a class="sourceLine" id="cb20-20" title="20"><span class="co">#f&lt;-anti_join(main, municip, by=c(&quot;municip_numb&quot;=&quot;Komnum&quot;))</span></a>
-<a class="sourceLine" id="cb20-21" title="21"><span class="co">#f$municip_numb&lt;-as.factor(f$municip_numb) #change on numeric variable to factor</span></a>
-<a class="sourceLine" id="cb20-22" title="22"><span class="co">#levels(f$municip_numb) #look which municipalities are not in study municipalities list</span></a>
-<a class="sourceLine" id="cb20-23" title="23">fish&lt;-fish<span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb20-24" title="24"><span class="st">  </span><span class="kw">filter</span>(<span class="op">!</span>municip_numb <span class="op">%in%</span><span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;1825&quot;</span>,<span class="st">&quot;1826&quot;</span>,<span class="st">&quot;1839&quot;</span>,<span class="st">&quot;1842&quot;</span>,<span class="st">&quot;1922&quot;</span>,<span class="st">&quot;2011&quot;</span>,<span class="st">&quot;2021&quot;</span>)) <span class="co">#remove municipalites not included in study muncipalities</span></a>
-<a class="sourceLine" id="cb20-25" title="25"><span class="co">#write.csv(fish, &quot;C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/data/number_age_parttime_fulltime_fishers.csv&quot;)</span></a></code></pre></div>
+<div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb24-1" title="1"><span class="co">#main and part-time files should have the same number of rows. Why not?</span></a>
+<a class="sourceLine" id="cb24-2" title="2"><span class="co">#d&lt;- anti_join(main, part_time, by=c(&quot;municip_numb&quot;, &quot;year&quot;, &quot;age&quot;)) #test if there are rows in main not included in part time</span></a>
+<a class="sourceLine" id="cb24-3" title="3"><span class="co">#e&lt;-anti_join(part_time,main, by=c(&quot;municip_numb&quot;, &quot;year&quot;, &quot;age&quot;)) #test if there are rows in part time not included in main</span></a>
+<a class="sourceLine" id="cb24-4" title="4"><span class="co">#looks like Bardu, Hattfjeldal and Grane are not in the part-time occupation file. </span></a>
+<a class="sourceLine" id="cb24-5" title="5"></a>
+<a class="sourceLine" id="cb24-6" title="6">fish&lt;-<span class="kw">full_join</span>(main, part_time, <span class="dt">by=</span><span class="kw">c</span>(<span class="st">&quot;municip_numb&quot;</span>, <span class="st">&quot;year&quot;</span>, <span class="st">&quot;age&quot;</span>))<span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb24-7" title="7"><span class="st">  </span><span class="kw">select</span>(<span class="op">-</span><span class="kw">c</span>(<span class="st">&quot;county.y&quot;</span>, <span class="st">&quot;municip_name.y&quot;</span>))<span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb24-8" title="8"><span class="st">  </span>dplyr<span class="op">::</span><span class="kw">rename</span>(<span class="dt">municip_name =</span> municip_name.x, </a>
+<a class="sourceLine" id="cb24-9" title="9">         <span class="dt">county =</span> county.x</a>
+<a class="sourceLine" id="cb24-10" title="10">         )</a>
+<a class="sourceLine" id="cb24-11" title="11"></a>
+<a class="sourceLine" id="cb24-12" title="12">fish&lt;-fish[,<span class="kw">c</span>(<span class="dv">6</span>,<span class="dv">1</span><span class="op">:</span><span class="dv">5</span>,<span class="dv">7</span>)] <span class="co">#move county column first</span></a>
+<a class="sourceLine" id="cb24-13" title="13">fish[<span class="kw">is.na</span>(fish)] &lt;-<span class="st"> </span><span class="dv">0</span> <span class="co">#replace NA values with zero.</span></a>
+<a class="sourceLine" id="cb24-14" title="14"></a>
+<a class="sourceLine" id="cb24-15" title="15"><span class="co">#fish&lt;-fish%&gt;%</span></a>
+<a class="sourceLine" id="cb24-16" title="16"><span class="co">#  mutate_if(sapply(fish, is.character), as.factor) #change characters to factors</span></a>
+<a class="sourceLine" id="cb24-17" title="17"><span class="co">#fish$municip_numb&lt;-as.factor(fish$municip_numb) #change on numeric variable to factor</span></a>
+<a class="sourceLine" id="cb24-18" title="18"></a>
+<a class="sourceLine" id="cb24-19" title="19"><span class="co">#look at which municipalities are in main and not in study municipalities list</span></a>
+<a class="sourceLine" id="cb24-20" title="20"><span class="co">#f&lt;-anti_join(main, municip, by=c(&quot;municip_numb&quot;=&quot;Komnum&quot;))</span></a>
+<a class="sourceLine" id="cb24-21" title="21"><span class="co">#f$municip_numb&lt;-as.factor(f$municip_numb) #change on numeric variable to factor</span></a>
+<a class="sourceLine" id="cb24-22" title="22"><span class="co">#levels(f$municip_numb) #look which municipalities are not in study municipalities list</span></a>
+<a class="sourceLine" id="cb24-23" title="23">fish&lt;-fish<span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb24-24" title="24"><span class="st">  </span><span class="kw">filter</span>(<span class="op">!</span>municip_numb <span class="op">%in%</span><span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;1825&quot;</span>,<span class="st">&quot;1826&quot;</span>,<span class="st">&quot;1839&quot;</span>, <span class="st">&quot;1922&quot;</span>,<span class="st">&quot;2011&quot;</span>,<span class="st">&quot;2021&quot;</span>)) <span class="co">#remove municipalites not included in study muncipalities</span></a>
+<a class="sourceLine" id="cb24-25" title="25"></a>
+<a class="sourceLine" id="cb24-26" title="26"><span class="co">#write.csv(fish, &quot;C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/data/number_age_parttime_fulltime_fishers.csv&quot;)</span></a></code></pre></div>
 </div>
 </div>
 </div>
