@@ -105,7 +105,7 @@ lady_final_2<-left_join(lady_final_1,
   mutate(female_fishers = 
            ifelse(municip_numb == "1903", 
                   female_fishers.y, 
-                  female_fishers.x)) %>% #return female_fishers.y for rows with Hammerfest 2004 & female_fishers.x if not
+                  female_fishers.x)) %>% #return female_fishers.y for rows with Harstad 1903 & female_fishers.x if not
   select(-c(female_fishers.y, 
             female_fishers.x, 
             county.y, 

@@ -33,6 +33,11 @@ vessels <-read_excel(file.path("C:/Users/sigrid.engen/github/nor-prep/prep/small
                        
 municip<-read.csv(file.path("C:/Users/sigrid.engen/github/nor-prep/prep/administrative/komlist.csv"), sep=";")
 ```
+## Notes about data
+```{r}
+## Note that the Average_age_fishing_vessels_by_lenght_2019_1980 contains a count of vessels for different lenghts but does not contain all ## vessels. Only those vessels where age was known (which is not all). Need another dataset for the number of vessels for different lenghts. 
+```
+
 ## Data cleaning
 ### Renaming, filtering & completing
 ```{r}
@@ -50,7 +55,7 @@ vessels_NN<- vessels %>%
                   year), 
            vessel_length,
            fill = list(number_of_vessels = 0)
-           ) %>%  # for each combination of muncipality number and year - add all 6 vessel lengths (use municipality number and not name as #there are more municipality numbers (n=87) than municipality names (n=85) because some municipalities changed numbers and not names in the #study period  
+           ) %>%  # for each combination of muncipality number and year - add all 6 vessel lengths (use municipality number and not name as there are more municipality numbers (n=87) than municipality names (n=85) because some municipalities changed numbers and not names in the study period  
   complete(nesting(municip_numb, 
                    vessel_length), 
            year, 
@@ -72,7 +77,7 @@ vessels_check<- vessels_NN %>%
 #levels(as.factor(vessels_NN$vessel_length))
 #levels(as.factor(vessels_NN$year))
 ```
-### Pool merged municipalites
+### Pool data for municipalites that merged during study period
 #### Hammerfest
 ```{r}
 # clean merged municipalities - i.e., remove old municip and transfer values to new muncip 
