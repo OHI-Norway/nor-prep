@@ -1,0 +1,342 @@
+---
+title: "Cleaning & plotting number of vessels"
+author: "Sigrid Engen"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    css: 'C:/Users/sigrid.engen/github/nor-prep/prep/templates/style.css'
+    toc: true
+    number_sections: true
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: 'C:/Users/sigrid.engen/github/nor-prep/prep/templates/norway_banner.html'
+  pdf_document:
+    toc: true
+
+---
+```{r, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning=FALSE)
+```
+
+## Load packages 
+```{r}
+library(tidyverse)
+library(readxl)
+library(plyr)
+```
+
+## Load data
+```{r}
+vessels_1<-read_excel(file.path("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/data/Vessels_by_length_2000_1980.xlsx"), skip=2)
+vessels_2<-read_excel(file.path("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/data/Vessels_by_length_2001_2019.xlsx"), skip=2, n_max=1861)
+
+munic<-read.csv(file.path("C:/Users/sigrid.engen/github/nor-prep/prep/administrative/komlist.csv"), sep=";")
+```
+## Data cleaning
+### Vessels 1980-2000
+```{r}
+vessels_1_a <- vessels_1 %>%
+  dplyr::rename(
+    year = År, 
+    county = FYLKE, 
+    municip_numb = KOMMUNENR, 
+    municipality = KOMMUNE, 
+    vessel_length = LENGDE, 
+    number_of_vessels = `ANTALL FARTØY`) %>%
+  filter(county %in% c("Finnmark", "Troms", "Nordland"))
+
+vessels_1_a$vessel_length <- revalue(vessels_1_a$vessel_length, c("0-9,99m" = "0to9.99m", "10-10,99m" = "10to10.99m", "11-14,99m" = "11to14.99m", "15-20,99m" = "15to20.99m", "21-27,99m" = "21to27.99m", "28 m og over" = "28_and_larger"))
+```
+### Vessels 2001-2019
+```{r}
+vessels_2_a <- vessels_2 %>%
+  dplyr::rename(vessel_length = ...1, 
+         municipality = ...2) %>%
+  mutate(vessel_length = 
+           zoo::na.locf(vessel_length)) %>%                                               #fills in length names in NA columns 
+  separate(municipality, c("municip_numb", "municipality"), sep = 4) %>%                  # separate municipality name and number in two columns
+  mutate(county = ifelse(municip_numb %in% 1800:1899, "Nordland",                         #add county variable
+                                     ifelse(municip_numb  %in% 1900:1999, "Troms",
+                                            ifelse(municip_numb  %in% 2000:2099, "Finnmark", "Missing"
+                                              )))) %>%
+  filter(county %in% c("Finnmark", "Troms", "Nordland")) %>%
+  gather(key = year, 
+         value= number_of_vessels, 
+         -municipality, 
+         -municip_numb, 
+         -county, 
+         -vessel_length)  %>%                  #reshape format of table
+  select(year, county, municip_numb, municipality, vessel_length, number_of_vessels) # reorder columns to match the other dataset
+
+vessels_2_a$municipality <- trimws(vessels_2_a$municipality)   #remove space at beginning of string
+  
+vessels_2_a$vessel_length <- revalue(vessels_2_a$vessel_length, c(   # revalue vessel length factor levels
+    "1. Under 10 meter største lengde" = "0to9.99m", 
+    "2. 10-10,99 meter største lengde" = "10to10.99m", 
+    "3. 11-14,99 meter største lengde" = "11to14.99m", 
+    "4. 15-20,99 meter største lengde" = "15to20.99m",  
+    "5. 21-27,99 meter største lengde" = "21to27.99m",  
+    "6. 28 meter største lengde og over" = "28_and_larger")) 
+    
+```
+### Merge the two datasets
+
+```{r}
+vessels <- rbind(vessels_1_a, vessels_2_a)
+```
+### Complete the dataset with rows missing
+```{r}
+#Check how many rows a dataset with all combinations of municipality * year * vessel length should have
+#levels(as.factor(vessels$municipality))
+#levels(as.factor(vessels$year))
+#levels(as.factor(vessels$vessel_length))
+# 85*6*40 = 20400
+
+#complete the dataset so that it includes all combinations of municipality * year * vessel length 
+
+vessels <- vessels %>%
+  complete(nesting(municipality, 
+                  municip_numb, 
+                  vessel_length, 
+                  county), 
+           year, 
+           fill = list(number_of_vessels = 0)) # add rows for year not included
+
+#check the number of entries for each combination of year, vessel length and municipality - should be equal but some duplicates are made by municipalities that merged during study period
+vessels_check<- vessels %>%
+ group_by(vessel_length, 
+         year) %>%
+ dplyr::summarise(count = n()) 
+
+```
+### Pool values from municipalities that merged during study period
+#### Hammerfest
+```{r}
+Hammerfest_old<-filter(vessels, 
+                       municip_numb == "2001"
+                       )
+
+Soroysund<-filter(vessels, 
+                  municip_numb == "2016"
+                  )
+
+Hammerfest_new<-filter(vessels, 
+                       municip_numb == "2004"
+                       ) 
+
+Hammerfest_df<-mutate(Hammerfest_new, 
+                      number_of_vessels = 
+                        Hammerfest_old$number_of_vessels + 
+                        Hammerfest_new$number_of_vessels + 
+                        Soroysund$number_of_vessels
+                      )                                       #pooling merged municipalities
+
+vessels_final_1<-left_join(vessels, Hammerfest_df, by =c("municip_numb","vessel_length","year")) %>% 
+  mutate(number_of_vessels = 
+           ifelse(municip_numb == "2004", 
+                  number_of_vessels.y, 
+                  number_of_vessels.x
+                  )) %>% #return number_of_vessels.y for rows with Hammerfest 2004 & number_of_vessels.x if not
+  select(-c(number_of_vessels.y, 
+            number_of_vessels.x, 
+            county.y, 
+            municipality.y)) %>% #remove reduntant variables
+  dplyr::rename(municipality = municipality.x,
+         county = county.x)%>%
+  filter(!municip_numb %in% 
+           c("2016", "2001")) #remove Sørøysund 2016, Hammerfest 2001 
+
+``` 
+#### Harstad
+```{r}
+Harstad_old<-filter(vessels_final_1, municip_numb == "1901")
+Bjarkoy<-filter(vessels_final_1, municip_numb == "1915")
+Harstad_new<-filter(vessels_final_1, municip_numb == "1903") 
+
+Harstad_df<-mutate(Harstad_new, 
+                   number_of_vessels = 
+                     Harstad_old$number_of_vessels + 
+                     Harstad_new$number_of_vessels + 
+                     Bjarkoy$number_of_vessels) #pooling merged municipalities
+
+vessels_final_2<-left_join(vessels_final_1, 
+                       Harstad_df, 
+                       by =c("municip_numb","vessel_length","year")) %>%
+  mutate(number_of_vessels = 
+           ifelse(municip_numb == "1903", 
+                  number_of_vessels.y, 
+                  number_of_vessels.x)) %>% #return number_of_vessels.y for rows with Harstad 1903 & number_of_vessels.x if not
+  select(-c(number_of_vessels.y, 
+            number_of_vessels.x, 
+            county.y, 
+            municipality.y))%>% #remove reduntant variables
+  dplyr::rename(municipality = municipality.x,
+         county = county.x)%>%
+  filter(!municip_numb %in% 
+           c("1901", "1915")) #remove Bjarkøy 1915, Harstad 1901
+```
+#### Bodo
+```{r}
+Bodo<-filter(vessels_final_2, municip_numb == "1804")
+Skjerstad<-filter(vessels_final_2, municip_numb == "1842")
+
+Bodo_df<-mutate(Bodo, 
+                   number_of_vessels = 
+                     Bodo$number_of_vessels + 
+                     Skjerstad$number_of_vessels) #pooling merged municipalities
+
+vessels_final_3<-left_join(vessels_final_2, 
+                       Bodo_df, 
+                       by =c("municip_numb","vessel_length","year")) %>%
+  mutate(number_of_vessels = 
+           ifelse(municip_numb == "1804", 
+                  number_of_vessels.y, 
+                  number_of_vessels.x)) %>% #return number_of_vessels.y for rows with Bodo 1804 & number_of_vessels.x if not
+  select(-c(number_of_vessels.y, 
+            number_of_vessels.x, 
+            county.y, 
+            municipality.y))%>% #remove reduntant variables
+  dplyr::rename(municipality = municipality.x,
+         county = county.x)%>%
+  filter(!municip_numb %in% 
+           c("1842")) #remove Skjerstad 1842
+
+```
+
+```{r}
+#look at which municipalities are in main and not in study municipalities list
+#munic$Komnum<-as.factor(munic$Komnum) #change on numeric variable to factor
+#f<-anti_join(vessels_final_3, munic, by=c("municip_numb"="Komnum"))
+# Beiarn 1839 is in vessels_final_3 but not a study municipality
+
+# remove Beiarn 
+vessels_final_4 <- vessels_final_3 %>%
+  filter(!municip_numb %in% 
+           c("1839")) 
+
+#add new column with new municipality names
+munic$Komnum<-as.character(munic$Komnum) #change numeric variable to factor
+
+vessels_final_4$municip_numb<-as.character(vessels_final_4$municip_numb) #change on numeric variable to factor
+
+vessels_final_4<- left_join(vessels_final_4, munic, by = c("municip_numb"="Komnum"))
+
+vessels_final_4<- vessels_final_4 %>%
+  select(-municipality, 
+         -Kid, 
+         ) %>%
+  dplyr::rename(
+    municipality = "Name"
+  ) %>%
+  droplevels()   #drop unused levels from data frame (e.g. noncoast)
+
+
+#Check how many rows a dataset with all combinations of municipality * year * vessel length should have
+#levels(as.factor(vessels_final_4$municipality))
+#levels(as.factor(vessels_final_4$year))
+#levels(as.factor(vessels_final_4$vessel_length))
+#should be 19440 rows 
+
+```
+## Plotting data
+### Plot number of vessels through time by length
+```{r}
+#collapse lenght categories in new variable
+vessels_plot<-vessels_final_4%>%
+  dplyr::mutate(vessel_length_2= 
+           fct_collapse(vessels_final_4$vessel_length, 
+      below11m  = c("0to9.99m", "10to10.99m"),
+      from11to15m = c("11to14.99m"),
+      from15to21m = c("15to20.99m"),
+      above21m = c("21to27.99m","28_and_larger"))
+  ) 
+  
+vessels_plot$year<- as.numeric(vessels_plot$year)
+    
+county <- unique(vessels_plot$county) 
+
+for(i in 1:length(county))
+  {
+  cty <- county[i]
+
+  df <- vessels_plot %>%
+    filter(county == cty) %>% 
+    group_by(year,
+             municip_numb,
+             municipality,
+             vessel_length_2,
+             county) %>% 
+    dplyr::summarise(number_of_vessels = sum(number_of_vessels)) 
+    
+
+plot <- ggplot(df)+
+      geom_line(aes(x = year, y = number_of_vessels, color = vessel_length_2)) +
+      facet_wrap(municipality  ~ .) +
+      scale_color_manual(values = c("darkred", "steelblue", "darkgreen", "black"))+
+      labs(y = "Number of vessels", x = "") +
+      ggtitle(cty)+
+            theme(legend.position = "right",
+            legend.title = element_blank(), 
+            axis.text.x = element_text(size = 5, angle = 90, hjust = 0.5, vjust = 0.5, face = "bold"),
+            axis.text.y = element_text(size = 6, face = "bold", hjust = 0.5, vjust = 0.5, margin = margin(t = 0, r = 2, b = 0, l = 0)),
+            plot.title = element_text(hjust=0.5, vjust=0.5),
+            axis.ticks.x = element_line(size = 0.5),
+            axis.ticks.length = unit(0.2, "cm"))
+
+ggsave(paste0("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/figs/number_of_vessels_length", cty, ".pdf"), plot)
+
+}
+
+```
+
+### Plot number of vessels through time by length (without below 11m group)
+```{r}
+#collapse length categories in new variable
+vessels_plot<-vessels_final_4%>%
+  dplyr::mutate(vessel_length_2= 
+           fct_collapse(vessels_final_4$vessel_length, 
+      below11m  = c("0to9.99m", "10to10.99m"),
+      from11to15m = c("11to14.99m"),
+      from15to21m = c("15to20.99m"),
+      above21m = c("21to27.99m","28_and_larger"))
+  ) %>%
+  filter(vessel_length_2 != "below11m" )
+  
+vessels_plot$year<- as.numeric(vessels_plot$year)
+    
+county <- unique(vessels_plot$county) 
+
+for(i in 1:length(county))
+  {
+  cty <- county[i]
+
+  df <- vessels_plot %>%
+    filter(county == cty) %>% 
+    group_by(year,
+             municip_numb,
+             municipality,
+             vessel_length_2,
+             county) %>% 
+    dplyr::summarise(number_of_vessels = sum(number_of_vessels)) 
+    
+
+plot <- ggplot(df)+
+      geom_line(aes(x = year, y = number_of_vessels, color = vessel_length_2)) +
+      facet_wrap(municipality  ~ .) +
+      scale_color_manual(values = c("darkred", "steelblue", "darkgreen"))+
+      labs(y = "Number of vessels", x = "") +
+      ggtitle(cty)+
+            theme(legend.position = "right",
+            legend.title = element_blank(), 
+            axis.text.x = element_text(size = 5, angle = 90, hjust = 0.5, vjust = 0.5, face = "bold"),
+            axis.text.y = element_text(size = 6, face = "bold", hjust = 0.5, vjust = 0.5, margin = margin(t = 0, r = 2, b = 0, l = 0)),
+            plot.title = element_text(hjust=0.5, vjust=0.5),
+            axis.ticks.x = element_line(size = 0.5),
+            axis.ticks.length = unit(0.2, "cm"))
+
+ggsave(paste0("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/figs/number_of_vessels_length_minus_below11m", cty, ".pdf"), plot)
+
+}
+
+```
