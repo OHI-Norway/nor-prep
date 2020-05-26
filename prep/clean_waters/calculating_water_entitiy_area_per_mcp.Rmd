@@ -50,7 +50,7 @@ ohikom <-all_mcp[all_mcp$KOMM %in% komlist$Komnum,]
 ```
 
 # Plot polygons of water entities and municipalities 
-To see how the two layers aligh
+To see how the two layers align
 ```{r}
 world <- ne_countries(scale = "medium", returnclass = "sf")
 mcpsf <- sf::st_as_sf(ohikom, coords= c("long", "lat"),crs = 4326, agr="identity")
@@ -102,7 +102,13 @@ entity_within_mcp_prep <- entity_within_mcp %>%
          KOMM,
          VannforekomstID,
          Vannforekomstnavn,
-         geometry)
+         Vassdragsområde,
+         Vannregion,
+         Vannområde,
+         geometry) %>% 
+  rename(vannomrade = Vannområde,
+         vassdragomrade = Vassdragsområde
+  )
 
 ```
 
@@ -137,10 +143,17 @@ water_mcp_area <- entity_within_mcp_prep %>%
          municip_number = KOMM,
          entity_id = VannforekomstID,
          entity_name = Vannforekomstnavn,
+         vannregion = Vannregion,
          area_m2 = area) %>% 
  mutate(water_entity_id = stringr::str_c(entity_name, "_", entity_id)) %>% 
   st_set_geometry(., NULL) %>% 
-  select(municip_name, municip_number, water_entity_id, area_m2)
+  select(municip_name, 
+         municip_number, 
+         water_entity_id, 
+         vannregion,
+         vannomrade,
+         vassdragomrade,
+         area_m2)
 
 #write.csv(water_mcp_area, "data/water_entity_n_area_per_mcp.csv", row.names = F)
 ```
