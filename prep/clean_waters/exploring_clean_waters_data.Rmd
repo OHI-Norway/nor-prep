@@ -71,8 +71,6 @@ status_prep2 <-
   select(-endret_dato) %>% 
   separate(kommunenummer, into = c("kom1", "kom2", "kom3", "kom4", "kom5", "kom6", "kom7", "kom8", "kom9")) 
   
-  
-  
 ```
 
 
@@ -138,7 +136,11 @@ Separate the list of water entities and the respective municipalities, put the r
 There is a mess with municipalities' numbers. Some of them are written as 3 digits, because a tailing zero is missing and I have to manually add it. All municipalities' numbers starting with "50**" can be deleted - they belong to Trondelag county.
 ```{r}
 water_mcp <- status_prep3 %>% 
-  select(water_entity_id, kom1:kom9) %>% 
+  select(water_entity_id, 
+         vannregion, 
+         vannomrade,
+         vassdragsomrade,
+         kom1:kom9) %>% 
   pivot_longer(.,
                cols = kom1:kom9,
                names_to = "municipality",
@@ -250,20 +252,26 @@ water_mcp_prep3 <- water_mcp_prep2 %>%
   left_join(komlist, by = c("municip_name" = "Name")) %>% 
   rename(municip_number_old = Komnum) %>% 
   select(-Kid) %>% 
-  select(municip_name, municip_number, municip_number_old, water_entity_id)
+  select(municip_name, 
+         municip_number, 
+         municip_number_old, 
+         water_entity_id,
+         vannregion,
+         vannomrade,
+         vassdragsomrade)
 ```
 
 Save the table
 ```{r}
 # write.csv(water_mcp_prep3, "data/municipalities_and_water_entities_table.csv",
-#           row.names = FALSE)
+#          row.names = FALSE)
 ```
 
 
 # Translate qualitative status to quantitative and save the tables 
 For ecological status: very bad and bad are both 0 score, moderate - 50, good - 75, very good - 100.
 For chemical status, good is 100, bad is 0.
-For strongly modified areas, bad is 0, moderate is 25, good is 50.
+For strongly modified areas, ecological potential: bad is 0, moderate is 25, good is 50; chemical status - bad is 0, good is 50.
 When the status is undefined or irrelevant, i set NA. In this case, if for example, chemical status is undefined, it will not contribute to the final clean waters score.
 
 I will create functions for translating status in each case to a quantitative scale.
@@ -301,7 +309,7 @@ translate_chemstatus <-function(status){
 }
 ```
 
-**Status for strongly modified areas**
+**Status for strongly modified areas - ecological potential**
 ```{r}
 translate_sma_status <-function(status){
   if (status == "darlig") {
@@ -317,18 +325,41 @@ translate_sma_status <-function(status){
 }
 ```
 
+
+**Status for strongly modified areas - chemical status**
+```{r}
+translate_chemstatus_smvf <-function(status){
+  if (status == "darlig") {
+    status_num = 0 
+  } else if (status == "god") {
+    status_num = 50
+  } else {
+    status_num = NA
+  }
+  status_num
+}
+```
 I will separate strongly modified areas from the other areas, and translate the status for each separately.
 
-In both cases, the column with quantitative status will be called "num_status" (numerical status).
-First, for a strongly modified areas:
+In both cases, the column with quantitative status will be called "num_status" (numerical status). 
+First, for a strongly modified areas. There is ecological potential and chemical status, but only 9 out of 42 entities have chemical status assessed. It seems that it is not a routine work to assess a chemical status for modified areas, so we can base the score only on the ecological potential.
 ```{r}
 modified_num_status <- modified %>%  
-  select(water_entity_id, okologisk_potensial) %>% 
-  mutate(num_status = pmap_dbl(
+  select(water_entity_id, 
+         okologisk_potensial,
+         kjemisk_tilstand,
+         okologisk_palitelighetsgrad,
+         kjemisk_palitelighetsgrad
+         ) %>% 
+  mutate(num_status_eco = pmap_dbl(
     list(okologisk_potensial),
-    ~ translate_sma_status(.x)))
+    ~ translate_sma_status(.x))) %>% 
+  mutate(chem_status = pmap_dbl(
+    list(kjemisk_tilstand),
+    ~ translate_chemstatus_smvf(.x)
+  ))
 
-# write.csv(modified_num_status, file = "data/quantitative_status_strongly_modified_areas.csv", row.names = FALSE)
+#write.csv(modified_num_status, file = "data/quantitative_status_strongly_modified_areas.csv", row.names = FALSE)
 ```
 
 
