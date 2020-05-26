@@ -1,5 +1,5 @@
 ---
-title: "Cleaning fishing vessels & age data"
+title: "Cleaning female fishers data"
 author: "Sigrid Engen"
 date: "`r Sys.Date()`"
 output:
@@ -105,7 +105,7 @@ lady_final_2<-left_join(lady_final_1,
   mutate(female_fishers = 
            ifelse(municip_numb == "1903", 
                   female_fishers.y, 
-                  female_fishers.x)) %>% #return female_fishers.y for rows with Hammerfest 2004 & female_fishers.x if not
+                  female_fishers.x)) %>% #return female_fishers.y for rows with Harstad 1903 & female_fishers.x if not
   select(-c(female_fishers.y, 
             female_fishers.x, 
             county.y, 
@@ -118,27 +118,45 @@ lady_final_2<-left_join(lady_final_1,
 lady_final_3 <- lady_final_2 %>%
   spread(key = "main_parttime", 
          value = "female_fishers") %>% 
-  rename(main_occupation = A, 
-         part_time_occupation = B)
+  rename(main_occupation = B, 
+         part_time_occupation = A)
 
 ## Checking that number of female fishers in excel files where total number of female fishers in the region over all years is 7131 (1957 main occupation and 5174 parttime)
 
 sum(lady_final_3$main_occupation)
 
-sum(lady_final_3$part_time_occupation)  
+sum(lady_final_3$part_time_occupation)
+
+## Check which municipalities are in lady final and not in study municipalities list
+#f<-anti_join(lady_final_3, municip, by=c("municip_numb"="Komnum"))
+# Bardu (1922) is in lady_final but not a study municpality. Must remove this municipality
+
+lady_final_3<- lady_final_3 %>%
+  filter(!municip_numb %in% c("1922"))
+
+## Replace names of municipalities with names in municip file
+lady_final_3<- left_join(lady_final_3, municip, by = c("municip_numb"="Komnum"))
+
+lady_final_3<- lady_final_3 %>%
+  select(-municip_name, 
+         -Kid) %>%
+  dplyr::rename(
+    municip_name = "Name"
+  )
 
 #Writecsv
 ```
 
 ## Plotting female fishers
+### Full time occupation
 ```{r}
-county <- unique(lady_final$county) 
+county <- unique(lady_final_3$county) 
 
 for(i in 1:length(county))
   {
   cty <- county[i]
 
-  df <- lady_final %>%
+  df <- lady_final_3 %>%
     filter(county == cty) %>% 
     group_by(year,
              municip_numb,
@@ -150,20 +168,22 @@ for(i in 1:length(county))
 plot <- ggplot(df)+
       geom_col(aes(x = year, y = main_fishers), fill = "dodgerblue4")+
       facet_wrap(municip_name  ~ .) +
-      labs(y = "Number of fishers", x = "") +
+      labs(y = "Number of full-time female fishers", x = "") +
       ggtitle(cty)+
       theme(legend.position = "none", 
             axis.text.x = element_text(size = 5, angle = 90, hjust = 0.5, vjust = 0.5, face = "bold"),
             axis.text.y = element_text(size = 6, face = "bold", hjust = 0.5, vjust = 0.5, margin = margin(t = 0, r = 2, b = 0, l = 0)),
             plot.title = element_text(hjust=0.5, vjust=0.5),
             axis.ticks.x = element_line(size = 0.5),
-            axis.ticks.length = unit(0.2, "cm"))
+            axis.ticks.length = unit(0.2, "cm"))+
+      scale_x_discrete(breaks=c("1990", "1995", "2000", "2005", "2010", "2015", "2019"))
 
 ggsave(paste0("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/figs/female_fishers_fulltime", cty, ".pdf"), plot)
 
 }
 ```
-## Plot number of fishers through time - part time occupation
+
+### Part time occupation
 ```{r}
 
 county <- unique(lady_final_3$county) 
@@ -184,14 +204,15 @@ for(i in 1:length(county))
 plot <- ggplot(df)+
       geom_col(aes(x = year, y = part_fishers), fill = "dodgerblue4")+
       facet_wrap(municip_name  ~ .) +
-      labs(y = "Number of fishers", x = "") +
+      labs(y = "Number of part-time female fishers", x = "") +
       ggtitle(cty)+
       theme(legend.position = "none", 
             axis.text.x = element_text(size = 5, angle = 90, hjust = 0.5, vjust = 0.5, face = "bold"),
             axis.text.y = element_text(size = 6, face = "bold", hjust = 0.5, vjust = 0.5, margin = margin(t = 0, r = 2, b = 0, l = 0)),
             plot.title = element_text(hjust=0.5, vjust=0.5),
             axis.ticks.x = element_line(size = 0.5),
-            axis.ticks.length = unit(0.2, "cm"))
+            axis.ticks.length = unit(0.2, "cm"))+
+      scale_x_discrete(breaks=c("1990", "1995", "2000", "2005", "2010", "2015", "2019"))
 
 ggsave(paste0("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/figs/female_fishers_parttime", cty, ".pdf"), plot)
 

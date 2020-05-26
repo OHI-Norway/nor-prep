@@ -80,7 +80,7 @@ fishers_main_2018<-fishers%>%
 counties<-subset(Norway,NAVN=="Troms" | NAVN=="Finnmark" | NAVN=="Nordland")
 
 #extract municipalities in Northern Norway
-municip.stud<-crop(municip, counties)
+municip.stud<-raster::crop(municip, counties)
 
 #make map object for use in ggplot https://github.com/tidyverse/ggplot2/wiki/plotting-polygon-shapefiles
 municip.stud@data$id = rownames(municip.stud@data) #explicitly identifies attribute rows by the .dbf offset.
@@ -208,6 +208,7 @@ for(i in 1:length(county))
              age2,
              county) %>% 
     summarise(main_fishers_age = sum(main_occupation)) 
+    
 
     
 plot <- ggplot(df)+
@@ -216,7 +217,7 @@ plot <- ggplot(df)+
       scale_color_manual(values = c("darkred", "steelblue", "darkgreen", "black"))+
       labs(y = "Number of fishers", x = "") +
       ggtitle(cty)+
-      theme(legend.position = "right",
+            theme(legend.position = "right",
             legend.title = element_blank(), 
             axis.text.x = element_text(size = 5, angle = 90, hjust = 0.5, vjust = 0.5, face = "bold"),
             axis.text.y = element_text(size = 6, face = "bold", hjust = 0.5, vjust = 0.5, margin = margin(t = 0, r = 2, b = 0, l = 0)),
