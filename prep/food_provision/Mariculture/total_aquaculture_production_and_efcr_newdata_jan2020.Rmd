@@ -203,7 +203,7 @@ production_prep <- biomass_prep3 %>%
 # Calculating eFCR (economic feed conversion ratio)
 $eFCR = \frac{feed.applied,kg}{biomass.produced,kg}$
 Function to estimate eFCR
-When the total aquaculture produciton is negative I set efcr to NA. Similarly, if either feed of production is zero, eFCR = NA. 
+When the total aquaculture produciton is negative I set efcr to NA. Similarly, if either feed or production is zero, eFCR = NA. 
 But on the regional level, there were no occasions of negative or zero production and feed use.
 ```{r}
 estimate_efcr <- function(feed, biom){
