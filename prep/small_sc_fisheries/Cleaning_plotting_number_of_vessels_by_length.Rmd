@@ -203,7 +203,7 @@ vessels_final_3<-left_join(vessels_final_2,
            c("1842")) #remove Skjerstad 1842
 
 ```
-
+### Final cleaning - select only study municip & rename municipal names
 ```{r}
 #look at which municipalities are in main and not in study municipalities list
 #munic$Komnum<-as.factor(munic$Komnum) #change on numeric variable to factor

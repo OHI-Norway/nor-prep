@@ -299,8 +299,9 @@ final_4<- final_3 %>%
            (local_landings_NOK/total_landings_NOK) * 100, 
          proportion_local_tonnes = 
            (local_landings_tonnes/total_landings_tonnes) * 100, 
-         mean_NOK_per_tonnes = total_landings_NOK/total_landings_tonnes) %>%
-  select(-vessel_municip)
+         mean_NOK_per_tonnes = total_landings_NOK/total_landings_tonnes,
+         fishing_industry_yes_no = ifelse(total_landings_NOK >= 1000, 1, 0)) %>%
+    select(-vessel_municip)
 
 # add the municipality number of study municipalites
 final_4<- dplyr::left_join(final_4, munic, by =c("landing_municip" = "Name"))
@@ -313,7 +314,7 @@ final_4<- final_4 %>%
                                             ifelse(landing_municip_numb %in% 2002:2030, "Finnmark", "Missing"
                                               )))) %>%
   replace(is.na(.), 0)%>%                                                                                      #replace NA in all columns
-  select(landing_municip_numb, landing_municip, landing_county, year, local_landings_NOK:mean_NOK_per_tonnes, -Kid)  # rearrange order of columns
+  select(landing_municip_numb, landing_municip, landing_county, year, local_landings_NOK:fishing_industry_yes_no, -Kid)  # rearrange order of columns
 
 #write.csv(final_4,"C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/data/Catch_local_total_ladnings_2000_2019.csv")
 ```
@@ -335,7 +336,7 @@ p <- ggplot(final_4)+
             axis.ticks.length = unit(0.2, "cm")) +
       scale_x_discrete(breaks=c("2000", "2005", "2010", "2015", "2019"))
 
-ggsave(paste0("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/figs/total_catch_by_local_fishers_tonnes.pdf"), p)
+#ggsave(paste0("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/figs/total_catch_by_local_fishers_tonnes.pdf"), p)
 
 #proportion local landings tonnes
 p <- ggplot(final_4)+
@@ -351,7 +352,7 @@ p <- ggplot(final_4)+
             axis.ticks.length = unit(0.2, "cm"))+
       scale_x_discrete(breaks=c("2000", "2005", "2010", "2015", "2019"))
 
-ggsave(paste0("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/figs/proportion_catch_by_local_fishers_tonnes.pdf"), p)
+#ggsave(paste0("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/figs/proportion_catch_by_local_fishers_tonnes.pdf"), p)
 
 # local landings in NOK
 p <- ggplot(final_4)+
@@ -367,7 +368,7 @@ p <- ggplot(final_4)+
             axis.ticks.length = unit(0.2, "cm"))+
       scale_x_discrete(breaks=c("2000", "2005", "2010", "2015", "2019"))
 
-ggsave(paste0("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/figs/total_catch_by_local_fishers_NOK.pdf"), p)
+#ggsave(paste0("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/figs/total_catch_by_local_fishers_NOK.pdf"), p)
 
 #proportion local landings NOK
 
@@ -385,7 +386,7 @@ p <- ggplot(final_4) +
       scale_x_discrete(breaks=c("2000", "2005", "2010", "2015", "2019"))
 
 
-ggsave(paste0("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/figs/proportion_catch_by_local_fishers_NOK.pdf"), p)
+#ggsave(paste0("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/figs/proportion_catch_by_local_fishers_NOK.pdf"), p)
 
 ```
 ### Total landings 
@@ -405,7 +406,7 @@ p <- ggplot(final_4)+
             axis.ticks.length = unit(0.2, "cm")) +
       scale_x_discrete(breaks=c("2000", "2005", "2010", "2015", "2019"))
 
-ggsave(paste0("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/figs/total_landings_tonnes.pdf"), p)
+#ggsave(paste0("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/figs/total_landings_tonnes.pdf"), p)
 
 #Total landings in NOK
 p <- ggplot(final_4)+
@@ -422,8 +423,26 @@ p <- ggplot(final_4)+
       scale_x_discrete(breaks=c("2000", "2005", "2010", "2015", "2019"))
 
 
-ggsave(paste0("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/figs/total_landings_NOK.pdf"), p)
+#ggsave(paste0("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/figs/total_landings_NOK.pdf"), p)
 
 
 ```
+### Fish landing sites present
+```{r}
+p <- ggplot(final_4)+
+      geom_col(aes(x = year, y = fishing_industry_yes_no), fill = "dodgerblue4")+
+      facet_wrap(landing_municip ~ .) +
+      labs(y = "Fish landing sites present", x = "") +
+      ggtitle("")+
+      theme(legend.position = "none", 
+            axis.text.x = element_text(size = 5, angle = 90, hjust = 0.5, vjust = 0.5, face = "bold"),
+            axis.text.y = element_text(size = 6, face = "bold", hjust = 0.5, vjust = 0.5, margin = margin(t = 0, r = 2, b = 0, l = 0)),
+            plot.title = element_text(hjust=0.5, vjust=0.5),
+            axis.ticks.x = element_line(size = 0.5),
+            axis.ticks.length = unit(0.2, "cm")) +
+      scale_x_discrete(breaks=c("2000", "2005", "2010", "2015", "2019"))
+
+ggsave(paste0("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/figs/fish_landing_sites_present.pdf"), p)
+
+``` 
 
