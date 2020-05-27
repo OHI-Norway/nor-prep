@@ -87,7 +87,6 @@
 "trosundet_0361030500-c","god","lav","ukjent","lav",75,NA
 "sorfjorden_0361030600-c","god","lav","ukjent","lav",75,NA
 "halsfjorden_0361030700-2-c","god","lav","ukjent","lav",75,NA
-"tjotta_havn_0361030800-1-c","ikke_relevant","lav","ukjent","lav",NA,NA
 "tjottfjorden-indre_0361030800-2-c","god","hoy","ukjent","lav",75,NA
 "tjotta_0361030900-c","god","lav","ukjent","lav",75,NA
 "hamnesleia_0361031000-c","god","lav","ukjent","lav",75,NA
@@ -101,11 +100,8 @@
 "leirfjorden-indre_0361040300-2-c","god","lav","ukjent","lav",75,NA
 "botnfjorden_0361040400-c","god","lav","ukjent","lav",75,NA
 "leirfjorden_-_leinesodden_0361040500-1-c","god","lav","ukjent","lav",75,NA
-"sandnesvagen_0361040500-2-c","ikke_relevant","lav","ukjent","lav",NA,NA
 "meisfjorden_0361040600-c","god","lav","ukjent","lav",75,NA
-"sandnessjoen_havn_0361040700-2-c","ikke_relevant","lav","ukjent","lav",NA,NA
 "ulvangen_0361040700-3-c","god","lav","ukjent","lav",75,NA
-"sandnessjoen_smabathavn_0361040700-4-c","ikke_relevant","lav","ukjent","lav",NA,NA
 "alstenfjorden_0361040800-c","god","hoy","ukjent","lav",75,NA
 "ytre_flesan_0361050100-c","svaert_god","lav","ukjent","lav",100,NA
 "haeroysundet_sor_0361050200-2-c","god","lav","ukjent","lav",75,NA
@@ -118,7 +114,6 @@
 "kverva_0361050700-c","god","hoy","ukjent","lav",75,NA
 "sorasvaerfjorden_0361050800-c","god","hoy","ukjent","lav",75,NA
 "skipbatsvaerfjorden_0361050900-c","god","hoy","ukjent","lav",75,NA
-"traena_havn_sor_0362000030-1-c","ikke_relevant","lav","ukjent","lav",NA,NA
 "traenfjorden_0362000030-2-c","svaert_god","lav","ukjent","lav",100,NA
 "ternholmfjorden_0362000031-c","svaert_god","lav","ukjent","lav",100,NA
 "vestfjorden-ytre_0362000032-c","svaert_god","lav","ukjent","lav",100,NA
@@ -136,13 +131,11 @@
 "sorfjorden_0362010800-c","moderat","hoy","ukjent","lav",50,NA
 "rossaen_0362010900-c","svaert_god","middels","darlig","hoy",100,0
 "ranfjorden_-_hemneshalvoya_0362011000-1-c","god","middels","darlig","hoy",75,0
-"ranfjorden_-_mo_0362011000-2-c","ikke_relevant","hoy","darlig","hoy",NA,0
 "finneidfjorden_0362011100-c","god","lav","ukjent","lav",75,NA
 "sveet_0362011200-c","moderat","lav","ukjent","lav",50,NA
 "utskarpen_0362011300-c","udefinert","lav","ukjent","lav",NA,NA
 "skogsleira_0362011400-1-c","god","lav","ukjent","lav",75,NA
 "litlsjona_0362011400-2-c","god","lav","ukjent","lav",75,NA
-"lovund_havn_0362020100-1-c","ikke_relevant","middels","ukjent","lav",NA,NA
 "nordasvaerfjorden_-_tomfjorden_0362020100-2-c","svaert_god","lav","darlig","lav",100,0
 "sjona-indre_0362020201-1-c","udefinert","middels","ukjent","lav",NA,NA
 "sjona-indre_0362020201-2-c","moderat","hoy","ukjent","lav",50,NA
@@ -173,7 +166,6 @@
 "reppa_0362030700-4-c","god","lav","ukjent","lav",75,NA
 "rodoyfjorden_0362030800-c","god","lav","ukjent","lav",75,NA
 "meloyvaer_0362040100-c","svaert_god","lav","ukjent","lav",100,NA
-"bolga_havn_0362040200-1-c","ikke_relevant","lav","ukjent","lav",NA,NA
 "bolgfjorden_0362040200-2-c","god","middels","ukjent","lav",75,NA
 "skardsfjorden-indre_0362040300-1-c","god","lav","ukjent","lav",75,NA
 "skardsfjorden-ytre_0362040300-2-c","god","hoy","ukjent","lav",75,NA
@@ -188,20 +180,15 @@
 "meloyfjorden_-_glomfjorden_0362040800-2-c","moderat","hoy","ukjent","lav",50,NA
 "eidet_0362040900-c","god","lav","ukjent","lav",75,NA
 "mesoyfjorden_0362041000-2-c","god","lav","ukjent","lav",75,NA
-"reipa(kobbsteinan)_0362041000-3-c","ikke_relevant","lav","ukjent","lav",NA,NA
 "stigsundet_0362041000-4-c","god","lav","ukjent","lav",75,NA
 "stottafjorden_-_gasvaerfjorden_0362041100-c","god","lav","god","hoy",75,100
 "maoyleia_0362041200-1-c","god","lav","ukjent","lav",75,NA
 "maoyleia_0362041200-2-c","god","lav","darlig","lav",75,0
-"stamsund_havn_0363000030-11-c","ikke_relevant","lav","ukjent","lav",NA,NA
 "vestfjorden-midtre_0363000030-12-c","svaert_god","hoy","darlig","lav",100,0
 "buoy_stamsund_havn_0363000030-13-c","moderat","lav","ukjent","lav",50,NA
 "tindsvagen_0363000030-1-c","moderat","lav","ukjent","lav",50,NA
-"moskenesvagen_0363000030-2-c","ikke_relevant","middels","ukjent","lav",NA,NA
-"ballstad_0363000030-3-c","ikke_relevant","hoy","darlig","lav",NA,0
 "vestervagen_0363000030-5-c","god","lav","ukjent","lav",75,NA
 "helligvaer_-_ytterside_landegode_0363000030-7-c","god","middels","darlig","lav",75,0
-"henningsvaer_havn_0363000030-8-c","ikke_relevant","middels","ukjent","lav",NA,NA
 "vikbukta_0363000031-1-c","god","lav","ukjent","lav",75,NA
 "vagspollen_0363000031-2-c","god","lav","ukjent","lav",75,NA
 "moskenes_-_flakstad_0363000031-3-c","svaert_god","lav","darlig","lav",100,0
@@ -211,7 +198,6 @@
 "fleinvaerfjorden_0363010200-c","svaert_god","lav","ukjent","lav",100,NA
 "fugloyfjorden_0363010300-1-c","god","lav","darlig","lav",75,0
 "gildeskal_0363010300-2-c","god","lav","ukjent","lav",75,NA
-"sorarnoy_havn_0363010300-4-c","ikke_relevant","lav","ukjent","lav",NA,NA
 "vag_havn_0363010300-6-c","god","lav","ukjent","lav",75,NA
 "sorarnoya_-_nordarnoya_0363010300-7-c","god","lav","ukjent","lav",75,NA
 "storvik_havn_i_gildeskal_0363010400-1-c","god","lav","ukjent","lav",75,NA
@@ -227,13 +213,11 @@
 "holmsundfjorden_0363010800-3-c","god","lav","ukjent","lav",75,NA
 "beiarfjorden-ytre_0363010900-1-c","god","lav","ukjent","lav",75,NA
 "beiarfjorden-indre_0363010900-2-c","udefinert","lav","ukjent","lav",NA,NA
-"ertenvag_0363011000-1-c","ikke_relevant","lav","ukjent","lav",NA,NA
 "nordfjorden_0363011000-2-c","god","lav","ukjent","lav",75,NA
 "saltfjorden-ytre_0363011100-1-c","god","middels","darlig","hoy",75,0
 "saltfjorden-indre_0363011100-2-c","god","lav","god","hoy",75,100
 "hopen_0363011100-3-c","god","lav","ukjent","lav",75,NA
 "landegodefjorden_0363011200-1-c","god","middels","god","lav",75,100
-"bodo_havn_0363011200-2-c","ikke_relevant","middels","darlig","hoy",NA,0
 "hjartoysundet_-_nyholmsundet_0363011200-3-c","god","middels","darlig","lav",75,0
 "ytre_sundan_0363020100-c","god","hoy","ukjent","lav",75,NA
 "trongsmoget_0363020200-1-c","god","lav","ukjent","lav",75,NA
@@ -273,7 +257,6 @@
 "botnfjorden_0363031201-c","god","lav","ukjent","lav",75,NA
 "sagfjorden_0363031202-c","god","middels","ukjent","lav",75,NA
 "brattfjorden-indre_0363031300-1-c","god","lav","ukjent","lav",75,NA
-"nordfold_havn_0363031300-3-c","ikke_relevant","lav","ukjent","lav",NA,NA
 "nordfolda_0363031300-4-c","god","hoy","ukjent","lav",75,NA
 "vinkfjorden_0363031400-c","svaert_god","hoy","god","lav",100,100
 "stavfjorden_0363031500-c","god","lav","ukjent","lav",75,NA
@@ -287,18 +270,15 @@
 "skotsfjorden-indre_0363032300-1-c","god","lav","ukjent","lav",75,NA
 "skotsfjorden-ytre_0363032300-2-c","god","lav","ukjent","lav",75,NA
 "djupfjorden_0363040100-c","god","lav","ukjent","lav",75,NA
-"reine_havn_0363040200-1-c","ikke_relevant","middels","ukjent","lav",NA,NA
 "hamnoy_0363040200-3-c","udefinert","lav","ukjent","lav",NA,NA
 "kjerkfjorden-ytre_0363040200-4-c","god","lav","ukjent","lav",75,NA
 "forsfjorden_0363040300-c","udefinert","lav","ukjent","lav",NA,NA
 "bunesfjorden_0363040400-c","god","lav","ukjent","lav",75,NA
 "kjerkfjorden-indre_0363040500-c","god","lav","ukjent","lav",75,NA
 "sundstraumen_0363040600-2-c","god","lav","ukjent","lav",75,NA
-"sundvagen_0363040600-3-c","ikke_relevant","middels","ukjent","lav",NA,NA
 "kakersundet_0363040600-4-c","god","hoy","ukjent","lav",75,NA
 "selfjorden_0363040700-1-c","udefinert","lav","ukjent","lav",NA,NA
 "torsfjorden-indre_0363040700-2-c","god","lav","ukjent","lav",75,NA
-"ramberg_havn_0363040700-4-c","ikke_relevant","hoy","darlig","hoy",NA,0
 "fredvang_0363040700-6-c","moderat","middels","ukjent","lav",50,NA
 "torsfjorden-ytre_0363040700-7-c","svaert_god","hoy","ukjent","lav",100,NA
 "skjelfjorden-indre_0363040801-c","god","lav","ukjent","lav",75,NA
@@ -306,7 +286,6 @@
 "nusfjord_0363040900-c","god","lav","ukjent","lav",75,NA
 "kilpollen_0363041000-c","god","lav","ukjent","lav",75,NA
 "offersoypollen_0363041101-c","udefinert","lav","ukjent","lav",NA,NA
-"napp_0363041102-1-c","ikke_relevant","middels","ukjent","lav",NA,NA
 "nappstraumen_0363041102-2-c","god","lav","ukjent","lav",75,NA
 "buksnesfjorden-indre_0363041200-1-c","moderat","middels","ukjent","lav",50,NA
 "fyglsjoen_0363041200-3-c","moderat","lav","ukjent","lav",50,NA
@@ -355,8 +334,6 @@
 "rost-indre_0363050100-4-c","svaert_god","hoy","ukjent","lav",100,NA
 "rosthavet-indre_0363050200-c","svaert_god","lav","ukjent","lav",100,NA
 "sorlandsvika_0363050300-2-c","god","lav","ukjent","lav",75,NA
-"rossnesvagen_0363050300-4-c","ikke_relevant","middels","ukjent","lav",NA,NA
-"sorlandsvagen_0363050300-5-c","ikke_relevant","middels","ukjent","lav",NA,NA
 "teisthammeren_0363050300-6-c","god","lav","ukjent","lav",75,NA
 "vaeroy-indre_0363050300-7-c","svaert_god","lav","ukjent","lav",100,NA
 "nordlandsflaget-indre_0363050400-c","svaert_god","lav","ukjent","lav",100,NA
@@ -365,9 +342,7 @@
 "rosthavet-ytre_0363050700-c","svaert_god","lav","ukjent","lav",100,NA
 "rost-ytre_0363050800-c","svaert_god","lav","ukjent","lav",100,NA
 "vestfjorden-indre_0364000030-10-c","god","hoy","darlig","hoy",75,0
-"kabelvag_havn_0364000030-11-c","ikke_relevant","middels","ukjent","lav",NA,NA
 "ofoten_0364000030-2-c","god","hoy","god","hoy",75,100
-"svolvaer_0364000030-3-c","ikke_relevant","middels","ukjent","hoy",NA,NA
 "pundslettvagen_0364000030-4-c","god","lav","ukjent","lav",75,NA
 "valastrandvagen_0364000030-5-c","god","lav","ukjent","lav",75,NA
 "pollan_0364000030-6-c","god","lav","ukjent","lav",75,NA
@@ -457,7 +432,6 @@
 "fiskefjorden_0364040300-1-c","god","lav","ukjent","lav",75,NA
 "tjeldsundet-indre_0364040300-2-c","god","lav","ukjent","lav",75,NA
 "tjeldsundet-ytre_0364040300-4-c","god","lav","god","hoy",75,100
-"lodingen_havn_0364040300-5-c","ikke_relevant","middels","ukjent","lav",NA,NA
 "kjerfjorden_0364040400-c","god","lav","ukjent","lav",75,NA
 "innerfjorden_0364040501-c","god","lav","ukjent","lav",75,NA
 "erikstadfjorden_0364040502-c","god","lav","ukjent","lav",75,NA
@@ -466,7 +440,6 @@
 "innerfjorden_0364050101-c","god","lav","ukjent","lav",75,NA
 "oksfjorden_0364050102-c","god","hoy","ukjent","lav",75,NA
 "molldora_-_skrovsvedet_0364050200-10-c","svaert_god","hoy","darlig","lav",100,0
-"skrova_0364050200-9-c","ikke_relevant","middels","ukjent","lav",NA,NA
 "valvagen_0364050301-1-c","god","lav","ukjent","lav",75,NA
 "raftsundet_0364050301-2-c","god","lav","ukjent","lav",75,NA
 "grunnfjorden_0364050302-c","god","lav","ukjent","lav",75,NA
@@ -486,15 +459,8 @@
 "skjorisen_0365000030-1-c","moderat","middels","ukjent","lav",50,NA
 "forepollen_0365000030-2-c","god","lav","ukjent","lav",75,NA
 "vesteralsfjorden_0365000030-4-c","god","lav","darlig","lav",75,0
-"steinesjoen_0365000030-5-c","ikke_relevant","lav","ukjent","lav",NA,NA
-"hovden_havn_0365000031-1-c","ikke_relevant","middels","ukjent","lav",NA,NA
 "nykvag_0365000031-3-c","udefinert","lav","ukjent","lav",NA,NA
 "vesteralen_0365000031-6-c","god","lav","darlig","lav",75,0
-"nyksund_0365000031-7-c","ikke_relevant","lav","ukjent","lav",NA,NA
-"andenes_0365000032-2-c","ikke_relevant","middels","ukjent","lav",NA,NA
-"sto_havn_0365000032-3-c","ikke_relevant","lav","ukjent","lav",NA,NA
-"nordmela_havn_0365000032-5-c","ikke_relevant","lav","ukjent","lav",NA,NA
-"bleik_havn_0365000032-7-c","ikke_relevant","lav","ukjent","lav",NA,NA
 "gavlfjorden-ytre_0365000032-8-c","svaert_god","lav","ukjent","lav",100,NA
 "morfjorden-indre_0365010101-c","god","lav","ukjent","lav",75,NA
 "morfjorden-ytre_0365010102-c","god","lav","ukjent","lav",75,NA
@@ -504,7 +470,6 @@
 "sloverfjorden_0365010202-c","god","lav","ukjent","lav",75,NA
 "myrlandsfjorden_0365010300-1-c","god","lav","ukjent","lav",75,NA
 "falkfjorden_0365010300-2-c","god","lav","ukjent","lav",75,NA
-"melbu_fiskerihavn_0365010300-3-c","ikke_relevant","middels","ukjent","lav",NA,NA
 "haugvagen_0365010300-4-c","god","lav","ukjent","lav",75,NA
 "hadselfjorden_0365010300-5-c","god","hoy","darlig","lav",75,0
 "ytterfjorden_-_innerfjorden_0365010400-1-c","god","lav","ukjent","lav",75,NA
@@ -542,7 +507,6 @@
 "eidsfjorden_ytre_0365020100-3-c","god","lav","ukjent","lav",75,NA
 "eidsfjorden_indre_0365020100-4-c","god","lav","ukjent","lav",75,NA
 "langoysundet_0365020200-1-c","god","lav","ukjent","lav",75,NA
-"boroysundet_0365020200-2-c","ikke_relevant","middels","ukjent","lav",NA,NA
 "slattnesbogen_0365020300-c","god","lav","ukjent","lav",75,NA
 "straumen_0365020400-1-c","moderat","middels","ukjent","lav",50,NA
 "valfjorden_0365020400-2-c","moderat","middels","ukjent","lav",50,NA
@@ -561,7 +525,6 @@
 "pollen_0365020902-4-c","god","lav","ukjent","lav",75,NA
 "guvag_0365020902-5-c","god","lav","ukjent","lav",75,NA
 "prestfjorden_0365030100-1-c","god","lav","ukjent","lav",75,NA
-"myre_havn_0365030100-2-c","ikke_relevant","middels","ukjent","lav",NA,NA
 "steinlandsfjorden_0365030200-c","udefinert","lav","ukjent","lav",NA,NA
 "romsetfjorden_0365030300-c","god","lav","ukjent","lav",75,NA
 "breistrand_0365030400-1-c","god","lav","ukjent","lav",75,NA
@@ -615,7 +578,6 @@
 "bergsfjorden_0401011400-c","god","lav","god","lav",75,100
 "steinfjorden_0401011500-c","svaert_god","lav","ukjent","lav",100,NA
 "ersfjorden_0401011600-c","svaert_god","lav","ukjent","lav",100,NA
-"hopsvatnet_i_senjahopen_0401011700-1-c","ikke_relevant","middels","darlig","lav",NA,0
 "mefjorden_0401011700-2-c","svaert_god","middels","darlig","lav",100,0
 "breivik_-_kilbotn_0401020100-1-c","god","hoy","darlig","lav",75,0
 "stangnes_0401020100-3-c","god","lav","god","lav",75,100
@@ -626,7 +588,6 @@
 "bergsvagen_0401020400-3-c","god","hoy","darlig","lav",75,0
 "toppsundet_0401020400-4-c","svaert_god","middels","darlig","lav",100,0
 "harstadbassenget_russevika_-_brurvika_0401020500-1-c","moderat","middels","darlig","lav",50,0
-"harstad_havneomrade_0401020500-2-c","ikke_relevant","hoy","darlig","lav",NA,0
 "hamnvik_havn_ibestad_0401020600-1-c","udefinert","lav","ukjent","lav",NA,NA
 "astafjorden_0401020600-2-c","svaert_god","middels","darlig","lav",100,0
 "grov_indre_0401020701-1-c","god","lav","ukjent","lav",75,NA
@@ -704,7 +665,6 @@
 "tromsoysundet-nord_0402020900-3-c","svaert_god","lav","ukjent","lav",100,NA
 "tromsdalselva-utlop_0402020900-5-c","god","lav","ukjent","lav",75,NA
 "tromsdalen_smabathavn_0402020900-7-c","moderat","middels","darlig","lav",50,0
-"tromso_indre_havn_0402020900-8-c","ikke_relevant","middels","darlig","middels",NA,0
 "hakoya_-_grindoysundet_0402021000-1-c","god","middels","darlig","lav",75,0
 "sandnessundet_0402021000-2-c","god","hoy","darlig","lav",75,0
 "nordbotn_0402021100-c","god","hoy","darlig","lav",75,0
@@ -727,7 +687,6 @@
 "grunnfjorden_0403010800-c","god","lav","ukjent","lav",75,NA
 "langsundet_0403010900-c","svaert_god","middels","ukjent","lav",100,NA
 "hamrefjorden_0403011000-c","svaert_god","lav","ukjent","lav",100,NA
-"torsvag_havn_0403011100-1-c","ikke_relevant","lav","god","lav",NA,100
 "rasa_0403011100-2-c","svaert_god","lav","ukjent","lav",100,NA
 "sorskardvagen_0403011200-c","svaert_god","lav","ukjent","lav",100,NA
 "fugloyfjorden_0403020100-c","svaert_god","lav","ukjent","lav",100,NA
@@ -766,7 +725,6 @@
 "kvaenangen_skorpa_-_spildra_0403040104-3-c","god","lav","ukjent","lav",75,NA
 "kvaenangen_-_ytre_0403040104-4-c","moderat","lav","ukjent","lav",50,NA
 "lauksundet_0403040200-c","god","lav","ukjent","lav",75,NA
-"skjervoy_havn_0403040300-c","ikke_relevant","hoy","darlig","hoy",NA,0
 "reisaelva-utlop_0403040401-1-c","god","lav","darlig","lav",75,0
 "reisafjorden-indre_0403040401-2-c","god","lav","ukjent","lav",75,NA
 "reisafjorden-ytre_0403040402-c","god","lav","ukjent","lav",75,NA

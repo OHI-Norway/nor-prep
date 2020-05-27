@@ -365,6 +365,7 @@ modified_num_status <- modified %>%
 
 ```{r}
 unmodified_num_status <- status_prep3 %>% 
+  filter(naturlig_eller_smvf == "naturlig") %>% 
   select(water_entity_id, 
          okologisk_tilstand,
          okologisk_palitelighetsgrad,
@@ -379,7 +380,7 @@ unmodified_num_status <- status_prep3 %>%
     ~ translate_chemstatus(.x)
   ))
 
-# write.csv(unmodified_num_status, file =  "data/quantitative_status_unmodified_areas.csv", row.names = FALSE)  
+#write.csv(unmodified_num_status, file =  "data/quantitative_status_unmodified_areas.csv", row.names = FALSE)  
 ```
 
 
