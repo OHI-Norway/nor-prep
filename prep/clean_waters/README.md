@@ -1,15 +1,15 @@
 # Clean waters goal: data and analysis
 
-In this goal, we assess the to what extent the coastal waters in northern Norway are unpolluted. Under pollution we understand any kind of pollution - with organic and inorganic compounds, pollution related to human acitvities on the coast, and marine debris.
+In this goal, we assess to what extent the coastal waters in northern Norway are unpolluted. Under pollution we understand any kind of pollution - with organic and inorganic compounds, pollution related to human acitvities on the coast, and marine debris.
 
 There are two components in the Clean waters goal:
 
 * Status of coastal water entities based on ecological and chemical parameters
 
-* Marine debris  - accumulation of debris on the beaches in northern Norway.
+* Marine debris  - accumulation of debris on the beaches in northern Norway (unfinished yet)
 
 ## Status of coastal water entities
-This classification of water entities is based on the Water Framework directive in Norway. Ecological status is measured as biota-related characteristics, chemical status - as the level of pollutants in the sediments, biota and water.
+This classification of water entities is based on the Water Framework directive, in a way it is implemented in Norway. Ecological status is measured as biota-related characteristics, chemical status - as the level of pollutants in the sediments, biota and water.
 The assessemnts are done about every 6 years. The results are visualized on the map [here](https://vann-nett.no/portal/#/mainmap).
 
 ## Marine debris
