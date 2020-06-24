@@ -21,10 +21,12 @@ source('~/github/nor-prep/prep/src/common.R')
 ```
 
 ```{r include = FALSE}
+library(sf)
 library(vroom)
 library(janitor)
 library(rebus)
 library(DT)
+library(kableExtra)
 ```
 
 # Load the data
@@ -36,28 +38,7 @@ water_entities <- read.csv("data/municipalities_and_water_entities_table.csv")
 ```
 
 # Prepare the datasets
-```{r}
-areas_prep <- areas %>% 
-  mutate(water_entity_id =  str_replace_all(water_entity_id,
-                                            pattern = "_-_",
-                                            replacement = "_")) %>% 
-  mutate(water_entity_id = str_replace_all(water_entity_id,
-                                            pattern = "-",
-                                            replacement = "_")) %>% 
-  mutate(water_entity_id = str_to_lower(water_entity_id)) %>% 
-  mutate(water_entity_id = str_replace_all(water_entity_id, 
-                                           char_class(" ,"), 
-                                           replacement = "_"))  %>% 
-  mutate(water_entity_id = str_replace_all(water_entity_id, 
-                                           pattern = "__", 
-                                           replacement = "_")) %>% 
-  mutate_if(is.character, ~ str_replace_all(. ,"ø", replacement = "o")) %>% 
-  mutate_if(is.character, ~ str_replace_all(. ,"å", replacement = "a")) %>% 
-  mutate_if(is.character, ~ str_replace_all(. ,"æ", replacement = "ae"))  
-```
-
-The other datasets also have "dirty" water entity IDs. I will fix them.
-Of the 982 unmodified water entities, there is no ecological and chemical status for 106 of them. For this 106 observations, we do not have a quantitaive score,and they will not contribute to the municipality clean waters score. It is possbile to take an average of neighboring water entities to gapfill these, if we need to. 
+Prepare the tables of modiifed and unmodified water entities - cleaning the water entities names
 ```{r}
 status_unmodified_prep <- status_unmodified %>% 
   mutate(water_entity_id = str_replace_all(water_entity_id,
@@ -68,7 +49,7 @@ status_unmodified_prep <- status_unmodified %>%
                                             replacement = "_"))                     
 ```
 
-Same for the modified water entities
+
 ```{r}
 status_modified_prep <- status_modified %>% 
   mutate(water_entity_id = str_replace_all(water_entity_id,
@@ -80,10 +61,10 @@ status_modified_prep <- status_modified %>%
 ```
 
 # Calculating the water entity status score for modified and unmodified water entities
-STEPS: 1) prepare a table like water_entity, its score and reliability score  (3 columns) for modified and unmodified areas separately
-2) Join the areas table with both score tables by water entity id.
-3) To these tables, add a column called "category" to indicate if water entity is modified or not.
-
+STEPS: 
+1) Prepare a table like water_entity, its score and reliability score  (3 columns) for modified and unmodified areas separately
+2) Join the areas table with both score table by water entity id.
+3) Create a column "type" that will indicate if water entity is modified or not.
 
 ```{r}
 unmodified_score <- status_unmodified_prep %>% 
@@ -113,7 +94,8 @@ unmodified_score <- status_unmodified_prep %>%
   select(-c(
     okologisk_palitelighetsgrad,
     kjemisk_palitelighetsgrad 
-  ))
+  )) %>% 
+  mutate(water_entity_class = "unmodified")
 
 ```
 
@@ -135,12 +117,13 @@ modified_score <- status_modified_prep %>%
     num_status_eco
   )) %>% 
   select(-okologisk_palitelighetsgrad) %>% 
-  rename(score = num_status_eco)
+  rename(score = num_status_eco) %>% 
+  mutate(water_entity_class = "modified")
 ```
 
 
-Bind the tables for modified and unmodified status, the column "reliability of chemical score" will have NA for all the modified areas, as I did not include this info. 
-Also realized that there are still some bugs in the water entities' names - "_/_". I fix it here.
+Bind the tables for modified and unmodified status, the column "reliability of chemical score" will have NA for all the modified areas, as I did not include chemical status. 
+Also I realized that there are still some bugs in the water entities' names. I fix them here.
 ```{r}
 scores_all <- bind_rows(
   unmodified_score,
@@ -213,7 +196,7 @@ scores_per_mcp <- areas %>%
   ))
 ```
 
-Some of the water entities from northern Norway that were in the shape file, were not in the assessment file: there are 2 of such entities. I checked and it apperas that these two entities are lakes that have connection to fjords. On the portal Vann-Nett they do not have ecological status assessed. I will just remove them. 
+Some of the water entities from northern Norway that were in the shape file, were not in the assessment file: there are 2 of such entities. I checked, and it apperas that these two entities are lakes that have a connection to fjords. On the portal Vann-Nett they do not have ecological status assessed. I will just remove them. 
 ```{r}
 not_assessed <- scores_per_mcp %>% 
   filter(is.na(reliability_ecological_score)) %>% 
@@ -221,11 +204,79 @@ not_assessed <- scores_per_mcp %>%
   tally()
 ```
 
+At the same time, there are 10 entities, that are in the status table but are not listed in the shape files.
 
-
-Here I also translate the reliability scores to numerical as: low - 0, moderate - 50, high - 100. Then we can present an average reliability score per municipality alongside the clean waters status score. 
 ```{r}
-scores_per_mcp_prep <-scores_per_mcp %>% 
+not_in_shapes <-left_join(scores_all, scores_per_mcp, by = "water_entity_id")
+print(filter(not_in_shapes, is.na(reliability_ecological_score.y)))
+```
+I will create another areas file where I will manually add these 10 entities, and join with scores table once again.
+```{r}
+areas_addition <- read_excel("data/entities_not_in_shape_file.xlsx")
+areas_addition <- areas_addition %>%  select(-area_km2)
+areas_prep <- rbind(areas, areas_addition)
+```
+
+Clean the water entities names in the areas_prep table, before joining with scores
+```{r}
+areas_prep2 <- areas_prep %>% 
+  mutate(water_entity_id = str_to_lower(water_entity_id)) %>% 
+  mutate(water_entity_id = str_replace_all(
+    water_entity_id,
+    pattern = char_class("- "),
+    replacement = "_"
+  )) %>% 
+  mutate(water_entity_id = str_replace_all(
+    water_entity_id,
+    pattern = "___",
+    replacement = "_")) %>% 
+   mutate(water_entity_id = str_replace_all(
+    water_entity_id,
+    pattern = "__",
+    replacement = "_")) %>% 
+   mutate(water_entity_id = str_replace_all(
+    water_entity_id,
+    pattern = "_/_",
+    replacement = "_")) %>% 
+  mutate(water_entity_id = str_replace_all(
+    water_entity_id,
+    pattern = "/_",
+    replacement = "_")) %>% 
+   mutate(water_entity_id = str_replace_all(
+    water_entity_id,
+    pattern = ",",
+    replacement = "")) %>% 
+    mutate(water_entity_id = str_replace_all(
+    water_entity_id,
+    pattern = "ø",
+    replacement = "o")) %>% 
+   mutate(water_entity_id = str_replace_all(
+    water_entity_id,
+    pattern = "å",
+    replacement = "a")) %>% 
+  mutate(water_entity_id = str_replace_all(
+    water_entity_id,
+    pattern = "æ",
+    replacement = "ae")) 
+```
+
+
+And now merge with scores:
+```{r}
+scores_per_mcp_prep2 <-areas_prep2 %>% 
+  left_join(scores_all, by = "water_entity_id") %>% 
+  mutate(score = ifelse(
+    is.nan(score),
+    NA,
+    score
+  ))
+```
+
+
+# Translate reliability scores to numerical
+Here I translate the reliability scores to numerical as: low - 0, moderate - 50, high - 100. Then we can present an average reliability score per municipality alongside with the clean waters status score. The 2 water entities that were not assesed (two lakes) are removed at this step.
+```{r}
+scores_per_mcp_prep3 <-scores_per_mcp_prep2 %>% 
   filter(!is.na(reliability_ecological_score)) %>% 
   mutate(reliability_eco_score_num = case_when(
     reliability_ecological_score == "low" ~ "0",
@@ -240,26 +291,156 @@ scores_per_mcp_prep <-scores_per_mcp %>%
   
 ```
 
-Next, I c group the data by municipality and caclulate the total area of all water entities within a municipality and porpotions of each water entity per municipaity, by area.
-**NB!** Of the total 1220 records of status, there are 69 in this table than did not have neither ecological nor chemical status assessed. These water entities will not contribute to the final clean waters score of their respective municipalitie, so I will remove them otherwise, we get sum of weights per water entity less than 1 (weights by area).
-Other way would be to allocate these areas some score, like 50.
+
+Of the total 1230 records of status, there are 69 in this table than did not have neither ecological nor chemical status assessed. 
+I will gapfill this missing values to have more data and not to distort weighting of water entities within a municipality.
+
+
+# Gapfilling 69 NA scores 
+
+The list of "empty" records with no ecological or chemical score assessed:
+```{r}
+no_status_areas <- scores_per_mcp %>% 
+  filter(is.na(score)) 
+datatable(no_status_areas)
+```
+ 
+To fill the missing values, I will use mean imputation per river-coast system areas (also called drainage areas). Usually, they cotain 15-30 water entities.
+According to Norwegian Water entities authority, vassdrag area is the area from which a system of rivers drains into a particular area of a coast. So, if we think about land-based pollution, the status of water entities within one vassdrag area can be expected to be similar, but  resolution maybe too large of there is very local pollution.
 
 ```{r}
-scores_per_mcp_prep2 <- scores_per_mcp_prep %>% 
+scores_per_mcp_prep4 <-scores_per_mcp_prep3 %>% 
+  split(., .$vassdragomrade) %>% 
+  map(., ~ mutate(.x, score = ifelse(
+    is.na(score),
+    mean(score, na.rm = T),
+    score
+  ))) %>% 
+  do.call("rbind", .)
+  
+```
+
+However, this approach will solve a problem of NA only where there are more than 1 observation per drainage area.  Example - drainage area 228, entity *storfjorden_0422020300_c* is a single assessed entity in the whole drainage area. Drainage area 227 - all three entities did not have status assessed. Thereare in total 5 such occasions. For this 5 occasinons, I will just replace NA with a score of closest water entity. 
+
+```{r}
+print(filter(scores_per_mcp_prep4, is.na(score)))
+```
+
+
+I will have to load the shape file, extract the coordinates from it, sort the coordinates, and then create a table with sorted water entities according to their geometries.
+
+```{r}
+entity_shapes <- st_read("data/shapefiles/Kystvann20200415.gdb")
+shapes_north <- entity_shapes[entity_shapes$Vannregion %in% c("Finnmark", "Troms", "Nordland"), ] 
+```
+
+I use approach as described [here](https://gis.stackexchange.com/questions/302692/sort-data-in-an-ascending-order-based-on-the-geometry-of-an-sf-object-in-r-sort)
+```{r}
+xy = st_coordinates(st_centroid(shapes_north))
+
+shapes_sorted <- shapes_north[order(xy[, "X"], xy[, "Y"]), ] %>%
+  select(VannforekomstID, Vannforekomstnavn) %>%
+  mutate(water_entity_id = stringr::str_c(Vannforekomstnavn, "_", VannforekomstID)) %>%
+  st_set_geometry(., NULL) %>%
+  mutate(water_entity_id = str_replace_all(water_entity_id,
+    pattern = "_-_",
+    replacement = "_"
+  )) %>%
+  mutate(water_entity_id = str_replace_all(water_entity_id,
+    pattern = "-",
+    replacement = "_"
+  )) %>%
+  mutate(water_entity_id = str_to_lower(water_entity_id)) %>%
+  mutate(water_entity_id = str_replace_all(water_entity_id,
+    char_class(" ,"),
+    replacement = "_"
+  )) %>%
+  mutate(water_entity_id = str_replace_all(water_entity_id,
+    pattern = "__",
+    replacement = "_"
+  )) %>%
+   mutate(water_entity_id = str_replace_all(
+    water_entity_id,
+    pattern = "___",
+    replacement = "_"
+    )) %>% 
+  mutate_if(is.character, ~ str_replace_all(., "ø", replacement = "o")) %>%
+  mutate_if(is.character, ~ str_replace_all(., "å", replacement = "a")) %>%
+  mutate_if(is.character, ~ str_replace_all(., "æ", replacement = "ae")) %>%
+  mutate(water_entity_id = str_replace_all(water_entity_id,
+    pattern = "__",
+    replacement = "_"
+  )) %>%
+  mutate(water_entity_id = str_replace_all(water_entity_id,
+    pattern = "__",
+    replacement = "_"
+  )) %>% 
+  mutate(water_entity_id = str_replace_all(water_entity_id,
+    pattern = "_/_",
+    replacement = "_"
+  )) %>% 
+ mutate(water_entity_id = str_replace_all(water_entity_id,
+    pattern = "/_",
+    replacement = "_"
+  ))
+```
+
+Merge sorted water entities with the scores.Becuase there are duplicate of water entities in score_per_mcp table (due to one entity extends over several municipalities), I group by entity and draiange area and take only one of the duplicates. I use drainage area as a grouping variable, because there are occasions (e.g. Akkarfjord) when entities has same IDs but a located in different drainage areas.
+```{r}
+entities_wt_scores <- scores_per_mcp_prep4 %>% 
+  group_by(water_entity_id, vassdragomrade) %>% 
+  slice_head(n=1)
+
+entities_sorted <- shapes_sorted %>% 
+  left_join(entities_wt_scores, by = "water_entity_id")
+```
+
+Gapfill the 5 missing values using last-observation-carried-forward approach:
+```{r}
+entities_sorted_gapfilled <- entities_sorted %>% 
+  mutate(score_gapfilled = zoo::na.locf(score))
+```
+
+
+Filter out water entities that did not have scores and put them back in the main table:
+```{r}
+entities_to_gapfill <- filter(scores_per_mcp_prep4, is.na(score))$water_entity_id
+
+entities_to_gapfill_prep <- entities_sorted_gapfilled %>% 
+  filter(water_entity_id %in% entities_to_gapfill) %>% 
+  mutate(score = score_gapfilled) %>% 
+  select(-score_gapfilled)
+```
+
+```{r}
+scores_per_mcp_prep5 <- scores_per_mcp_prep4 %>% 
   filter(!is.na(score)) %>% 
-  mutate(area_km2 = area_m2/1000) %>% 
+  bind_rows(., entities_to_gapfill_prep)
+```
+
+
+# Calculating areas of each entity within a municipality
+
+Next, I group the data by municipality and caclulate the total area of all water entities within a municipality and porpotional area of each water entity per municipality.
+```{r}
+scores_per_mcp_prep6 <- scores_per_mcp_prep5 %>% 
+  mutate(area_km2 = area_m2/1000000) %>% 
   group_by(municip_name, municip_number) %>% 
   mutate(total_area_km2 = sum(area_km2)) %>% 
   ungroup() %>% 
   mutate(area_prop = area_km2/total_area_km2)
 ```
 
- 
+Save the table with water entities and their scores
+```{r}
+#write.csv(scores_per_mcp_prep6, "data/water_entities_scores.csv", row.names = F)
+```
+
 
 # Caclulating final clean water scores and reliability scores per municipality
 
 ```{r}
-scores_per_mcp_prep3 <-scores_per_mcp_prep2 %>% 
+scores_per_mcp_final <-scores_per_mcp_prep6 %>% 
   mutate_at(vars(reliability_eco_score_num,reliability_chem_score_num),
             as.numeric) %>% 
   group_by(municip_name, municip_number) %>% 
@@ -269,8 +450,10 @@ scores_per_mcp_prep3 <-scores_per_mcp_prep2 %>%
   
 ```
 
+
+
 Save the final table
 ```{r}
-#write.csv(scores_per_mcp_prep3, "data/clean_waters_score_per_mcp.csv", row.names = F)
+#write.csv(scores_per_mcp_final, "data/clean_waters_score_per_mcp.csv", row.names = F)
 ```
 
