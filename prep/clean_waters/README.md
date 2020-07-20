@@ -13,7 +13,7 @@ This classification of water entities is based on the Water Framework directive,
 The assessemnts are done about every 6 years. The results are visualized on the map [here](https://vann-nett.no/portal/#/mainmap).
 
 ## Marine debris
-There is no good data on marine debris for the coast of northern Norway. The project by [Salt](https://salt.nu/en/) has done an assessment of marine debris accumilation on a selected beaches in northern Norway. We might use these data to create a marine debris data layer, but this index will be relevant only for some municipalities.
+There is no good data on marine debris for the coast of northern Norway. The project by [Salt](https://salt.nu/en/) has done an assessment of marine debris accumulation on selected beaches in northern Norway. We might use these data to create a marine debris index, but this index will be relevant only for some municipalities.
 
 
 ## Links to R-codes
