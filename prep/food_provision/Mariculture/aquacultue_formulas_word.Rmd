@@ -51,5 +51,10 @@ $$
 MOMB \ index  = 1 - (\frac{MTB_{farms \ scored \ 3 \ and \ 4}}{MTB_{municipality \ total}})
 \end{equation} 
 $$ 
-
+**Escapees index**
+$$
+\begin{equation}
+Escapees \ index = \frac{\sum_{j=1}^{N}[\frac{\sum_{i=1}^{n}(incidence\ score_i)}{n}]}{N}
+\end{equation}
+$$
 
