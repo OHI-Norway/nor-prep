@@ -24,12 +24,15 @@ library(ggthemes)
 library(ghibli)
 ```
 
-# Imporat data
+# Import data
 ```{r}
 lice <-read.csv("data/lice_below_thr_gapfilled.csv") 
 momb <-read.csv("data/mean_momb_mp_yr_gapfilled.csv")
+komnames_norw <- read_excel(file.path("~/github/aqua_fish_paper/data/raw/komlist_norw.xlsx"))
 ```
 
+
+# Lice plots
 ```{r}
 lice_plot <- lice %>% 
   mutate(county = case_when(
@@ -37,6 +40,12 @@ lice_plot <- lice %>%
     Municip_number >= 1900 & Municip_number < 2000 ~ "Troms",
     Municip_number >= 2000 ~ "Finnmark"
   ))
+```
+
+Add names of municipalities with their special Norwegian letters
+```{r}
+lice_plot_norw <- lice_plot %>% 
+  left_join(komnames_norw[c("Komnum", "Norw_name")], by = c("Municip_number" = "Komnum"))
 ```
 
 
@@ -63,7 +72,7 @@ theme_lice <- function(...) {
 }
 ```
 
-# Trend in lice index: proporiton of week a locality is below lice threshold
+## Trend in lice index: proporiton of week a locality is below lice threshold
 ```{r}
 breaks1 <- seq(2004, 2018, by = 1)
 labels1 <- as.character(breaks1)
@@ -90,6 +99,60 @@ plots_lice <- map2(
  map2(file_names, plots_lice, ggsave)
 ```
 
+
+## Same themes but for publication, white backgorund everywhere
+```{r}
+theme_lice_publ <- function(...) {
+  theme_stata(scheme = "s1color") +
+    theme(
+      legend.position = "none",
+      axis.text.x = element_text(
+        size = 6, angle = 90, hjust = 1, vjust = 0.5,
+        face = "bold"
+      ),
+      axis.text.y = element_text(size = 7, angle = 0),
+      axis.title.y = element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)),
+      plot.title = element_text(hjust = 0.5, vjust = 0.5, face = "bold"),
+      axis.ticks.x = element_line(size = 0.5),
+      axis.ticks.length = unit(0.2, "cm"),
+      strip.text = element_text(size = 10, face = "bold"),
+      strip.background = element_rect(fill = "bisque", color ="bisque"),
+      panel.background = element_rect(fill = "white"),
+     #panel.border = element_rect(color = "grey97"),
+      plot.background = element_blank(),
+      panel.grid.major.x = element_line(color = "grey97", size = 0.7),
+    )
+}
+```
+
+
+```{r}
+breaks1 <- seq(2004, 2018, by = 1)
+labels1 <- as.character(breaks1)
+labels1[!breaks1%%2==0]<- ""
+
+
+county_names <- list("Finnmark", "Nordland", "Troms")
+
+lice_df <- split(lice_plot_norw, lice_plot$county)
+
+plots_lice <- map2(
+  lice_df, 
+  names(lice_df),
+   ~ ggplot(data = .x, mapping = aes(x = Year, y = score_final)) +
+  geom_point(color = "mediumslateblue") +
+  geom_smooth(color = "darkblue",
+              size = 0.4) +
+  ggtitle(.y)  +
+  facet_wrap(Norw_name ~ .) +
+  scale_x_continuous(breaks = breaks1, labels = labels1) +
+  labs(y = "Lice index", x = "") +
+  theme_lice_publ())
+
+ file_names <- paste0("figs/lice_score_trends_publ", "_", county_names, ".pdf")
+ map2(file_names, plots_lice, ggsave)
+```
+
 # Trends in momb  index: the proportion of MAB with momb score 3 and 4
 
 ```{r}
@@ -101,7 +164,12 @@ momb_plot <- momb %>%
   ))
 ```
 
+And adding Norwegian special letters to municipalities's names
+```{r}
+momb_plot_norw <- momb_plot %>% left_join(komnames_norw[c("Komnum", "Norw_name")], by = c("Komnum_new" = "Komnum"))
+```
 
+## Theme for momb colourfull plots
 ```{r}
 theme_momb <- function(...) {
   theme_stata(scheme = "s1color") +
@@ -125,6 +193,7 @@ theme_momb <- function(...) {
 }
 ```
 
+
 Plotting trends in momb index:
 ```{r}
 breaks1 <- seq(2004, 2018, by = 1)
@@ -140,7 +209,7 @@ plots_momb <- map2(
    ~ ggplot(data = .x, mapping = aes(x = Year, y = momb_gapfilled)) +
   geom_point(color = "orangered4") +
   geom_smooth(color = "red",
-              size = 0.3) +
+              size = 0.4) +
   ggtitle(.y)  +
   facet_wrap(Kommune_new ~ .) +
   scale_x_continuous(breaks = breaks1, labels = labels1) +
@@ -150,5 +219,32 @@ plots_momb <- map2(
  file_names <- paste0("figs/momb_score_trends", "_", county_names, ".pdf")
  map2(file_names, plots_momb, ggsave)
  
+```
+## Plotting momb trends for publications
+Here I will use same theme as for lice - lice_theme_publ, but will use different colours for geom_smooth.
+
+```{r}
+breaks1 <- seq(2004, 2018, by = 1)
+labels1 <- as.character(breaks1)
+labels1[!breaks1%%2==0]<- ""
+
+
+momb_df <- split(momb_plot_norw, momb_plot$county)
+
+plots_momb <- map2(
+  momb_df, 
+  names(momb_df),
+   ~ ggplot(data = .x, mapping = aes(x = Year, y = momb_gapfilled)) +
+  geom_point(color = "orangered4") +
+  geom_smooth(color = "red",
+              size = 0.4) +
+  ggtitle(.y)  +
+  facet_wrap(Norw_name ~ .) +
+  scale_x_continuous(breaks = breaks1, labels = labels1) +
+  labs(y = "Momb index", x = "") +
+  theme_lice_publ())
+
+ file_names <- paste0("figs/momb_score_trends_publ", "_", county_names, ".pdf")
+ map2(file_names, plots_momb, ggsave)
 ```
 

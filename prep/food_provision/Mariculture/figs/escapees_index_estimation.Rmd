@@ -1,0 +1,35 @@
+---
+title: "Eatsimating escapees index"
+author: "*Compiled on `r date()` by `r Sys.info()['user']`*"
+output: 
+  html_document:
+    css: '~/github/nor-prep/prep/templates/style.css'
+    toc: true
+    number_sections: true
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: '~/github/nor-prep/prep/templates/norway_banner.html'
+  pdf_document:
+    toc: true
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source('~/github/nor-prep/prep/src/common.R')
+```
+
+https://r-spatial.github.io/sf/reference/geos_measures.html
+
+
+1) Get a table on rivers and their "innslag status", a digitalized table from page 37 of Aronsen et al 2019 report.
+2) Import a table on northern Norwegian rivers with the coordinates of river start.
+3) Import Akvakulturregisteret
+4) Trun the Akva..registeret into an sf object, coordinates for the localities are provided.
+5) Merge the table of rivers with the table of their status, turn this table into an sf object.
+6) Calculate the 1D distance between each locality and each river (probably, you need to join the two tables firtst). 
+7) Sort out only the distances that are less than 150 km
+8) You should get a table like : locality -- river -- distance to river -- river status
+for each locality (there will be multiple rows per locality)
+
