@@ -32,7 +32,7 @@ year2018 <-read_excel(file.path(dir_M[2], "Aquaculture/Akvakultur_tillatelser_20
 
 ```
 
-Data for all years 2010 - 2017 is not available, but we can just use data for 2018 also for 2017, and data for 2015 also for 2014 assuming that changes in the nuber of licensed aquaculture localities did not change much. 
+Data for all years 2010 - 2017 is not available, but we can just use data for 2018 also for 2017, and data for 2015 also for 2014 assuming that changes in the number of licensed aquaculture localities did not change much. 
 
 ```{r}
 year2010<-year2010 %>% mutate(TILL_KAP = as.numeric(TILL_KAP),

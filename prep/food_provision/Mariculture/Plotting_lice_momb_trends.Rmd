@@ -100,7 +100,7 @@ plots_lice <- map2(
 ```
 
 
-## Same themes but for publication, white backgorund everywhere
+## Same theme but for publication, white backgorund everywhere
 ```{r}
 theme_lice_publ <- function(...) {
   theme_stata(scheme = "s1color") +
@@ -200,6 +200,7 @@ breaks1 <- seq(2004, 2018, by = 1)
 labels1 <- as.character(breaks1)
 labels1[!breaks1%%2==0]<- ""
 
+county_names <- list("Finnmark", "Nordland", "Troms")
 
 momb_df <- split(momb_plot, momb_plot$county)
 
@@ -213,7 +214,7 @@ plots_momb <- map2(
   ggtitle(.y)  +
   facet_wrap(Kommune_new ~ .) +
   scale_x_continuous(breaks = breaks1, labels = labels1) +
-  labs(y = "Momb index", x = "") +
+  labs(y = "MOM B index", x = "") +
   theme_momb())
 
  file_names <- paste0("figs/momb_score_trends", "_", county_names, ".pdf")
@@ -228,6 +229,7 @@ breaks1 <- seq(2004, 2018, by = 1)
 labels1 <- as.character(breaks1)
 labels1[!breaks1%%2==0]<- ""
 
+county_names <- list("Finnmark", "Nordland", "Troms")
 
 momb_df <- split(momb_plot_norw, momb_plot$county)
 
@@ -241,7 +243,7 @@ plots_momb <- map2(
   ggtitle(.y)  +
   facet_wrap(Norw_name ~ .) +
   scale_x_continuous(breaks = breaks1, labels = labels1) +
-  labs(y = "Momb index", x = "") +
+  labs(y = "MOM B index", x = "") +
   theme_lice_publ())
 
  file_names <- paste0("figs/momb_score_trends_publ", "_", county_names, ".pdf")
