@@ -29,6 +29,11 @@ stocks_stat <- read_csv("data/stock_scores.csv")
 catch <-read_csv("data/area_weighted_catch_and_catchscore.csv")
 ```
 
+Loading also Norwegian names of municipalities (with the special Norwegian  letters) to use for publication grapths.
+```{r}
+komnames_norw <- read_excel(file.path("~/github/aqua_fish_paper/data/raw/komlist_norw.xlsx"))
+```
+
 ## Overview of fisheries data and scores with ggplots:
 Compare total proportions of catch per stock  
 ```{r, warning=FALSE}
@@ -151,8 +156,6 @@ ggsave(paste0("figs/catch_all_species", cty, ".pdf"), plot)
   
 }
   
-
-
 ```
 
 
@@ -171,7 +174,7 @@ plot_stocks_prep <- stocks_stat %>%
 
 
 
- plot_stocks_prep2 <- plot_stocks_prep %>% 
+plot_stocks_prep2 <- plot_stocks_prep %>% 
        select(Year, English, SSB, MSYBtrigger, Blim) %>% 
        mutate(SSB = as.numeric(as.character(SSB))) %>% 
        mutate(Year = as.numeric(as.character(Year)))
@@ -215,8 +218,96 @@ ggsave(paste0("figs/SSB_", "_", sp, ".pdf"), plot2)
 
 ```
 
+# Plotting stock scores per species
+## Creating ggplot theme for stocks and final scores plots
+```{r}
+theme_food <- function(...) {
+  theme_stata(scheme = "s1color") +
+    theme(
+      axis.text.x = element_text(
+        size = 8, angle = 90, hjust = 1, vjust = 0.5,
+        face = "bold"
+      ),
+      axis.text.y = element_text(size = 10, angle = 0, face = "bold"),
+      axis.title.y = element_text(margin = margin(t = 0, r = 15, b = 0, l = 0), face = "bold", size = 10),
+      plot.title = element_text(hjust = 0.5, vjust = 0.5, face = "bold"),
+      axis.ticks.x = element_line(size = 0.5),
+      axis.ticks.length = unit(0.2, "cm"),
+      strip.text = element_text(size = 10, face = "bold"),
+      strip.background = element_rect(fill = "bisque", color ="bisque"),
+      panel.background = element_rect(fill = "white"),
+      plot.background = element_rect(fill = "white"),
+      panel.grid.major.y = element_line(color = "grey", size = 0.7),
+      legend.background = element_rect(color = "white")
+    )
+}
+```
+
+```{r}
+plot_stockscores_prep <- stocks_stat %>% 
+  select(-X1) %>% 
+  filter(!English %in% c(
+    "Greenland halibut",
+     "Redfish",
+     "Blue whiting"
+  )) %>% 
+  filter(Year >= 2005 & Year <= 2018)
+
+breaks2 <- seq(2005, 2018, by = 1)
+labels2 <- as.character(breaks2)
+labels2[!breaks2%%2==0]<- ""
+
+plot_stockscores_prep2 <- plot_stockscores_prep %>% 
+       select(Year, English, stock_score) %>% 
+       mutate(Year = as.numeric(as.character(Year)))
 
 
+options(scipen = 999) 
+
+plot3 <- ggplot(plot_stockscores_prep2)+
+      geom_line(aes(x = Year, y = stock_score), size = 0.7, color = "darkblue") +
+      scale_x_continuous(breaks = breaks2, labels = labels2) +
+      labs(y = "Stock scores", x = "") +
+      facet_wrap( English ~ .) +
+      theme_food() +
+      theme(legend.position = "none")
+
+ggsave("figs/stock_scores_all_spp.pdf", plot3)      
+
+```
 
 
+# Plotting final fisheries sustainability scores
+```{r}
+
+scores_final <- read.table()
+scores_final_prep <-scores_final %>% 
+  left_join(komnames_norw[c("Komnum", "Norw_name")], by = ("Municip_number" = "Norw_name"))
+```
+
+```{r}
+
+sc_counties <- unique(scores_final_prep$county) 
+
+for(i in 1:length(sc_counties))
+  {
+  cty <- sc_counties[i]
+  
+  df <- scores_final_prep %>%
+    filter(county == cty) 
+    
+    
+plot <- ggplot(df)+
+      geom_line(aes(x = Year, y = final_score), size = 0.7, color = "darkblue") +
+      facet_wrap(Norw_name  ~ .) +
+      scale_x_continuous(breaks = breaks1, labels = labels1)+
+      labs(y = "Fisheries sustainability score", x = "") +
+      ggtitle(cty)+
+      theme_food()
+           
+            
+ggsave(paste0("figs/fisheries_sustainability_score_", cty, ".pdf"), plot)
+  
+}
+```
 

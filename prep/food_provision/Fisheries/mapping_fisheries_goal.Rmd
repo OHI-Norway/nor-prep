@@ -48,7 +48,7 @@ komlist <-read.csv("../../administrative/komlist.csv", sep = ";")
 
 ## Fisheries score data and municipalities
 ```{r }
-fishscore <-read.csv("./data/fishery_final_score_smoothed_by_area.csv")#read the relevant file, this is jsut an example
+fishscore <-read.csv("./data/fishery_final_score_smoothed_by_area.csv")#read the relevant file, this is just an example
 ```
 
 # Trial basic maps for all needs
@@ -92,7 +92,7 @@ world <- ne_countries(scale = "medium", returnclass = "sf")
 kommunersf <- sf::st_as_sf(ohikom, coords= c("long", "lat"),crs = 4326, agr="identity")
 ```
 
-# Plot year fisheries score for year 1994
+# Plot fisheries score for year 1994
 ```{r }
 fishscore95 <-filter(fishscore, Year == "1995")
 foo <- left_join(kommunersf, fishscore95, by = c("KOMM" ="Municip_number")) %>% 
@@ -139,7 +139,7 @@ quantiles <-plot_fishscore95 %>%
 
 
 #create custom labels
-labels <- imap_chr(quantilesi, function(., id){
+labels <- imap_chr(quantiles, function(., id){
   return(paste0(round(quantiles[id], 0),
                              "",
                              " – ",
@@ -277,7 +277,7 @@ norway.layer2<- ggplot()  +
      reverse = T )) +     
     labs(x = NULL,
          y = NULL,
-         title = "Fisheries score")
+         title = "Fisheries score") +
   # add theme
   theme_map()  
  
@@ -291,7 +291,6 @@ norway_admin <- read_sf("../../administrative/raw/shapefiles/NO_Fylker/NO_Fylker
 ```
 
 ```{r}
-
 norway.layer3 <- ggplot()  + 
   geom_sf(data = norway_admin, fill = "antiquewhite1",color = "gray") +
   #coord_sf(xlim = c(10, 32), ylim = c(65,72))+
@@ -432,6 +431,5 @@ norway.layer6 <- norway.layer5  + geom_sf(data = world, fill = "antiquewhite1", 
 ```{r dpi = 250}
 norway.layer7 <- norway.layer6 +geom_path(kommuner.pol, mapping = aes(x = long, y = lat, group = id), color = 'dimgray',  size = .4)
 norway.layer7
-  
 ```
 
