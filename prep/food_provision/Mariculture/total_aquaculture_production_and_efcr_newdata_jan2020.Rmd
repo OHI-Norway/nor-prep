@@ -45,10 +45,11 @@ biomass_prep <-  allyears %>%
   clean_names()
 
 municip <- read.table("../../administrative/komlist.csv", header = TRUE, sep = ";")
+
 ```
 
 ## Estimate change in the biomass during a year 
-We calculate the change in biomass as a difference in biomass in desember of a year X, minus biomass in desember of year X-1.
+We calculate the change in biomass as a difference in biomass in December of a year X, minus biomass in December of year X-1.
 ```{r}
 biomass_prep2 <- biomass_prep %>% 
   rename(year = aar) %>% 
@@ -66,10 +67,10 @@ biomass_prep2 <- biomass_prep %>%
 ```
 
 
-Funciton to replace biomass change, when no data for the previous year is available:
+Function to replace biomass change, when no data for the previous year is available:
 the idea is to take the difference in biomass between the latest and earliest month with data in a given year, when there was no production in the previous year.
-Example (imaginary):  municipality XX had no production in 2015. In 2016, they got fish but not from the beggining of the year. Fish was likely moved from another municipality in March and was harvested in September. Then, the difference in biomass between September and March is the produciton in XX in 2016.
-If we would just subtract biomass in desember 2016 from biomass in desember  2015 (which is NA), we will get NA in the total produciton in 2016. But that would not be correct. 
+Example (imaginary):  municipality XX had no production in 2015. In 2016, they got fish but not from the beginning of the year. Fish was likely moved from another municipality in March and was harvested in September. Then, the difference in biomass between September and March is the production in XX in 2016.
+If we would just subtract biomass in December 2016 from biomass in December  2015 (which is NA), we will get NA in the total production in 2016. But that would not be correct. 
 
 ```{r}
 output_vect <-as.numeric()
@@ -85,6 +86,7 @@ replace_biomass <- function(cols) {
 }
 ```
 
+And apply this function for year when December to December difference was NA.
 
 ```{r}
 missingdat <- filter(biomass_prep2, is.na(biomchange_salmon)) %>%
@@ -123,7 +125,7 @@ missingdat <- filter(biomass_prep2, is.na(biomchange_salmon)) %>%
 
 ```
 
-
+And bind the rows with NA biomass changes and other rows together.
 ```{r}
 biomass_prep3 <- biomass_prep2 %>% 
   filter(year!= 2005) %>% 
@@ -132,9 +134,9 @@ biomass_prep3 <- biomass_prep2 %>%
 ```
 
 We an use 0.88 coefficient to change round weight to slaughter weight of fish, but we decided (June 2020)
-to keep the round weight. I simply replace 0.88 with 1, to be able to quickly revert back to slaugther weight if we'd need.
-There is also an addition of live fish during the produciton. I learned from aquaculture producers that the weight of these added fish can vary a lot, but often somewhere between 1.5-3.5 kg. We will simply test the weights 1.5 -2 -2.5 -3 -3.5 kg and see which option gives minimal number of negative total produdction (which cannot be right).
-The weight of smolts is assumed to be 100 gramms, and the weight of discarded salmon - **5**  kg.
+to keep the round weight. I simply replace 0.88 with 1, to be able to quickly revert back to slaughter weight if we'd need.
+There is also an addition of live fish during the production. I learned from aquaculture producers that the weight of these added fish can vary a lot, but often somewhere between 1.5-3.5 kg. We will simply test the weights 1.5 -2 -2.5 -3 -3.5 kg and see which option gives minimal number of negative total production (negative cannot be right).
+The weight of smolts is assumed to be 100 grams, and the weight of discarded salmon - **5**  kg.
 Finally, the total production is
 $Tot.prod = \triangle Biomass + harvest + removed\ fish  - seeded\ smolts - added\ fish - discard$
 ```{r}
@@ -176,8 +178,7 @@ production_prep <- biomass_prep3 %>%
   ) %>% 
  mutate_at(
     vars(
-      utsatt_annen_stk,
-      uttak_annen_laks_kg
+      utsatt_annen_stk #this is added live fish, which weight we have to guess
     ),
     ~ . * 1.5
   ) %>% 
@@ -189,8 +190,8 @@ production_prep <- biomass_prep3 %>%
     harvest_salmon_other_kg = uttak_annen_laks_kg,
     harvest_trout_main_kg = uttak_slakt_regnb_kg,
     harvest_trout_other_kg = uttak_annen_regnb_kg,
-    seeded_smolts = utsatt_smolt_stk,
-    added_fish = utsatt_annen_stk,
+    seeded_smolts_kg = utsatt_smolt_stk,
+    added_fish_kg = utsatt_annen_stk,
     feed_kg = forforbruk_kg) %>% 
    mutate(
      production_final = 
@@ -202,21 +203,35 @@ production_prep <- biomass_prep3 %>%
           harvest_salmon_other_kg,
           harvest_trout_main_kg,
           harvest_trout_other_kg,
-          -seeded_smolts,
-          -added_fish,
+          -seeded_smolts_kg,
+          -added_fish_kg,
           -discarded_kg
          ),
          sum
        ))
 
 filter(production_prep, production_final < 0) %>% tally()
-#write.csv(production_prep, "/Users/marinaespinasse/Desktop/production_per_municipality.csv")
 ```
+
+Save total annual production table:
+```{r}
+production_prep_save <- production_prep %>% 
+  select(year,
+         county,
+         municip_number,
+         municip,
+         feed_kg,
+         production_final)
+
+#write.csv(production_prep_save, "~/github/nor-data/aquaculture/aquculture_production_per_municipality.csv", row.names = F)
+
+```
+
 
 # Calculating eFCR (economic feed conversion ratio)
 $eFCR = \frac{feed.applied,kg}{biomass.produced,kg}$
 Function to estimate eFCR
-When the total aquaculture produciton is negative I set efcr to NA. Similarly, if either feed or production is zero, eFCR = NA. 
+When the total aquaculture production is negative, I set efcr to NA. Similarly, if either feed or production is zero, eFCR = NA. 
 But on the regional level, there were no occasions of negative or zero production and feed use.
 ```{r}
 estimate_efcr <- function(feed, biom){
@@ -235,7 +250,7 @@ estimate_efcr <- function(feed, biom){
 
 
 ```{r}
-production_efcr <- production_prep %>%
+production_efcr_mcp <- production_prep %>%
   select(c(
     year,
     county,
@@ -253,9 +268,9 @@ production_efcr <- production_prep %>%
 
 ```
 
-# Check the distribution of eFCR per municipality
+## Check the distribution of eFCR per municipality
 ```{r}
-mosaic::fav_stats(production_efcr$efcr_municip)
+mosaic::fav_stats(production_efcr_mcp$efcr_municip)
 ```
 
 
@@ -271,7 +286,8 @@ efcr_per_region <-
             harvested_trout_region = sum(harvest_trout_main_kg),
             harvest_salmon_other_region = sum(harvest_salmon_other_kg),
             harvest_trout_other_region = sum(harvest_trout_other_kg),
-            smolts_region  = sum(seeded_smolts),
+            smolts_region  = sum(seeded_smolts_kg),
+            added_fish_kg_region = sum(added_fish_kg),
             discarded_region = sum(discarded_kg),
             feed_used_region = sum(feed_kg)) %>% 
   mutate(production_final_region = pmap_dbl(list(biomchange_salmon_region, 
@@ -281,6 +297,7 @@ efcr_per_region <-
                                                  harvest_salmon_other_region,
                                                  harvest_trout_other_region,
                                                  -smolts_region,
+                                                 -added_fish_kg_region
                                                  -discarded_region), sum)) %>% 
  mutate(efcr_region = pmap_dbl(list(feed_used_region,production_final_region), estimate_efcr)) %>% 
  select(c(county, 
@@ -294,9 +311,9 @@ efcr_per_region <-
 mosaic::fav_stats(efcr_per_region$efcr_region)
 ```
 
-# Calculating eFCR score per county
+## Calculating eFCR score per county
 ```{r}
-efcr_score_prep <- production_prep %>%
+efcr_score_prep_cnt <- production_prep %>%
   left_join(efcr_per_region[, c(1, 2, 5)], by = c("county", "year")) %>%
   mutate(production_final = ifelse(
     production_final < 0,
@@ -312,23 +329,19 @@ efcr_score_prep <- production_prep %>%
             )) 
 ```
 
-The reference efcr is the lowest efcr amoung the 2 regions, whithin 1 year.
+The reference efcr is the lowest efcr among the 3 regions, within 1 year.
 ```{r}
-efcr_score <- efcr_score_prep %>% 
+efcr_score <- efcr_score_prep_cnt %>% 
   group_by(year) %>% 
   mutate(ref_efcr = min(efcr_region)) %>% 
   ungroup() %>% 
-  mutate(efcr_score = 1 - (efcr_region - ref_efcr)/ref_efcr)
+  mutate(efcr_score =  1 - (efcr_region - ref_efcr)/ref_efcr)
 ```
 
-Save the regional produciton and efcr per region table:
-```{r}
-#write.csv(efcr_score, "data/total_regional_aquaculture_production_and_efcr.csv", row.names = FALSE)
-```
 
 # Gapfilling production data
-We have 22 occasions where the production is negative, this values has to be set to NA.
-For many municipalities, there is data only for a few years. Let's check the number of years with produciton per municipality:
+We have 25 occasions where the production is negative, these values has to be set to NA.
+For many municipalities, there is data only for a few years. Let's check the number of years with production per municipality:
 ```{r}
 datatable(years_per_mp <- production_prep %>%
   group_by(
@@ -339,7 +352,7 @@ datatable(years_per_mp <- production_prep %>%
 ```
 
 9 municipalities had production only in a few years. Those municipalities are Balsfjord, Gamvik, Evenes, Moseknes, Storfjord, Tjeldsund, Batsfjord, Sorreisa, Hasvik.
-In Balsfjord 2008 there is no production, the table is filled with zeroes (usually municipality that did not produce is not in the table), but there is non-zero amoung of feed used. I delete these occasions because I am not sure if feed used was just a mistake and the production was indeed zero.
+In Balsfjord 2008 there is no production, the table is filled with zeroes (usually municipality that did not produce is not in the table), but there is non-zero amount of feed used. I delete this occasions because I am not sure if feed used was just a mistake and the production was indeed zero.
 
 ```{r}
 gapfill_prep <- 
@@ -353,15 +366,16 @@ gapfill_prep <-
   select(-efcr_municip) %>% 
   split(., .$municip) 
 
-#Remove municipalities that did not have produciton at all:
-empties <- map(gapfill_prep, ~ isTRUE(length(.x$production_final) == 0))
+#empties <- map(gapfill_prep, ~ isTRUE(length(.x$production_final) == 0))
 
 # the list of municipalities that did not have any production - 12 municipalities
-empties_list <- unlist(empties) %>%
-  stack(.) %>%
-  filter(values == TRUE)
+# empties_list <- unlist(empties) %>%
+#   stack(.) %>%
+#   filter(values == TRUE)
 
-empties_list
+foo <- data.frame(Name = names(gapfill_prep))
+not_produced_mcp <- anti_join(municip, foo, by = "Name") 
+not_produced %>% arrange(Name)
 ```
 
 Select only the municipalities with production and then those that have NA in some years:
@@ -374,10 +388,12 @@ missing_observations <-
   filter(values == TRUE) %>% 
   select(-values) %>% 
   mutate(ind = as.character(ind))
+
+missing_observations #these are municipalities that had NA production in some years.
 ```
 
 To interpolate missing data we need at lest 2 non-missing values.
-Check that all municipalities have at least 2 observations. I keep Batsfjord but I remove Evenes, with only one non-missing observation it is not possible to replace  a missing value. 
+Check that all municipalities have at least 2 observations. I keep Batsfjord but I remove Evenes and Storfjord, with only one non-missing observation or both missing, it is not possible to replace  a missing value. 
 
 ```{r}
 gapfill_sorted <- 
@@ -389,7 +405,7 @@ map(gapfill_sorted, ~length(.x$production_final))
 
 
 ```{r}
-gapfill_prep2 <- gapfill_sorted[!names(gapfill_sorted) == "Evenes"] %>% 
+gapfill_prep2 <- gapfill_sorted[!names(gapfill_sorted) %in% c("Evenes", "Storfjord")] %>% 
   map(.,~ as.data.frame(.x)) %>% 
   map(., ~ arrange(.x, .x$year)) %>% 
   map(., ~ mutate(.x,
@@ -404,10 +420,10 @@ gapfill_prep2 <- gapfill_sorted[!names(gapfill_sorted) == "Evenes"] %>%
  map(., ~ select(.x, -production_gapfilled))   
 ```
 
-Merge the dataframes where NA were interpolated with the other dataframes: first exclude Evenes and the 10 municipalities for which NA were interpolated. Then concatenate both lists.
+Merge the dataframes where NA were interpolated with the other dataframes: first exclude Evenes, Storfjord, and the 14 municipalities for which NA were interpolated. Then concatenate both lists.
 ```{r}
 gapfill_prep3 <- 
-  gapfill_prep[!names(gapfill_prep) %in% c("Evenes", "NonCoast")] %>% 
+  gapfill_prep[!names(gapfill_prep) %in% c("Evenes", "Storfjord", "NonCoast")] %>% 
   .[!names(.) %in% names(gapfill_prep2)] %>% 
     map(., ~ mutate(.x, gapfilled = "n"))
 
@@ -415,44 +431,46 @@ production_gapfilled_final <- do.call(c, list(gapfill_prep3, gapfill_prep2)) %>%
   do.call("rbind", .)
 ```
 
-The final dataframe has 859 observations compared to 862 in the initial dataframe.This is because 2 observations of Evenes are deleted, as well as 1 observation of Balsfjord (where production was zero). 
+The final dataframe has 857 observations compared to 862 in the initial dataframe.This is because 2 observations of Evenes are deleted, as well as 1 observation of Balsfjord (where production was zero) and 2 observations of Storfjord. 
 
 Save the table of gapfilled production data
 ```{r}
-write.csv(production_gapfilled_final, "data/gapfilled_aquaculture_production.csv", row.names = FALSE)
+#write.csv(production_gapfilled_final, "~/github/nor-data/aquaculture/gapfilled_aquaculture_production.csv", row.names = FALSE)
 ```
 
 
-# Calculating eFCR score on gapfilled production data
+# Calculating eFCR score on gapfilled production data 
 ```{r}
-efcr_on_gapfilled <- production_gapfilled_final %>%
-  left_join(efcr_per_region[, c(1, 2, 5)], by = c("county", "year")) 
+efcr_on_gapfilled_region <- production_gapfilled_final %>%
+  group_by(year,county) %>% 
+  summarise(production_final_region = sum(production_final),
+             feed_used_region = sum(feed_kg)
+             ) %>%                       
+  mutate(efcr_region = pmap_dbl(list(
+    feed_used_region,
+    production_final_region), estimate_efcr)) 
 ```
 
 ```{r}
-efcr_score_on_gapfilled <- efcr_on_gapfilled %>% 
+efcr_score_on_gapfilled_region <- production_gapfilled_final %>% 
+  left_join(efcr_on_gapfilled_region[, c(1,2,5)], by = c("county", "year")) %>% 
   group_by(year) %>% 
   mutate(ref_efcr = min(efcr_region)) %>% 
   ungroup() %>% 
   mutate(efcr_score = 1 - (efcr_region - ref_efcr)/ref_efcr)
 ```
 
-Save the final eFCR per region table:
-```{r}
-#write.csv(efcr_score_on_gapfilled, "data/regional_efcr_score_on_gapfilled_prod.csv", row.names = FALSE)
-```
-
 
 
 # Calculating eFCR score on gapfilled data, using aggreagted municipalities
-Import the table of neigbour municipalities - those municipalities that we will aggrefate to estimate eFCR (the way of aggregation is developed by Per F. in April 2020).
+Import the table of neighbor municipalities - those municipalities that we will aggregate to estimate eFCR (the way of aggregation is developed by Per F. in April 2020).
 ```{r}
 nabo_mcp <- read_excel("data/neighbour_mcp_edited.xlsx", 
                    sheet = 1,
                    range = cell_cols("A:J"))
 ```
 
-Tranform the data to a longer format - where neighbour municipalities are list vertically, and the central municipalities is repeated in as many rows as there are neighbours. Then, I merge the resultant table with the production table.
+Transform the data to a longer format - where neighbors municipalities are list vertically, and the central municipalities is repeated in as many rows as there are neighbors. Then, I merge the resultant table with the production table.
 ```{r}
 nabo_mcp_prep <-nabo_mcp %>% 
   rename(main_municip_number = Knum) %>% 
@@ -471,7 +489,7 @@ production_by_neighbr <- nabo_mcp_prep %>%
   left_join(production_gapfilled_final, by = "municip_number")
 ```
 
-Now we can calculate the sum of produced fish and feed applied, per group of aggregated neighbours.Then, we can calcualte eFCR per aggregation.
+Now we can calculate the sum of produced fish and feed applied, per group of aggregated neighbors.Then, we can calculate eFCR per aggregation.
 
 ```{r}
 efcr_by_neighbours <- production_by_neighbr %>% 
@@ -490,9 +508,9 @@ Now the range of eFCR is more realistic: from 0.033 to 3, however values below 1
 mosaic::fav_stats(efcr_by_neighbours$efcr)
 ```
 
-Since 25% of the observations are still unrealistic values, this approach is not optimal, unless we want to remove these observations altogether or replace them with some meaningfull values.
+Since 25% of the observations are still unrealistic values, this approach is not optimal, unless we want to remove these observations altogether or replace them with some meaningful values.
 
-If we also want to calcuate protein efficiency ratio (PER):
+If we also want to calculate protein efficiency ratio (PER):
 $PER = eFCR*\frac{\%feed\ protein}{\% final\ product\ protein (with\ gut)}$, 
 we can do that only for years 2010, 2012, 2013 and 2016. In these years, the content of protein in feed, both plant and marine protein, in Norway was  60.3%, 56.2%, 55%, and 54.8% (Aas et al 2016). 
 
