@@ -1,0 +1,312 @@
+---
+title: "Estimating escaped fish sustainability index"
+author: "*Compiled on `r date()` by `r Sys.info()['user']`*"
+output: 
+  html_document:
+    css: '~/github/nor-prep/prep/templates/style.css'
+    toc: true
+    number_sections: true
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: '~/github/nor-prep/prep/templates/norway_banner.html'
+  pdf_document:
+    toc: true
+---
+
+```{r message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(message = FALSE, warning= FALSE, message = FALSE)
+source('~/github/nor-prep/prep/src/common.R')
+```
+Here I create an escapees sustainability index, based on the latest observations of escaped fish in the north Norwegian rivers. So, the index will be only for a single year - 2018.
+
+```{r}
+library(janitor)
+library(sf)
+library(sp)
+```
+
+
+
+# Load the data
+For escapees index, we will need the following data sets: the geographic location of aquaculture farms, the coordinates of the mouth of  big rivers in northern Norway, and the category of these rivers in terms of escapees incidence (low, moderate, high). 
+The incidence of escapees is based on the several years-long observations of escaped fish in the rivers, done by experts and trained personnel ([Aronsen et al 2019](Ahttps://www.hi.no/resources/publikasjoner/romt-oppdrettslaks-i-vassdrag/2018/romt_laks_fisken_og_havet_2018.pdf))
+
+```{r}
+
+farm_locs <-read_excel(file.path("../../administrative/data/Akvakulturregisteret_2019.xlsx"),skip = 1)
+
+rivers <- read.csv(file.path("../../administrative/data/rivers_north_norway.csv"), 
+                   sep = ",",
+                   encoding = "UTF-8")
+
+escp_incidence <-read_excel(file.path(dir_M[2],"Aquaculture/Escapees/escapees_incidence_in_rivers_aronsen_2019.xlsx"),
+                            trim_ws = T, sheet = 1, skip = 1)
+```
+
+
+# Prepare the datasets
+## Clean the farms dataset
+Select only northern Norway municipalities, from the farms locations table
+```{r}
+farms_north <- farm_locs %>% 
+  filter(LOK_KOMNR >= 1800 & LOK_KOMNR <=2100) %>% 
+  clean_names(.)
+```
+
+The table of frams includes all possible mariculture farms - farming different kind of marine species and algae (130 types of organisms in total).
+```{r}
+forcats::fct_unique(as.factor(farms_north$art))
+```
+
+I will filter the table to only keep salmon and trout farms. I also remove the locations on land and freshwater (those are usually for "stamfisk"- fish used for reproduction or "settefisk" - production of smolts). After filtering out these observations, there are still rows with "stamfisk" (reproduction fish). But in theory, they can escape too so I keep those locations for the calculation of the  escapees index.
+
+There are usually duplicated rows for the same location, because these rows specify licenses for different species, but location is actually the same. I will keep only the unique rows.
+```{r}
+farms_north_prep <- farms_north %>% 
+  filter(art %in% c("Laks",
+                    "Regnbueørret",
+                    "Ørret")) %>% 
+  filter(lok_plass != "LAND") %>% 
+   filter(vannmiljo != "FERSKVANN") %>% 
+  select(lok_nr,
+         lok_navn,
+         lok_komnr,
+         n_geowgs84,
+         o_geowgs84
+         ) %>% 
+  rename(location_nr = lok_nr,
+         location_name = lok_navn,
+         municip_number = lok_komnr,
+         lat = n_geowgs84,
+         lon = o_geowgs84) %>% 
+  filter(!duplicated(.))
+  
+```
+
+Convert farms data frame to an `sf` object
+```{r}
+farms_north_prep2 <- st_as_sf(farms_north_prep, coords = c("lon", "lat")) 
+
+```
+
+
+## Clean the escapees incidence dataset
+For this table,  I remove all the columns except the county, river system name, and the escapees incidence category (1,2,3).
+```{r}
+escp_incidence_prep <- escp_incidence %>% 
+  clean_names(.) %>% 
+  select(fylke, 
+         vassdragsnavn,
+         nr,
+         innslag_ro) %>% 
+  rename(county = fylke,
+         river_name = vassdragsnavn,
+         incidence_cat = innslag_ro)
+```
+
+
+Filter the rivers that are located only in northern Norway
+```{r}
+escp_incidence_prep2 <- escp_incidence_prep %>% 
+  filter(county %in% c("Nordland",
+                       "Troms",
+                       "Finnmark"))
+```
+
+
+## Clean the rivers dataset
+In this data set we need only municipality number and name, river name, and coordinates of the river mouth.
+I also discovered, that three rivers are written in the table two times, while the coordinates are very similar (decimal differences). The duplicated records are for rivers: 
+188.22Z, 188.23Z, and 168.7Z, I will remove the duplicates by taking the first occurring river in the table. 
+Beiarelva (161.Z) for some reason does not have a municipality, I will manually add that it is located in Beiarn municipality 
+```{r}
+rivers_prep <- rivers %>% 
+  select(KomNr,
+         Elvenavn,
+         nbfVassNr,
+         UTM33X,
+         UTM33Y) %>% 
+  rename(
+    municip_number = KomNr,
+    river_id = nbfVassNr,
+    river_name = Elvenavn
+  ) %>% 
+  group_by(municip_number, 
+           river_id,
+           river_name) %>% 
+  slice_head(.) %>% 
+  ungroup() %>% 
+  mutate(municip_number = replace(
+    municip_number,
+    municip_number == 0,
+    1839))
+  
+```
+
+We need to convert UTM33 coordinate system in the rivers dataframe into lat and lon. I will handle UTM coordinate following an example here:
+https://rpubs.com/koki25ando/UTM
+
+
+```{r}
+
+rivers_coords <-data.frame(rivers_prep$UTM33X, rivers_prep$UTM33Y)
+#make the dataframe a spatial object
+coordinates(rivers_coords) <- ~rivers_prep.UTM33X + rivers_prep.UTM33Y
+#add a coordinates reference system to this dataframe:
+proj4string(rivers_coords) <- CRS("+proj=utm +zone=33 +datum=WGS84")
+
+#transform the UTM33 coordinates to lat and lon:
+rivers_latlon <- spTransform(rivers_coords, CRS("+init=epsg:4326"))
+
+#combine everything in a single dataframe of lat and lon coordinates:
+
+rivers_prep2 <- data.frame(municip_number = rivers_prep$municip_number,
+                           river_id = rivers_prep$river_id,
+                           lat = rivers_latlon$rivers_prep.UTM33Y,
+                           lon = rivers_latlon$rivers_prep.UTM33X) 
+```
+
+Convert rivers dataframe to an `sf` object
+```{r}
+rivers_prep3 <- st_as_sf(rivers_prep2, coords = c("lon", "lat"))
+```
+
+## Calculate the distance between each farm and each river
+The calculation will return a very large matrix - 428 (# of farms) by 718 (# of rivers). The idea is then to remove all the pairwise differences that are larger than 150 km.
+To get the distance in m, I change the coordinate reference system of both to EPSG 4326, so that the units are meters. 
+
+An example of calculating the distance between one farm and one river mouth:
+```{r}
+a <- st_sfc(st_point(c(22.896517, 70.321117))) %>% 
+    st_set_crs(4326)
+
+b <- st_sfc(st_point(c(17.0129893190695, 68.743738549303))) %>% 
+    st_set_crs(4326)
+
+c <- st_sfc(st_point(c(14.5, 67))) %>% 
+    st_set_crs(4326)
+
+st_distance(a,b)
+st_distance(a,c)
+```
+
+
+```{r}
+farms_north_prep3 <- st_set_crs(farms_north_prep2, 4326)
+rivers_prep4 <- st_set_crs(rivers_prep3, 4326)
+```
+
+```{r}
+dist_farm_rivers <-st_distance(farms_north_prep3, rivers_prep4) %>% 
+  units::drop_units(.)
+```
+
+Now I make the matrix of distances into a dataframe
+```{r}
+dist_farm_rivers_prep <- as.data.frame(dist_farm_rivers) %>% 
+magrittr::set_colnames(rivers_prep4$river_id) %>% 
+mutate(location_nr = farms_north_prep3$location_nr) %>% 
+  select(location_nr, c(1:715))
+```
+
+Next is to divide all the values by 1000, to get them in km. 
+
+```{r}
+dist_farm_rivers_prep2 <- dist_farm_rivers_prep %>% 
+ # mutate_if(is.numeric, ~ . *0.001) - just another way to divide all numerical values by 1000
+  mutate(across(where(is.double), ~ .*0.001))
+```
+
+## Reformat the distances table
+I need to filter out all the distances larger than 150 km, for that I will have to divide the table into one-row dataframes, where row is a unique farm.
+```{r}
+dist_farm_rivers_prep3 <- dist_farm_rivers_prep2 %>% 
+  group_by(location_nr) %>% 
+  group_split(.) %>% 
+  map(., ~ pivot_longer(
+    .x,
+    cols = c(2:716),
+    names_to = "river_id",
+    values_to = "distance_km"
+  )) %>% 
+  map(., ~ filter(.x, distance_km <= 150)) %>% 
+  do.call("rbind",.)
+```
+
+The resultant dataframe is Farm---River--Distance, in a long format.
+I add municipality number column to each row, based on the location of the farm. I will use the municipalities numbers from the *farms_north_prep* table.
+
+```{r}
+dist_farm_rivers_prep4 <- dist_farm_rivers_prep3 %>%
+  left_join(farms_north_prep[, c(
+    "location_nr",
+    "municip_number"
+  ),
+  by = "location_nr"
+  ])
+```
+
+Now I need to add a column of river category, based on incidence of escaped salmon in the river, from the *escp_incidence_prep2* table
+```{r}
+dist_farm_rivers_prep5 <- dist_farm_rivers_prep4 %>%
+  left_join(escp_incidence_prep2[, c(
+    "nr",
+    "incidence_cat"
+  )],
+  by = c("river_id" = "nr")
+  )
+```
+
+Check, how many rivers were actually studied. There are **90147-81114 = 9033** rivers in northern Norway for which incidence of escapees was assessed. There are 9 to 31 assessed rivers, that are  distanced from each farm by no more than 150 km.
+There is no need to keep all the rivers in the table, I will keep only the assessed rivers.
+```{r}
+sum(is.na(dist_farm_rivers_prep5$incidence_cat))
+```
+```{r}
+dist_farm_rivers_prep6 <- dist_farm_rivers_prep5 %>%
+ filter(!is.na(incidence_cat))
+```
+
+# Calculating the escapees sustainability index
+I translate the 1,2,3 categories of incidence into 1, 0.5, 0 (1-low incidence, 0.5 - moderate, 0 - high).
+Then, the last step is to calculate the average incidence score per each location,then average - per municipality based on the location averages.
+```{r}
+escapees_index <- dist_farm_rivers_prep6 %>% 
+  mutate(incidence_num = case_when(
+    incidence_cat == 1 ~ 1,
+    incidence_cat == 2 ~ 0.5,
+    incidence_cat == 3 ~ 0
+  )) %>% 
+  group_by(location_nr, municip_number) %>% 
+  summarise(escap_score_loc = mean(incidence_num)) %>% 
+  group_by(municip_number) %>% 
+  summarise(escap_score_mcp = mean(escap_score_loc))
+```
+Now I just add municipalities names to the table
+```{r}
+municip <- read.table("../../administrative/komlist.csv", header = TRUE, sep = ";")
+municip$Komnum <- as.character(municip$Komnum)
+
+escapees_index_final <- escapees_index %>% 
+  left_join(municip[, c("Komnum", "Name")],
+    by = c("municip_number" = "Komnum")
+  )
+```
+
+Which municipalities do not have escapees index for 2018?
+```{r}
+mcp_not_inlcuded <- anti_join(municip[, c("Komnum", "Name")], 
+                              escapees_index_final[, "municip_number"],
+                              by = c("Komnum" = "municip_number"))
+
+mcp_not_inlcuded %>% arrange(Name)
+```
+Andoy has escapees index but did not have aquaculture production in 2005-2018. There might be a new farm since 2018, but its production was not in the aquaculture statistics of a year 2018.
+Moskenes is also a producing municipality, but probably no rivers were assessed there.
+
+Save the final table
+```{r}
+write.csv(escapees_index_final, "data/escapees_score_per_mcp.csv", row.names = F)
+```
+
