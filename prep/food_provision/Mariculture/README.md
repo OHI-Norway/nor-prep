@@ -13,10 +13,14 @@ Below is the list of aquaculture data layers. For each layer, and index was aggr
 
 3. [Mom b environmental examinations of aquaculture localities](https://ohi-norway.github.io/nor-prep/prep/food_provision/Mariculture/momb_index_aquaculture_locs.html)
 
+4. [Escaped fish index](https://OHI-Norway.github.io/nor-prep/prep/food_provision/Mariculture/escaped_fish_sustaianbility_index.html)
+
 
 To have a quick look at aquaculture statistics, check
 
 [Aquaculture productioin summary and visuals](https://ohi-norway.github.io/nor-prep/prep/food_provision/Mariculture/visualize_aquaculture_production.html)
+
+
 
 
 
