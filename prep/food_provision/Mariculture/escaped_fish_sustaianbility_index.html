@@ -9,7 +9,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
 
 
-<meta name="author" content="Compiled on Wed Aug 12 17:48:34 2020 by marinaespinasse" />
+<meta name="author" content="Compiled on Wed Sep 30 10:29:48 2020 by marinaespinasse" />
 
 
 <title>Estimating escaped fish sustainability index</title>
@@ -469,7 +469,7 @@ summary {
 
 
 <h1 class="title toc-ignore">Estimating escaped fish sustainability index</h1>
-<h4 class="author"><em>Compiled on Wed Aug 12 17:48:34 2020 by marinaespinasse</em></h4>
+<h4 class="author"><em>Compiled on Wed Sep 30 10:29:48 2020 by marinaespinasse</em></h4>
 
 </div>
 
@@ -514,7 +514,7 @@ summary {
 <div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1"></a>farms_north &lt;-<span class="st"> </span>farm_locs <span class="op">%&gt;%</span><span class="st"> </span></span>
 <span id="cb4-2"><a href="#cb4-2"></a><span class="st">  </span><span class="kw">filter</span>(LOK_KOMNR <span class="op">&gt;=</span><span class="st"> </span><span class="dv">1800</span> <span class="op">&amp;</span><span class="st"> </span>LOK_KOMNR <span class="op">&lt;=</span><span class="dv">2100</span>) <span class="op">%&gt;%</span><span class="st"> </span></span>
 <span id="cb4-3"><a href="#cb4-3"></a><span class="st">  </span><span class="kw">clean_names</span>(.)</span></code></pre></div>
-<p>The table of frams includes all possible mariculture farms - farming different kind of marine species and algae (130 types of organisms in total).</p>
+<p>The table of farms includes all possible mariculture farms - farming different kind of marine species and algae (130 types of organisms in total).</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1"></a>forcats<span class="op">::</span><span class="kw">fct_unique</span>(<span class="kw">as.factor</span>(farms_north<span class="op">$</span>art))</span></code></pre></div>
 <pre><code>##   [1] Abbor                       Ål                         
 ##   [3] Arctic sea ice amphipod *   Arktisk knurrulke          
@@ -781,7 +781,7 @@ summary {
 ## 14   2002     Vardo</code></pre>
 <p>Andoy has escapees index but did not have aquaculture production in 2005-2018. There might be a new farm since 2018, but its production was not in the aquaculture statistics of a year 2018. Moskenes is also a producing municipality, but probably no rivers were assessed there.</p>
 <p>Save the final table</p>
-<div class="sourceCode" id="cb32"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1"></a><span class="kw">write.csv</span>(escapees_index_final, <span class="st">&quot;data/escapees_score_per_mcp.csv&quot;</span>, <span class="dt">row.names =</span> F)</span></code></pre></div>
+<div class="sourceCode" id="cb32"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1"></a><span class="co">#write.csv(escapees_index_final, &quot;data/escapees_score_per_mcp.csv&quot;, row.names = F)</span></span></code></pre></div>
 </div>
 
 

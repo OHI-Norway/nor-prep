@@ -27,7 +27,6 @@ library(sp)
 ```
 
 
-
 # Load the data
 For escapees index, we will need the following data sets: the geographic location of aquaculture farms, the coordinates of the mouth of  big rivers in northern Norway, and the category of these rivers in terms of escapees incidence (low, moderate, high). 
 The incidence of escapees is based on the several years-long observations of escaped fish in the rivers, done by experts and trained personnel ([Aronsen et al 2019](Ahttps://www.hi.no/resources/publikasjoner/romt-oppdrettslaks-i-vassdrag/2018/romt_laks_fisken_og_havet_2018.pdf))
@@ -54,7 +53,7 @@ farms_north <- farm_locs %>%
   clean_names(.)
 ```
 
-The table of frams includes all possible mariculture farms - farming different kind of marine species and algae (130 types of organisms in total).
+The table of farms includes all possible mariculture farms - farming different kind of marine species and algae (130 types of organisms in total).
 ```{r}
 forcats::fct_unique(as.factor(farms_north$art))
 ```
@@ -87,7 +86,6 @@ farms_north_prep <- farms_north %>%
 Convert farms data frame to an `sf` object
 ```{r}
 farms_north_prep2 <- st_as_sf(farms_north_prep, coords = c("lon", "lat")) 
-
 ```
 
 
@@ -307,6 +305,6 @@ Moskenes is also a producing municipality, but probably no rivers were assessed 
 
 Save the final table
 ```{r}
-write.csv(escapees_index_final, "data/escapees_score_per_mcp.csv", row.names = F)
+#write.csv(escapees_index_final, "data/escapees_score_per_mcp.csv", row.names = F)
 ```
 
