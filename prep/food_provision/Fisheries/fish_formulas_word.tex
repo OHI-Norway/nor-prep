@@ -1,0 +1,233 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+]{article}
+\usepackage{lmodern}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math}
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\hypersetup{
+  pdftitle={Fisheries formulas},
+  pdfauthor={Marina Espinasse},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+\urlstyle{same} % disable monospaced font for URLs
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+
+\title{Fisheries formulas}
+\author{Marina Espinasse}
+\date{3/2/2020}
+
+\begin{document}
+\maketitle
+
+\hypertarget{simple-single-lines-version}{%
+\section{Simple single lines
+version}\label{simple-single-lines-version}}
+
+\hypertarget{b-score}{%
+\subsection{B-score}\label{b-score}}
+
+\[SSB\ge MSYBtrigger, \quad  B.score = 1\] \hspace{1cm}
+
+\[SSB \le Blim, \quad  B.score = 0 \] \hspace{1cm}
+
+\[SSB > Blim  \quad  \&\ \quad SSB < MSYBtrigger, \quad B.score = 1 - \frac{MSYBtrigger - SSB}{MSYBtrigger - Blim}\]
+\hspace{1cm}
+
+\hypertarget{f-score}{%
+\subsection{F-score}\label{f-score}}
+
+\[F \le Fmsy, \quad  F.score = 1\] \hspace{1cm}
+
+\[F \ge Flim, \quad  F.score = 0\] \hspace{1cm}
+
+\[F < Flim  \quad  \&\ \quad F > Fmsy, \quad F.score = 1 - \frac{Fmsy - F}{Fmsy - Flim}\]
+\hspace{1cm}
+
+\hypertarget{stock-score}{%
+\subsection{Stock score}\label{stock-score}}
+
+\[Stock.score = mean(F.score, B.score)\]
+
+\hypertarget{system-of-equations}{%
+\subsection{System of equations}\label{system-of-equations}}
+
+\[
+\begin{equation}
+  B_{score} =
+    \begin{cases}
+      1 & \text{if $SSB \ge MSYBtrigger$}\\
+    \\
+      0 & \text{if $SSB \le Blim$}\\
+    \\
+      1 - \frac{MSYBtrigger - SSB}{MSYBtrigger - Blim} & \text{ if $SSB > Blim  \quad  \&\ \quad SSB < MSYBtrigger$}
+    \end{cases}       
+\end{equation}
+ \]
+
+\(~\) \(~\) \(~\) \(~\)
+
+\[
+\begin{equation}
+  F_{score} =
+    \begin{cases}
+      1 & \text{if $F \le Fmsy$}\\
+    \\  
+      0 & \text{if $F \ge Flim $}\\
+      \\
+      1 - \frac{Fmsy - F}{Fmsy - Flim} & \text{if $F < Flim  \quad  \&\ \quad F > Fmsy$}
+    \end{cases}       
+\end{equation}
+ \]
+
+\(~\) \(~\) \(~\)
+
+\hypertarget{just-another-example-of-alighning-equations}{%
+\subsection{Just another example of alighning
+equations}\label{just-another-example-of-alighning-equations}}
+
+\[
+\begin{aligned}
+  \dot{x} & = \sigma(y-x) \\
+  \dot{y} & = \rho x- y - xz 
+\end{aligned}
+\] \#\# Stock score
+
+\[Stock.score_{j,k} = \frac{F_{score\ j,k} +B_{score\ j,k}}{2}\]
+
+\hypertarget{catch-weighted-score}{%
+\subsection{Catch weighted score}\label{catch-weighted-score}}
+
+\[Catch\ weighted \ score_{i,j, k} = \frac{Catch\ per\ area_{i,j,k}}{Catch\ per\ area_{max,j,k}}*Stock\ score_{j,k}\]
+
+\hypertarget{final-fisheries-score}{%
+\subsection{Final fisheries score}\label{final-fisheries-score}}
+
+\[Fisheries\ score_{i,k} = \sum_{j = 1}^{N stocks}Catch\ weighted\ score_{i,j,k} * catch\ proportion_{i,j,k}*100\]
+
+\hypertarget{combining-the-two-goals}{%
+\subsection{Combining the two goals}\label{combining-the-two-goals}}
+
+\[W_{FP\ i, k} = \frac{P_{F\ i,k}}{(P_{F\ i,k} + P_{A\ i,k})}\]
+\[Food\ provision\ total_{i,k} = (W_{FP\ i,k} *Fisheries\ score_{i,k}) + (1 - W_{FP\ i,k})*Aquaculture\ score_{i,k}\]
+\(~\) \(~\) \(~\)
+
+\hypertarget{an-example-of-multiline-equation}{%
+\section{An example of multiline
+equation}\label{an-example-of-multiline-equation}}
+
+\[
+\begin{multline}
+  Q(\lambda,\hat{\lambda}) = -\frac{1}{2} P(O \mid \lambda ) \sum_s \sum_m \sum_t \gamma_m^{(s)} (t) \biggl( n \log(2 \pi ) \\
+  + \log \left| C_m^{(s)} \right| + \left( \mathbf{o}_t - \hat{\mu}_m^{(s)} \right) ^T C_m^{(s)-1} \left(\mathbf{o}_t - \hat{\mu}_m^{(s)}\right) \biggr)
+\end{multline}
+\]
+
+\(~\) \(~\) \(~\)
+
+\hypertarget{food-provision-goal-written-in-multiline}{%
+\section{Food provision goal written in
+multiline}\label{food-provision-goal-written-in-multiline}}
+
+\[
+\begin{multline}
+  Food\ provision\ total_{i,k}  = \\
+  \\
+  (W_{FP\ i,k} *Fisheries\ score_{i,k}) + (1 - W_{FP\ i,k})*Aquaculture\ score_{i,k}  
+\end{multline}
+\]
+
+\hypertarget{b-score-and-f-score-if-we-would-include-penalty-for-under-fishing-and-buffer-around-msybtrigger}{%
+\section{B-score and F-score if we would include penalty for
+under-fishing and buffer around
+MSYBtrigger}\label{b-score-and-f-score-if-we-would-include-penalty-for-under-fishing-and-buffer-around-msybtrigger}}
+
+\[
+\begin{equation}
+  B_{score} =
+    \begin{cases}
+      \frac{\frac{SSB}{MSYBtrigger}}{0.8} & \text{if $\frac{SSB}{MSYBtrigger} \le 0.8$}\\
+    \\
+      1 & \text{if $0.8  \ge\frac{SSB}{MSYBtrigger} < 1.5 $}\\
+    \\
+      \frac{4 - \frac{SSB}{MSYBtrigger}}{2.5}  & \text{ if $\frac{SSB}{MSYBtrigger} \ge 1.5$}
+    \end{cases}       
+\end{equation}
+ \]
+
+\(~\) \(~\) \(~\) \(~\) \(~\) \(~\)
+
+\[
+\begin{equation}
+  F_{score} =
+    \begin{cases}
+    0  & \text{if $\frac{SSB}{MSYBtrigger} \le 0.8$ and $\frac{F}{Fmsy} > \frac{SSB}{MSYBtrigger}+ 1.5$}\\
+    \\  
+    \frac{\frac{F}{Fmsy}}{\frac{SSB}{MSYBtigger} - 0.2} & \text{if $\frac{SSB}{MSYBtrigger} \le 0.8$ and $\frac{F}{Fmsy} < \frac{SSB}{MSYBtrigger} - 0.2$}\\
+      \\
+      \\
+       \frac{\frac{SSB}{MSYBtrigger}+1.5 -\frac{F}{Fmsy}}{1.5} & \text{if $\frac{SSB}{MSYBtrigger} < 0.8$ and $\frac{SSB}{MSYBtrigger}+0.2 < \frac{F}{Fmsy} < \frac{SSB}{MSYBtrigger} +1.5$}
+      \\
+      \\
+      1  & \text{if $\frac{SSB}{MSYBtrigger} < 0.8$ and $\frac{SSB}{MSYBtrigger}-0.2 < \frac{F}{Fmsy} < \frac{SSB}{MSYBtrigger}+0.2$}\\
+      \\
+      \\
+      \frac{\frac{F}{Fmsy}}{0.8} & \text{if $\frac{SSB}{MSYBtrigger} \ge 0.8$ and $\frac{F}{Fmsy} < 0.8$}\\
+      \\
+      \\
+      1 & \text{if $\frac{SSB}{MSYBtrigger} \ge 0.8$ and   $0.8 \le \frac{F}{Fmsy} < 1.2$}\\
+      \\
+      \\
+      \frac{2.5 - \frac{F}{Fmsy}}{1.3} & \text{if $\frac{SSB}{MSYBtrigger} \ge 0.8$  and $\frac{F}{Fmsy} \ge 1.2$}\\
+    \end{cases}       
+\end{equation}
+ \]
+
+\end{document}

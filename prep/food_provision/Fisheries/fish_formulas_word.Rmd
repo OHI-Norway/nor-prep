@@ -3,9 +3,8 @@ title: "Fisheries formulas"
 author: "Marina Espinasse"
 date: "3/2/2020"
 output:
-  word_document: default
-  html_document:
-    df_print: paged
+  word_document:
+    highlight: espresso
 ---
 
 ```{r setup, include=FALSE}
@@ -36,7 +35,8 @@ $$F < Flim  \quad  \&\ \quad F > Fmsy, \quad F.score = 1 - \frac{Fmsy - F}{Fmsy 
 \hspace{1cm} 
 
 ## Stock score
-
+$$
+$$
 $$Stock.score = mean(F.score, B.score)$$
 
 ## System of equations
@@ -82,25 +82,30 @@ $~$
 
 
 ## Just another example of alighning equations
-  $$
+$$
 \begin{aligned}
   \dot{x} & = \sigma(y-x) \\
   \dot{y} & = \rho x- y - xz 
 \end{aligned}
 $$
-# Stock score 
+
+
+##  Stock score 
+
 $$Stock.score_{j,k} = \frac{F_{score\ j,k} +B_{score\ j,k}}{2}$$  
   
   
-# Catch weighted score
+  
+##  Catch weighted score
 $$Catch\ weighted \ score_{i,j, k} = \frac{Catch\ per\ area_{i,j,k}}{Catch\ per\ area_{max,j,k}}*Stock\ score_{j,k}$$
 
 
 
-# Final fisheries score
+## Final fisheries score
+
 $$Fisheries\ score_{i,k} = \sum_{j = 1}^{N stocks}Catch\ weighted\ score_{i,j,k} * catch\ proportion_{i,j,k}*100$$
   
-# Combining the two goals
+## Combining the two goals
 $$W_{FP\ i, k} = \frac{P_{F\ i,k}}{(P_{F\ i,k} + P_{A\ i,k})}$$
 $$Food\ provision\ total_{i,k} = (W_{FP\ i,k} *Fisheries\ score_{i,k}) + (1 - W_{FP\ i,k})*Aquaculture\ score_{i,k}$$
 $~$
