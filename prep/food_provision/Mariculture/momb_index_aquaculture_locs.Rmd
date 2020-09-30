@@ -65,8 +65,8 @@ map(momb_prep2, ~sum(is.na(.x))) #Still 93 observations with missing info on the
 momb_prep3 <- momb_prep2 %>% 
   filter(!is.na(Kommune)) 
 ```
-Regarding localities with no municipality info: they are either shut down or were not yet given licence to start the produciton (commented by Fisheries directorate). 
-Thus, I delete these locaitons. 
+Regarding localities with no municipality info: they are either shut down or were not yet given licence to start the production (commented by Fisheries directorate). 
+Thus, I delete these locations. 
 
 ## Check how many examined aquaculture localities per municipality each year and compare to total
 ```{r}

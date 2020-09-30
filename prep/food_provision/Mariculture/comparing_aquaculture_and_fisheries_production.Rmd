@@ -27,10 +27,11 @@ library(ggthemes)
 # Load data on fisheries catches and aquaculture production per municipality and year
 ```{r}
 fishcatch <- vroom::vroom(file.path("../fisheries/data/catch_total.csv"))
-aquaprod <-vroom::vroom(file.path("data/gapfilled_aquaculture_production.csv"))
+aquaprod <-vroom::vroom(file.path("~/github/nor-data/aquaculture/gapfilled_aquaculture_production.csv"))
 ```
 
-# Clean the datasets and merge tby municipality and year
+
+# Clean the datasets and merge by municipality and year
 ```{r}
 fishcatch_prep <- fishcatch %>% 
   clean_names(.) %>% 
@@ -38,7 +39,8 @@ fishcatch_prep <- fishcatch %>%
   mutate(municip = replace(municip, municip == "Guovdageaidnu-Kautokeino", "Kautokeino")) %>% 
   mutate(municip = replace(municip, municip %in% c("Bjarkoy_2013", "Harstad_2013"), "Harstad")) %>% 
   mutate(municip = replace(municip, municip == "Skjerstad_2005", "Bodo")) %>% 
-  mutate(municip_number = replace(municip_number, municip %in% c("Bjarkoy_2013", "Harstad_2013"), 1903)) %>% 
+  mutate(municip_number = replace(municip_number, municip_number %in% c(1915,1901), 1903)) %>% 
+  
   mutate(municip_number = replace(municip_number, municip == "Skjerstad_2005", 1804)) %>% 
   group_by(year, municip_number, municip) %>% 
   summarize(catch = sum(total_catch)) 
