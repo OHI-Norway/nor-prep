@@ -24,6 +24,7 @@ library(janitor)
 library(DT)
 library(tidyr)
 library(zoo)
+library(here)
 ```
 
 # Loading aquaculture production data with feed used, biomass change per month, lost fish and seeded fish.
@@ -44,8 +45,10 @@ biomass_prep <-  allyears %>%
   do.call("rbind", .) %>% 
   clean_names()
 
-municip <- read.table("../../administrative/komlist.csv", header = TRUE, sep = ";")
 
+#municip <- read.table("../../administrative/komlist.csv", header = TRUE, sep = ";") - old-fashion way to open the files.
+#using library here, "here" is "/Users/marinaespinasse/github/nor-prep"
+municip <- read.table(here("prep", "administrative", "komlist.csv" ), header = TRUE, sep = ";")
 ```
 
 ## Estimate change in the biomass during a year 
@@ -135,7 +138,7 @@ biomass_prep3 <- biomass_prep2 %>%
 
 We an use 0.88 coefficient to change round weight to slaughter weight of fish, but we decided (June 2020)
 to keep the round weight. I simply replace 0.88 with 1, to be able to quickly revert back to slaughter weight if we'd need.
-There is also an addition of live fish during the production. I learned from aquaculture producers that the weight of these added fish can vary a lot, but often somewhere between 1.5-3.5 kg. We will simply test the weights 1.5 -2 -2.5 -3 -3.5 kg and see which option gives minimal number of negative total production (negative cannot be right).
+There is also an addition of live fish during the production. I learned from aquaculture producers that the weight of these added fish can vary a lot, but often somewhere between 1.5-3.5 kg. We will simply test the weights 1.5 -2 -2.5 -3 -3.5 kg and see which option gives minimal number of negative total production (negative cannot be right). 1.5 was most suitable weight, and it was suggested as common by the producers.
 The weight of smolts is assumed to be 100 grams, and the weight of discarded salmon - **5**  kg.
 Finally, the total production is
 $Tot.prod = \triangle Biomass + harvest + removed\ fish  - seeded\ smolts - added\ fish - discard$
@@ -178,7 +181,7 @@ production_prep <- biomass_prep3 %>%
   ) %>% 
  mutate_at(
     vars(
-      utsatt_annen_stk #this is added live fish, which weight we have to guess
+      utsatt_annen_stk #this is added live fish, which weight we have to guess, assumed to be 1.5 kg
     ),
     ~ . * 1.5
   ) %>% 
@@ -223,7 +226,7 @@ production_prep_save <- production_prep %>%
          feed_kg,
          production_final)
 
-#write.csv(production_prep_save, "~/github/nor-data/aquaculture/aquculture_production_per_municipality.csv", row.names = F)
+#write.csv(production_prep_save, "~/github/nor-data/aquaculture/aquaculture_production_per_municipality.csv", row.names = F)
 
 ```
 
@@ -274,8 +277,7 @@ mosaic::fav_stats(production_efcr_mcp$efcr_municip)
 ```
 
 
-# Calulating eFCR per region
-
+# Calulating eFCR per region (county)
 ```{r}
 efcr_per_region <- 
   production_prep %>% 
@@ -306,12 +308,12 @@ efcr_per_region <-
           production_final_region, 
           efcr_region))
 ```
-
+Regional eFCR returns only "normal" values - no outliers.
 ```{r}
 mosaic::fav_stats(efcr_per_region$efcr_region)
 ```
 
-## Calculating eFCR score per county
+## Calculating eFCR sustainability score per county
 ```{r}
 efcr_score_prep_cnt <- production_prep %>%
   left_join(efcr_per_region[, c(1, 2, 5)], by = c("county", "year")) %>%
@@ -331,7 +333,7 @@ efcr_score_prep_cnt <- production_prep %>%
 
 The reference efcr is the lowest efcr among the 3 regions, within 1 year.
 ```{r}
-efcr_score <- efcr_score_prep_cnt %>% 
+efcr_score_county <- efcr_score_prep_cnt %>% 
   group_by(year) %>% 
   mutate(ref_efcr = min(efcr_region)) %>% 
   ungroup() %>% 
@@ -356,7 +358,7 @@ In Balsfjord 2008 there is no production, the table is filled with zeroes (usual
 
 ```{r}
 gapfill_prep <- 
-  production_efcr %>% 
+  production_efcr_mcp %>% 
   filter(production_final != 0) %>% 
   mutate(production_final = ifelse(
     production_final < 0, 
@@ -367,16 +369,19 @@ gapfill_prep <-
   split(., .$municip) 
 
 #empties <- map(gapfill_prep, ~ isTRUE(length(.x$production_final) == 0))
-
 # the list of municipalities that did not have any production - 12 municipalities
 # empties_list <- unlist(empties) %>%
 #   stack(.) %>%
 #   filter(values == TRUE)
+```
 
+Check again which municipalities never produced farmed fish:
+```{r}
 foo <- data.frame(Name = names(gapfill_prep))
 not_produced_mcp <- anti_join(municip, foo, by = "Name") 
-not_produced %>% arrange(Name)
+not_produced_mcp %>% arrange(Name)
 ```
+
 
 Select only the municipalities with production and then those that have NA in some years:
 ```{r}
@@ -402,7 +407,7 @@ gapfill_sorted <-
 #Check the length of df's:
 map(gapfill_sorted, ~length(.x$production_final))
 ```
-
+The method of gapfilling is extension - taking previous non-NA observation or next non-NA observation (nearest from either side), by the sequence of years.
 
 ```{r}
 gapfill_prep2 <- gapfill_sorted[!names(gapfill_sorted) %in% c("Evenes", "Storfjord")] %>% 
@@ -420,18 +425,18 @@ gapfill_prep2 <- gapfill_sorted[!names(gapfill_sorted) %in% c("Evenes", "Storfjo
  map(., ~ select(.x, -production_gapfilled))   
 ```
 
-Merge the dataframes where NA were interpolated with the other dataframes: first exclude Evenes, Storfjord, and the 14 municipalities for which NA were interpolated. Then concatenate both lists.
+Merge the dataframes where NAs were interpolated, with the other dataframes: first exclude Evenes, Storfjord, and the 14 municipalities for which NA were interpolated. Then concatenate both lists.
 ```{r}
 gapfill_prep3 <- 
   gapfill_prep[!names(gapfill_prep) %in% c("Evenes", "Storfjord", "NonCoast")] %>% 
   .[!names(.) %in% names(gapfill_prep2)] %>% 
     map(., ~ mutate(.x, gapfilled = "n"))
 
-production_gapfilled_final <- do.call(c, list(gapfill_prep3, gapfill_prep2)) %>% 
+production_gapfilled_final <- do.call("c", list(gapfill_prep3, gapfill_prep2)) %>% 
   do.call("rbind", .)
 ```
 
-The final dataframe has 857 observations compared to 862 in the initial dataframe.This is because 2 observations of Evenes are deleted, as well as 1 observation of Balsfjord (where production was zero) and 2 observations of Storfjord. 
+The final dataframe has 857 observations compared to 862 in the initial dataframe (production_efcr_mcp).This is because 2 observations of Evenes are deleted, as well as 1 observation of Balsfjord (where production was zero) and 2 observations of Storfjord. 
 
 Save the table of gapfilled production data
 ```{r}
@@ -470,7 +475,7 @@ nabo_mcp <- read_excel("data/neighbour_mcp_edited.xlsx",
                    range = cell_cols("A:J"))
 ```
 
-Transform the data to a longer format - where neighbors municipalities are list vertically, and the central municipalities is repeated in as many rows as there are neighbors. Then, I merge the resultant table with the production table.
+Transform the data to a longer format - where neighbor municipalities are listed vertically, and the central municipality is repeated in as many rows as there are neighbors. Then, I merge the resultant table with the production table.
 ```{r}
 nabo_mcp_prep <-nabo_mcp %>% 
   rename(main_municip_number = Knum) %>% 
@@ -508,12 +513,60 @@ Now the range of eFCR is more realistic: from 0.033 to 3, however values below 1
 mosaic::fav_stats(efcr_by_neighbours$efcr)
 ```
 
-Since 25% of the observations are still unrealistic values, this approach is not optimal, unless we want to remove these observations altogether or replace them with some meaningful values.
+Since 25% of the observations are still unrealistic values, this approach is not optimal, unless we want to remove these observations altogether or replace them with some meaningful values. On the meeting (22.09.2020), we decided to replace these values wit 1.3 - a national average eFCR [Aas et al 2019](https://nofimaas.sharepoint.com/sites/public/Cristin/Rapport%2026-2019.pdf?&originalPath=aHR0cHM6Ly9ub2ZpbWFhcy5zaGFyZXBvaW50LmNvbS86Yjovcy9wdWJsaWMvRVpEcDZmV3lVUFJEaGI4RUJBWFFrZDRCMFNKZnRsbDZWRlV6YUxONmNpZGZmUT9ydGltZT1NdnpRV1lOZzJFZw)
 
-If we also want to calculate protein efficiency ratio (PER):
-$PER = eFCR*\frac{\%feed\ protein}{\% final\ product\ protein (with\ gut)}$, 
-we can do that only for years 2010, 2012, 2013 and 2016. In these years, the content of protein in feed, both plant and marine protein, in Norway was  60.3%, 56.2%, 55%, and 54.8% (Aas et al 2016). 
 
-In whole salmon, amount of protein was 35.6% in 2016, but can probably assumed to be constant throughout the study period 2005-2018.
+# Calculate PER and PRR - protein efficieny ratio and protein retention ratio
+We also want to calculate protein efficiency ratio (PER) [Boyd et al. 2007 ](https://www.tandfonline.com/doi/abs/10.1080/10641260701624177):
+
+$PER = eFCR*\frac{\%feed\ protein}{\% final\ product\ protein (with\ gut)}$.
+
+There are modifications of this index, but we will use this approach. Also, Boyd et al suggest to use FCR as a multiplier in the formula, but we will use eFCR, we just have to interpret the result correctly.
+Our PER reflects how much protein must be applied to supply 1 kg  of fish protein to the market. However, we mean protein in a whole fish body, some of which will not be available to human (bones, guts).
+
+The crude protein content of the feed was 35.6% (14.5% of marine protein). In earlier years, 2012, protein composition is reported to be 35.4 [Aas et al 2014](https://nofima.no/wp-content/uploads/2014/11/Nofima_report_resource_utilisation_Oct_2014.pdf).
+
+Regarding feed sources, in years 2010, 2012, 2013 and 2016, the protein sources in feed, both plant and  marine, in Norway were  60.3%, 56.2%, 55%, and 54.8% (Aas et al 2019). 
+
+In the whole salmon, amount of protein was 16.9% in 2016 (Aas et al 2019), but can probably assumed to be constant throughout the study period 2005-2018.
+
+The values of eFCR that are out of possible bounds (lower than 1.3), we will consider as flaws, and replace with a national average - 1.3 for year 2016 and 2012. We can expect the eFCR to be somewhat higher than 1.3, or rarely - much higher, when a lot of fish lost or discarded, but practically, eFCR cannot be lower than 1.3. It is in principle not  possible to apply X kg of feed to yield exactly X kg of fish. 
+
+Then, we can also estimate $PRR$ - protein retention rate. This is just an inverse of PER:
+
+$PRR = \frac{1}{PER} = \frac{1}{eFCR\frac{\%\ protein in\ feed}{\%\ protein in\ animal(with\ gut)}}$
+
+$PRR = \frac{0.475}{eFCR}$
+
+PRR will be our sustainability index. This choice is motivated by the knowledge that protein is one of the most important ingredients in feed, but is also the factor limiting sustainability of feed, since any protein could also be used as human food directly.
+
+## Calculate PRR sustainability index
+First, I replace all the eFCR smaller than 1 with 1 and then calculate PRR. There are 51 observations of efcr that are smaller than 1, but already 357 observations that are smaller than 1.2
+More realistic minimal value would be 1.2 - when eFCR is equal to FCR, that is, there were no losses in fish and no feed was wasted ([Tacon and Meitan 2008](<https://www.semanticscholar.org/paper/Global-overview-on-the-use-of-fish-meal-and-fish-in-Tacon-Metian/aa0e0dce62cbaed771000c8c003adb80345c49d6>), [Aas et al 2014](<https://nofima.no/wp-content/uploads/2014/11/Nofima_report_resource_utilisation_Oct_2014.pdf>)) 
+
+```{r}
+prr_index <- efcr_by_neighbours %>% 
+  mutate(efcr = ifelse(efcr < 1.2,
+                       1.2,
+                       efcr)) %>% 
+  mutate(prr_index = 0.475/efcr) 
+  
+```
+
+Since the smallest observed eFCR is 1.2 (when it is equal to realistic FCR value), the smallest possible PRR index is 0.475/1.2 = 0.396. I will use this value as a reference value for PRR index. The smaller the difference between observed PRR and reference PRR, the higher the score.
+```{r}
+prr_score_final <- prr_index %>% 
+  mutate(prr_score = 1 - (0.396 - prr_index)/0.396)
+  
+```
+
+Save the PRR score table, but I remove the production and feed columns, because we're not allowed to share these data
+```{r}
+prr_score_save <- prr_score_final %>% 
+  select(-c(production_sum,
+            feed_kg_sum))
+
+write.csv(prr_score_save, "./data/prr_score_per_mcp.csv", row.names = FALSE)
+```
 
 
