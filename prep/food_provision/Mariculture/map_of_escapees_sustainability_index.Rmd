@@ -1,0 +1,173 @@
+---
+title: "Mapping the escaped fish sustainability index"
+author: "*Compiled on `r date()` by `r Sys.info()['user']`*"
+output: 
+  html_document:
+    css: '~/github/nor-prep/prep/templates/style.css'
+    toc: true
+    number_sections: true
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: '~/github/nor-prep/prep/templates/norway_banner.html'
+  pdf_document:
+    toc: true
+---
+
+```{r message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(message = FALSE, warning= FALSE, message = FALSE)
+source('~/github/nor-prep/prep/src/common.R')
+```
+
+```{r, include = FALSE}
+library(here)#using library "here" to specify paths to files
+library(sf)
+library(sp)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(rgdal)
+```
+
+# Loading escapeed index data and municipalities shapes and names
+```{r}
+escapees <- read.csv(here("prep","food_provision", "mariculture", "data", "escapees_score_per_mcp.csv"))
+allkommuner <-readOGR(dsn = "/Users/marinaespinasse/github/nor-prep/prep/administrative/raw/shapefiles/NO_AdminOmrader")
+komlist <-read.csv("/Users/marinaespinasse/github/nor-prep/prep/administrative/komlist.csv", sep = ";")
+```
+
+# Preparing map layers
+Prepare the world data for the base map, and transform the municipalities shapes to an sf object.
+```{r }
+komlist <-filter(komlist, !Name == "NonCoast")
+
+komlist_prep <- komlist %>% 
+  mutate(Komnum = replace(Komnum,
+                          Komnum == 1903,
+                          1901))
+
+ohikom <-allkommuner[allkommuner$KOMM %in% komlist_prep$Komnum,] 
+```
+
+
+```{r }
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+kommuner.pol <- spTransform(ohikom, CRS("+proj=longlat +ellps=GRS80"))
+kommunersf <- sf::st_as_sf(ohikom, coords= c("long", "lat"), agr="identity")
+
+kommunersf_prep <- kommunersf %>% 
+  mutate(KOMM = replace(KOMM,
+                        KOMM == 1901,
+                        1903))
+```
+Now I need to merge shapes of municipalities and the scores of escapees index per municipality
+```{r}
+plot_escapees <- escapees %>% 
+  left_join(
+    kommunersf_prep,
+    by = c("municip_number" = "KOMM")
+  ) %>% 
+  st_as_sf(.)
+```
+
+# Maps
+```{r}
+base_map <- ggplot() +
+  geom_sf(
+   data = world, 
+   fill = "antiquewhite1", 
+   color = "dimgray", 
+   size = 0.3) +
+  theme(axis.text = element_text(size = 17),
+        legend.text = element_text(size = 15),
+        legend.title = element_text(size = 15,  face = "bold"),
+        panel.background = element_rect(fill = "aliceblue") ,
+        panel.grid.major = element_line(color = "#dbdbd9", linetype = "dashed"),
+        plot.title = element_text(hjust = 0.5, vjust = 0.5, size = 17, face = "bold")
+  ) +
+  geom_sf(
+    data = plot_escapees,
+    mapping = aes(fill = escap_score_mcp),
+    color = "white",
+    size = 0.2,
+    alpha = 0.8
+  ) +
+  coord_sf(xlim = c(8, 32), ylim = c(64, 72), expand = FALSE) +
+  labs(x = "Longitude", y = "Latitude") +
+  scale_fill_gradient(low = "red", 
+                      high = "green",
+                      limits = c(0.6,1),
+    name = "Escapees index scores",
+    guide = guide_legend(
+      keyheight = unit(8, units = "mm"),
+      title.position = "top"
+    )
+  ) +
+  labs(
+    x = NULL,
+    y = NULL,
+    title = ""
+  ) 
+```
+
+Just another version - using a 3-color gradient:
+```{r}
+base_map2 <- ggplot() +
+  geom_sf(
+   data = world, 
+   fill = "antiquewhite1", 
+   color = "dimgray", 
+   size = 0.3) +
+  theme(axis.text = element_text(size = 17),
+        legend.text = element_text(size = 15),
+        legend.title = element_text(size = 15,  face = "bold"),
+        panel.background = element_rect(fill = "aliceblue") ,
+        panel.grid.major = element_line(color = "#dbdbd9", linetype = "dashed"),
+        plot.title = element_text(hjust = 0.5, vjust = 0.5, size = 17, face = "bold")
+  ) +
+  geom_sf(
+    data = plot_escapees,
+    mapping = aes(fill = escap_score_mcp),
+    color = "dimgray",
+    size = 0.4,
+    alpha = 0.7
+  ) +
+  coord_sf(xlim = c(8, 32), ylim = c(64, 72), expand = FALSE) +
+  labs(x = "Longitude", y = "Latitude") +
+  scale_fill_gradientn(colors = c("red", "yellow", "green"),
+                      limits = c(0.6,1.00),
+                      breaks = c(0.60, 0.7,0.8,0.9, 1),
+                      labels = c("0.64", "0.70", "0.80", "0.90","1.00"),
+                      
+    name = "Escapees index scores",
+    guide = guide_legend(
+      keyheight = unit(8, units = "mm"),
+      title.position = "top"
+    )
+  ) +
+  labs(
+    x = NULL,
+    y = NULL,
+    title = ""
+  ) 
+```
+
+Add municipalities'numbers. I remove two muicipalities, because their numbers cannot be visitble on the map, they are too small
+```{r}
+komnames <- cbind(plot_escapees,st_coordinates(st_centroid(plot_escapees)))
+komnames_prep <- filter(komnames, !municip_number %in% c(1919, 1920))
+```
+
+
+```{r}
+main_map <- base_map2 +
+  geom_sf_text(data = komnames_prep, 
+               aes(X,Y, label= municip_number),fontface = "bold", size = 2)
+  
+```
+
+```{r}
+ggsave(here("prep","food_provision", "mariculture", "figs", "escapees_scores_map.pdf") ,
+       main_map, width = 10, height = 9, dpi = 300)
+```
+
