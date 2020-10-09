@@ -494,10 +494,12 @@ production_by_neighbr <- nabo_mcp_prep %>%
   left_join(production_gapfilled_final, by = "municip_number")
 ```
 
+Afer merging, there are 24 observations in aggregated municipalities table that did not have a match in the gapfilled production table. Those observations are 11 municipalities that did not have aquaculture in years 2005-2018 plus Storfjord (1939) and Evenes (1853) that I did not include in the gapfilled production - because they produced only during 1-2 years and the data was of bad quality. I will remove these 24 rows with NA.
 Now we can calculate the sum of produced fish and feed applied, per group of aggregated neighbors.Then, we can calculate eFCR per aggregation.
 
 ```{r}
 efcr_by_neighbours <- production_by_neighbr %>% 
+  filter(!is.na(production_final)) %>% 
   group_by(year,municip_id, county) %>% 
   summarize(production_sum = sum(production_final),
             feed_kg_sum = sum(feed_kg)) %>% 
@@ -566,7 +568,7 @@ prr_score_save <- prr_score_final %>%
   select(-c(production_sum,
             feed_kg_sum))
 
-write.csv(prr_score_save, "./data/prr_score_per_mcp.csv", row.names = FALSE)
+#write.csv(prr_score_save, "./data/prr_score_per_mcp.csv", row.names = FALSE)
 ```
 
 
