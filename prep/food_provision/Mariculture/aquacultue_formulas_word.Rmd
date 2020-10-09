@@ -15,25 +15,32 @@ knitr::opts_chunk$set(echo = TRUE)
 
 **Annual production**
 
-We calculated total annual aquaculture production per municipality, as follows:
+We calculated total annual aquaculture production (yield) per municipality, as follows:
 $$
 \begin{equation}
-Tot.prod = \triangle Biomass + Harvest - Discard - Seeded\ smolts
-\end{equation}
-$$
- 
-
-
-
-
-**Economic feed conversion ratio (eFCR)**
-
-$$
-\begin{equation}
-eFCR = \frac{Feed \ used,\ kg}{Biomass\ produced,\ kg}
+Y_{C,i,k} = \triangle Biomass + Harvest + Removed\ fish  - Seeded\ smolts - Added\ fish - Discard
 \end{equation}
 $$
 
+
+
+
+**Protein retention ratio (PRR)**
+
+$$
+\begin{equation}
+eFCR = \frac{Feed \ used,\ kg}{Fish\ produced,\ kg}
+\end{equation}
+$$
+$$
+$$
+
+
+$PRR = \frac{1}{PER} = \frac{1}{eFCR\frac{\%\ protein\ in\ feed}{\%\ protein\ in\ animal(with\ gut)}}$
+
+$PRR = \frac{0.475}{eFCR}$
+
+$PRR\ score = 1 - (\frac{0.396 - PRR}{0.396})$
 
 **Lice prevalence**
 
@@ -48,9 +55,11 @@ $$
 **Environmentlal monitoring - MOM B scores**
 $$
 \begin{equation}
-MOMB \ index  = 1 - (\frac{MTB_{farms \ scored \ 3 \ and \ 4}}{MTB_{municipality \ total}})
+MOM\ B \ index  = 1 - (\frac{MTB_{farms \ scored \ 3 \ and \ 4}}{MTB_{municipality \ total}})
 \end{equation} 
 $$ 
+
+
 **Escapees index**
 $$
 \begin{equation}
@@ -58,3 +67,21 @@ Escapees \ index = \frac{\sum_{j=1}^{N}[\frac{\sum_{i=1}^{n}(incidence\ score_i)
 \end{equation}
 $$
 
+**Final aquaculture sub-goal**
+Sustainability: 
+$$
+\begin{equation}
+\begin{aligned}
+S_{i,k}^{AQC} = Lice\ index\\
+& *MOM\ B\ index \\
+& * PRR\ index \\
+& *Escapees\ index
+\end{aligned}
+\end{equation} 
+$$
+
+$$
+\begin{equation}
+X_{i,k}^{AQC} = \frac{Y_{C,i,k}}{Y_{R,k}}*S_{i,k}^{AQC} * 100
+\end{equation} 
+$$

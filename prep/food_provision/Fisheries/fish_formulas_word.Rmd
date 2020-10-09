@@ -13,38 +13,38 @@ knitr::opts_chunk$set(echo = TRUE)
 # Simple single lines version
 ## B-score
 
-$$SSB\ge MSYBtrigger, \quad  B.score = 1$$
+$$SSB\ge MSYBtrigger, \quad  B' = 1$$
 \hspace{1cm} 
 
 
-$$SSB \le Blim, \quad  B.score = 0 $$
+$$SSB \le Blim, \quad  B' = 0 $$
 \hspace{1cm} 
 
-$$SSB > Blim  \quad  \&\ \quad SSB < MSYBtrigger, \quad B.score = 1 - \frac{MSYBtrigger - SSB}{MSYBtrigger - Blim}$$
+$$SSB > Blim  \quad  \&\ \quad SSB < MSYBtrigger, \quad B' = 1 - \frac{MSYBtrigger - SSB}{MSYBtrigger - Blim}$$
 \hspace{1cm} 
 
 ## F-score
 
-$$F \le Fmsy, \quad  F.score = 1$$
+$$F \le Fmsy, \quad  F' = 1$$
 \hspace{1cm}
 
-$$F \ge Flim, \quad  F.score = 0$$
+$$F \ge Flim, \quad  F' = 0$$
 \hspace{1cm} 
 
-$$F < Flim  \quad  \&\ \quad F > Fmsy, \quad F.score = 1 - \frac{Fmsy - F}{Fmsy - Flim}$$
+$$F < Flim  \quad  \&\ \quad F > Fmsy, \quad F' = 1 - \frac{Fmsy - F}{Fmsy - Flim}$$
 \hspace{1cm} 
 
 ## Stock score
 $$
 $$
-$$Stock.score = mean(F.score, B.score)$$
+$$Stock.score = mean(F', B')$$
 
 ## System of equations
 
 
  $$
 \begin{equation}
-  B_{score} =
+  B' =
     \begin{cases}
       1 & \text{if $SSB \ge MSYBtrigger$}\\
     \\
@@ -64,7 +64,7 @@ $~$
 
  $$
 \begin{equation}
-  F_{score} =
+  F' =
     \begin{cases}
       1 & \text{if $F \le Fmsy$}\\
     \\  
@@ -92,22 +92,27 @@ $$
 
 ##  Stock score 
 
-$$Stock.score_{j,k} = \frac{F_{score\ j,k} +B_{score\ j,k}}{2}$$  
+$$SS_{j,k} = \frac{F'_{j,k} +B'_{j,k}}{2}$$  
   
   
   
 ##  Catch weighted score
-$$Catch\ weighted \ score_{i,j, k} = \frac{Catch\ per\ area_{i,j,k}}{Catch\ per\ area_{max,j,k}}*Stock\ score_{j,k}$$
+$$CWS_{i,j, k} = \frac{C_{C,i,j,k}}{C_{R,j,k}}*SS_{j,k}$$
 
 
 
 ## Final fisheries score
 
-$$Fisheries\ score_{i,k} = \sum_{j = 1}^{N stocks}Catch\ weighted\ score_{i,j,k} * catch\ proportion_{i,j,k}*100$$
+Catch proportion for a single stock, or a weight:
+
+$$w_{i,j,k} = \frac{C_{i,j,k}}{\sum C_{i,k}}$$
+
+
+$$X_{i,k}^{FIS} = \sum_{j = 1}^{N stocks}CWS_{i,j,k} *w_{i,j,k} *100$$
   
 ## Combining the two goals
-$$W_{FP\ i, k} = \frac{P_{F\ i,k}}{(P_{F\ i,k} + P_{A\ i,k})}$$
-$$Food\ provision\ total_{i,k} = (W_{FP\ i,k} *Fisheries\ score_{i,k}) + (1 - W_{FP\ i,k})*Aquaculture\ score_{i,k}$$
+$$w_{i,k}^{FIS} = \frac{\sum C_{i,k}}{\sum C_{i,k} + Y_{C,i,k}}$$
+$$X_{i,k}^{FP} = (w_{i,k}^{FIS} *X_{i,k}^{FIS}) + (1 - w_{i,k}^{FIS})*X_{i,k}^{AQC}$$
 $~$
 $~$
 $~$
