@@ -515,7 +515,7 @@ Now the range of eFCR is more realistic: from 0.033 to 3, however values below 1
 mosaic::fav_stats(efcr_by_neighbours$efcr)
 ```
 
-Since 25% of the observations are still unrealistic values, this approach is not optimal, unless we want to remove these observations altogether or replace them with some meaningful values. On the meeting (22.09.2020), we decided to replace these values wit 1.3 - a national average eFCR [Aas et al 2019](https://nofimaas.sharepoint.com/sites/public/Cristin/Rapport%2026-2019.pdf?&originalPath=aHR0cHM6Ly9ub2ZpbWFhcy5zaGFyZXBvaW50LmNvbS86Yjovcy9wdWJsaWMvRVpEcDZmV3lVUFJEaGI4RUJBWFFrZDRCMFNKZnRsbDZWRlV6YUxONmNpZGZmUT9ydGltZT1NdnpRV1lOZzJFZw)
+Since 25% of the observations are still unrealistic values, this approach is not optimal, unless we want to remove these observations altogether or replace them with some meaningful values. On the meeting (22.09.2020), we decided to replace these values with 1.3 - a national average eFCR [Aas et al 2019](https://nofimaas.sharepoint.com/sites/public/Cristin/Rapport%2026-2019.pdf?&originalPath=aHR0cHM6Ly9ub2ZpbWFhcy5zaGFyZXBvaW50LmNvbS86Yjovcy9wdWJsaWMvRVpEcDZmV3lVUFJEaGI4RUJBWFFrZDRCMFNKZnRsbDZWRlV6YUxONmNpZGZmUT9ydGltZT1NdnpRV1lOZzJFZw) or a possible minimum (1.2),
 
 
 # Calculate PER and PRR - protein efficieny ratio and protein retention ratio
@@ -532,7 +532,7 @@ Regarding feed sources, in years 2010, 2012, 2013 and 2016, the protein sources 
 
 In the whole salmon, amount of protein was 16.9% in 2016 (Aas et al 2019), but can probably assumed to be constant throughout the study period 2005-2018.
 
-The values of eFCR that are out of possible bounds (lower than 1.3), we will consider as flaws, and replace with a national average - 1.3 for year 2016 and 2012. We can expect the eFCR to be somewhat higher than 1.3, or rarely - much higher, when a lot of fish lost or discarded, but practically, eFCR cannot be lower than 1.3. It is in principle not  possible to apply X kg of feed to yield exactly X kg of fish. 
+The values of eFCR that are out of possible bounds (lower than 1.3), we will consider as flaws, and replace with a national average - 1.3 for year 2016 and 2012, or 1.2 - the lowest possible eFCR in theory. We can expect the eFCR to be somewhat higher than 1.3, or rarely - much higher, when a lot of fish lost or discarded, but practically, eFCR cannot be lower than 1.2 - 1.3. It is in principle not  possible to apply X kg of feed to yield exactly X kg of fish. 
 
 Then, we can also estimate $PRR$ - protein retention rate. This is just an inverse of PER:
 

@@ -1,0 +1,63 @@
+---
+title: "Final_aquaculture_goal_estimation"
+author: "*Compiled on `r date()` by `r Sys.info()['user']`*"
+output: 
+  html_document:
+    css: '~/github/nor-prep/prep/templates/style.css'
+    toc: true
+    number_sections: true
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: '~/github/nor-prep/prep/templates/norway_banner.html'
+  pdf_document:
+    toc: true
+---
+
+```{r message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(message = FALSE, warning= FALSE, message = FALSE)
+source('~/github/nor-prep/prep/src/common.R')
+```
+
+
+```{r include FALSE}
+library(here)
+```
+
+Here I will estimate the final aquaculture sub-goal. 
+The idea behind final aquaculture sub-goal is the same as for fisheries sub-goal:
+
+$$
+\begin{equation}
+Aquaculture\ subgoal = \frac{Aquaculture\ yield\ per\ sea\ area (tons)}{Reference\ yield\ per\ sea area (tons)}*Sustainability * 100
+\end{equation} 
+$$
+Here, Sustainability, is the product of all the sustainability indicators that we used for aquaculture: lice index, pollution index, escaped fish index, and protein retention index.
+
+All indices are scaled from 0 to 1, so their product is also scaled from 0 to 1. 
+
+Aquaculture goal will achieve highest score when
+1) Region (municipality) produced maximal possible tons of fish in a given year.
+2) Production in this region and year was sustainable in terms of pollution (no polluted locations detected),
+lice count was below threshold whole year round, the status of the rivers in a region is good (no escapees detected),
+the region lost minimal amount of fish and managed to keep protein retention at an optimal level - 0.365).
+
+With this approach to aquaculture sustainability, we assume that the ingredients of feed applied are all sustainable. It may not be true if we assess sustainability of each ingredient, but since in Norway most of the ingredients in feed are certified, we assumed them to be sustainable. We realize this is a large simplification. This simplification is  motivated by our small-scale assessment (municipality), and for this scale of assessment, sustainability of ingredients  is irrelevant, because most of the producers in a county used the same feed in the study period (2005-2018).
+
+We also do not penalize feed ingredients for relying on other potential food resources such as marine and plant proteins. For the study period, 2005-2018 we cannot set such a sustainability goal for aquaculture that they should avoid using protein or similar potential food resources.But we admit, that future assessments should include all aspects of protein feed sustainability, provided that sufficient data will exist.
+
+Last, we also assume that the proportion of feed ingredients, particularly, proteins,  did not change substantially over the study period 2005-2018. Although, there were changes in the proportion of ingredient types (e.g., marine proteins and plant proteins ), the changes are too small to affect our analysis (Aas et al. 2019). 
+
+# Loading the data
+Data are on momb index, lice index, escapees index, and protein retention ratio index.
+All the indices are based on gapfilled data: gapfilled total produciton, and gapfilled momb and lice indices. 
+
+Only the production data is in another repository - nor-data because we cannot put production data online.
+```{r}
+production <- read.csv("~/github/nor-data/aquaculture/gapfilled_aquaculture_production.csv")
+lice <-read.csv(here("prep", "food_provision", "mariculture", "data", "lice_below_thr_gapfilled.csv"))
+momb <-read.csv(here("prep", "food_provision", "mariculture", "data", "mean_momb_mp_yr_gapfilled.csv"))
+escapees <-read.csv(here("prep", "food_provision", "mariculture", "data", "escapees_score_per_mcp.csv"))
+prr <-read.csv(here("prep", "food_provision", "mariculture", "data", "prr_score_per_mcp.csv"))
+```
+
