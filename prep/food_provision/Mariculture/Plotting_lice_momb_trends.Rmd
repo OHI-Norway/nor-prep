@@ -120,7 +120,7 @@ theme_lice_publ <- function(...) {
       panel.background = element_rect(fill = "white"),
      #panel.border = element_rect(color = "grey97"),
       plot.background = element_blank(),
-      panel.grid.major.x = element_line(color = "grey97", size = 0.7),
+      panel.grid.major.x = element_line(color = "grey97", size = 0.5),
     )
 }
 ```
@@ -140,12 +140,16 @@ plots_lice <- map2(
   lice_df, 
   names(lice_df),
    ~ ggplot(data = .x, mapping = aes(x = Year, y = score_final)) +
-  geom_point(color = "mediumslateblue") +
+  geom_point(color = "mediumslateblue", size = 0.6) +
   geom_smooth(color = "darkblue",
-              size = 0.4) +
+              size = 0.4,
+              fullrange = FALSE,
+              method = "loess",
+              span = 0.6) +
   ggtitle(.y)  +
   facet_wrap(Norw_name ~ .) +
   scale_x_continuous(breaks = breaks1, labels = labels1) +
+  scale_y_continuous(limits = c(0, 1.2), breaks = c(0, 0.2, 0.4, 0.6, 0.8,1)) +
   labs(y = "Lice index", x = "") +
   theme_lice_publ())
 
@@ -237,12 +241,16 @@ plots_momb <- map2(
   momb_df, 
   names(momb_df),
    ~ ggplot(data = .x, mapping = aes(x = Year, y = momb_gapfilled)) +
-  geom_point(color = "orangered4") +
+  geom_point(color = "orangered4", size = 0.6) +
   geom_smooth(color = "red",
-              size = 0.4) +
+              size = 0.4,
+              fullrange = FALSE,
+              method = "loess",
+              span = 0.6) +
   ggtitle(.y)  +
   facet_wrap(Norw_name ~ .) +
   scale_x_continuous(breaks = breaks1, labels = labels1) +
+  scale_y_continuous(limits = c(0, 1.2), breaks = c(0, 0.2, 0.4, 0.6, 0.8,1)) +
   labs(y = "MOM B index", x = "") +
   theme_lice_publ())
 
