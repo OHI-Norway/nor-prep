@@ -31,9 +31,10 @@ NB!I use only the dataset send by Fisheries directorate on July 2nd, 2019.
 load_by_sheet <-function(x, page = 1) {
   read_excel(file.path(x),sheet = page)
 }
-path <-file.path(dir_M[2],"Aquaculture/MOMB_2019/B-undersøkelser Nordland_Troms_Finnmark _Fdir_june2019nr.xls")
+path <-file.path(dir_M[2],"Aquaculture/MOMB_2019/B-undersøkelser_Nordland_Troms_Finnmark_kommune.xlsx")
 page <- list(5,6,7)
 allcounties <- map2(path, page, load_by_sheet) 
+
 
 momb_prep <-  allcounties %>% 
   do.call("rbind", .) %>% 
@@ -218,7 +219,7 @@ momb_smoothed <- c(long_momb_smoothed, short_momb_data)
 
 # Gapfilling missing years of momb data
 ## Creating a function to gapfill
-The idea is to take an average of the 5 recent years witn data. 
+The idea is to take an average of the 5 recent years with data. 
 Often, there will only be less than 6 years with data - then we just take average of those.
 ```{r include = FALSE}
 #Just another version of the funciton
