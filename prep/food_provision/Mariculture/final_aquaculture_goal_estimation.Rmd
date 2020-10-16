@@ -1,5 +1,5 @@
 ---
-title: "Final_aquaculture_goal_estimation"
+title: "Final aquaculture goal estimation"
 author: "*Compiled on `r date()` by `r Sys.info()['user']`*"
 output: 
   html_document:
@@ -29,10 +29,18 @@ The idea behind final aquaculture sub-goal is the same as for fisheries sub-goal
 
 $$
 \begin{equation}
-Aquaculture\ subgoal = \frac{Aquaculture\ yield\ per\ sea\ area (tons)}{Reference\ yield\ per\ sea area (tons)}*Sustainability * 100
+Aquaculture\ subgoal = \frac{Aquaculture\ yield\ per\ sea\ area (kg)}{Reference\ yield\ per\ sea\ area (kg)}*Sustainability * 100
 \end{equation} 
 $$
-Here, Sustainability, is the product of all the sustainability indicators that we used for aquaculture: lice index, pollution index, escaped fish index, and protein retention index.
+
+Here, Sustainability, is the geometric mean of all the sustainability indicators that we used for aquaculture: lice index, pollution index, escaped fish index, and protein retention index.
+
+Here is the formula for geometric mean: 
+$$
+\begin{equation}
+(\prod_{i=1}^n x_i)^{\frac{1}{n}} = \sqrt[n]{x_1x_2...x_n}
+\end{equation} 
+$$
 
 All indices are scaled from 0 to 1, so their product is also scaled from 0 to 1. 
 
@@ -42,9 +50,9 @@ Aquaculture goal will achieve highest score when
 lice count was below threshold whole year round, the status of the rivers in a region is good (no escapees detected),
 the region lost minimal amount of fish and managed to keep protein retention at an optimal level - 0.365).
 
-With this approach to aquaculture sustainability, we assume that the ingredients of feed applied are all sustainable. It may not be true if we assess sustainability of each ingredient, but since in Norway most of the ingredients in feed are certified, we assumed them to be sustainable. We realize this is a large simplification. This simplification is  motivated by our small-scale assessment (municipality), and for this scale of assessment, sustainability of ingredients  is irrelevant, because most of the producers in a county used the same feed in the study period (2005-2018).
+With this approach to aquaculture sustainability, we assume that the ingredients of feed applied are all sustainable. It may not be true if we assess sustainability of each ingredient, but since in Norway most of the ingredients in feed are certified, we assumed them to be sustainable. We realize this is a large simplification. This simplification is  motivated by our small-scale assessment (municipality), and for this scale, sustainability of ingredients  is irrelevant, because most of the producers in a county used the same feed in the study period (2005-2018).
 
-We also do not penalize feed ingredients for relying on other potential food resources such as marine and plant proteins. For the study period, 2005-2018 we cannot set such a sustainability goal for aquaculture that they should avoid using protein or similar potential food resources.But we admit, that future assessments should include all aspects of protein feed sustainability, provided that sufficient data will exist.
+We also do not penalize feed ingredients for relying on other potential food resources such as marine and plant proteins. For the study period, 2005-2018 we cannot set such a sustainability goal for aquaculture that they should avoid using protein or similar potential food resources. But we admit, that future assessments should include all aspects of protein feed sustainability, provided that sufficient data will exist.
 
 Last, we also assume that the proportion of feed ingredients, particularly, proteins,  did not change substantially over the study period 2005-2018. Although, there were changes in the proportion of ingredient types (e.g., marine proteins and plant proteins ), the changes are too small to affect our analysis (Aas et al. 2019). 
 
@@ -52,7 +60,7 @@ Last, we also assume that the proportion of feed ingredients, particularly, prot
 Data are on momb index, lice index, escapees index, and protein retention ratio index.
 All the indices are based on gapfilled data: gapfilled total produciton, and gapfilled momb and lice indices. 
 
-Only the production data is in another repository - nor-data because we cannot put production data online.
+The production data is stored in another repository - nor-data, because we cannot put production data online.
 ```{r}
 production <- read.csv("~/github/nor-data/aquaculture/gapfilled_aquaculture_production.csv")
 lice <-read.csv(here("prep", "food_provision", "mariculture", "data", "lice_below_thr_gapfilled.csv"))
@@ -61,3 +69,193 @@ escapees <-read.csv(here("prep", "food_provision", "mariculture", "data", "escap
 prr <-read.csv(here("prep", "food_provision", "mariculture", "data", "prr_score_per_mcp.csv"))
 ```
 
+
+# Calculate aquaculture production per sea area of a municipality
+First, get the table on sea area of each municipality
+```{r}
+komarea <- read_excel(here("prep", "administrative", "KommArea.xlsx"))
+```
+
+Add area column to the production table
+```{r}
+production_prep2 <- production %>% 
+  left_join(komarea[, c("Havflate", "Komnum")], 
+            by = c("municip_number" = "Komnum")) %>% 
+  rename(seaarea = Havflate)
+```
+
+Clean and homogenize lice, momb, prr, and escpaees index tables. Keep only the relevant columns in each table - year, municipality number and the final scores (gapfilled). 
+```{r}
+lice_prep <- lice %>% 
+  clean_names(.) %>% 
+  select(year, municip_number, score_final ) %>% 
+  rename(lice_score = score_final)
+```
+
+```{r}
+momb_prep <- momb %>% 
+  clean_names(.) %>% 
+  select(year, komnum_new, momb_gapfilled ) %>% 
+  rename(municip_number = komnum_new,
+         momb_score = momb_gapfilled)
+```
+
+```{r}
+prr_prep <- prr %>% 
+  select(year, municip_number, prr_score)
+```
+
+```{r}
+escapees_prep <- escapees %>% 
+  clean_names(.) %>% 
+  mutate(year = rep(2018, n())) %>% 
+  rename(escapees_score = escap_score_mcp) %>% 
+  select(-name)
+```
+
+
+#  Calculate the final sustainability score of aquaculture
+**Comparing the number of observations in the production table and lice table**
+There are 1020 observations in lice, but only 857 in aquaculture production. That seems strange, but before gapfilling, lice data had only 720 observation, then I gapfilled lice score for ALL years 2005-2019 and all municipalities that were present in the lice data. I did not contrasted the year*municipality combinations of production with these combinations in lice, so I could have gapfilled the lice data for municipalities that did not produce anything that year.
+Anyway, I will join lice score column with the production column, so all the observations that are in lice, but not in the production table will be removed.
+
+There is also one observation that is in the production (Gamvik 2005), but not in lice data. I could not be able to gapfill this observation, because no records of lice were available for Gamvik municipality.
+On the other hand, Vaeroy municipality is in lice dataset, but not in the production. This is strange (were there production or not?), but I cannot fix that. 
+
+**Comparing the number of observations in the production table and momb table**
+Momb score has 910 observations, this is also because I gapfilled for ALL years and municipalities present in momb dataset. So, some of the records (year and municipality) gapfilled were not necessary - there is no data on production for them.
+Moskenes, Leirfjord, and again, Gamvik are in the production table but not in the momb table. There were no municipalities that are in momb but not in the production table.
+
+**Comparing the number of observations in prr table and production**
+PRR table has 1020 observation, 85 more than in the production table. This is because, we calculated eFCR and then PRR per aggregated groups of municipalities. So, the municipalities that did not produce in some years were still included because one or all of their neighbours produced. As a result, PRR table contains 7 municipalities that did not have production in the study period  (Andoy, Balsford, Evenes, Hemnes,Malselv,Storfjord, Vaeroy). Actually, Evenes and Storfjord has produciton in 2 years, but data was bad for them - negative total produciton, so I removed them. 
+Same as for lice and momb, I will only use 857 observations from the PRR table that match final gapfilled production table. 
+
+**Comparing the number of observations in escapees table and production**
+Escapees table only has 68 observations - data for 2018 only. I observe escapees table has municipalities Andoy and Evenes that are not in the production table. Rivers were assessed in these municipalities, and there were producing localities in 2018, but our fish biomass data does not have information on how much these two municipalities produced in 2018.
+Again, I will use only the matching municipalities, between produciton and escapees tables.
+
+**Compare the number of municipalities in momb, lice, and production**
+
+| Dataset      | Number of municipalities included |
+| ----------- | ----------- |
+| Production  |  68  |
+| Lice   |68   |
+| Momb   | 65  |
+| PRR   | 75  |
+| Escapees  | 68  |
+
+
+```{r}
+aqua_sust_prep <- production_prep2 %>% 
+  left_join(lice_prep, 
+            by = c("municip_number" ,
+                         "year")) %>% 
+  left_join(momb_prep,
+            by = c("municip_number",
+                   "year" ))
+```
+
+
+Examine, for which observations there are no momb data: for these observations, aquaculture score will not include momb index
+```{r}
+filter(aqua_sust_prep, is.na(momb_score))
+```
+
+Examine, for which observations there are no lice data: for these observations, aquaculture score will not include lice index
+```{r}
+filter(aqua_sust_prep, is.na(lice_score))
+```
+Merge aqua_sus_prep table with prr and escapees tables.
+```{r}
+aqua_sust_prep2 <- aqua_sust_prep %>% 
+  left_join(prr_prep,
+            by = c("municip_number",
+                   "year" )) %>% 
+ left_join(escapees_prep, 
+           by = c("municip_number",
+                   "year" )) %>% 
+  select(-c(feed_kg,gapfilled))
+```
+
+
+
+# Calcualte the final aquaculture goal score
+
+Create a function to calculate total aquaculture sustainability index
+```{r}
+gm_mean <- function(...) {
+  x <- c(...)
+  if (all(is.na(x))) {
+    return(NA)
+  } else {
+    prod(x, na.rm = TRUE)^(1 / sum(!is.na(x)))
+  }
+}
+```
+
+Because geometric means is based on the product, as soon as one of the multipliers is zero, the product will be zero. To avoid that, I will replace zeros with 0.001,which is close enough to 0, so it will not distort the product too much.
+
+I also calculate the 75th qunatile of the total production within a year, and estiamte proportion of production in each municipality and year to this qunatile
+
+```{r}
+aqua_goal_final <-aqua_sust_prep2 %>% 
+  mutate(across(c(
+    lice_score,
+    momb_score,
+    prr_score,
+    escapees_score), 
+    ~ ifelse(. == 0,
+             0.001,
+             .))
+  ) %>% 
+  mutate(sustainability = pmap_dbl(list(
+    lice_score,
+    momb_score,
+    prr_score,
+    escapees_score
+  ),
+    gm_mean)
+  ) %>% 
+  mutate(production_searea =
+           production_final/seaarea) %>% 
+  group_by(year) %>% 
+  mutate(production_max = max(production_searea)) %>% 
+  mutate(production_q75 = quantile(production_searea, probs = 0.75)) %>% 
+  ungroup() %>% 
+  mutate(aquaculture_score = (production_searea/production_max)*sustainability*100) %>% 
+  mutate(proportion_prod_q75 = ifelse(
+    production_searea > production_q75, 1, production_searea / production_q75
+  )) %>%
+  mutate(aquacutlure_score_q75 = proportion_prod_q75 * sustainability*100)
+  
+```
+
+# Plot the distribution of aquaculture goal
+```{r}
+plot1 <- ggplot(data = aqua_goal_final) +
+  geom_density(aes(x = aquaculture_score),
+               fill = "darkolivegreen",
+               alpha = 0.6,
+               color = "darkgreen") +
+  ggthemes::theme_gdocs()
+
+```
+
+```{r}
+mosaic::fav_stats(aqua_goal_final$aquaculture_score)
+```
+Check the distribution of aquaculture scores if we use 0.75th qunatile of production as a maximum
+```{r}
+plot2 <- ggplot(data = aqua_goal_final) +
+  geom_density(aes(x = aquacutlure_score_q75),
+               fill = "darkolivegreen",
+               alpha = 0.6,
+               color = "darkgreen") +
+  ggthemes::theme_gdocs()
+```
+
+```{r}
+library(patchwork)
+plot1/plot2
+```
+Just like in fisheries, when we use 0.75th quantile as a reference production, we get a two-mode distribution, with a group of municipalities always producing little and another group that constantly produce large quantities of fish. 

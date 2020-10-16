@@ -30,6 +30,7 @@ library(stringr)
 library(RColorBrewer)
 library(rgdal)
 library(raster)
+library(janitor)
 
 rm(packages)
 
