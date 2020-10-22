@@ -58,7 +58,7 @@ Last, we also assume that the proportion of feed ingredients, particularly, prot
 
 # Loading the data
 Data are on momb index, lice index, escapees index, and protein retention ratio index.
-All the indices are based on gapfilled data: gapfilled total produciton, and gapfilled momb and lice indices. 
+All the indices are based on gapfilled data: gapfilled total production, and gapfilled momb and lice indices. 
 
 The production data is stored in another repository - nor-data, because we cannot put production data online.
 ```{r}
@@ -195,7 +195,7 @@ gm_mean <- function(...) {
 
 Because geometric means is based on the product, as soon as one of the multipliers is zero, the product will be zero. To avoid that, I will replace zeros with 0.001,which is close enough to 0, so it will not distort the product too much.
 
-I also calculate the 75th qunatile of the total production within a year, and estiamte proportion of production in each municipality and year to this qunatile
+I also calculate the 75th quantile and 90th quantile  of the total production within a year, and estimate proportion of production in each municipality and year to this quantile
 
 ```{r}
 aqua_goal_final <-aqua_sust_prep2 %>% 
@@ -221,12 +221,17 @@ aqua_goal_final <-aqua_sust_prep2 %>%
   group_by(year) %>% 
   mutate(production_max = max(production_searea)) %>% 
   mutate(production_q75 = quantile(production_searea, probs = 0.75)) %>% 
+  mutate(production_q90 = quantile(production_searea, probs = 0.90)) %>% 
   ungroup() %>% 
   mutate(aquaculture_score = (production_searea/production_max)*sustainability*100) %>% 
   mutate(proportion_prod_q75 = ifelse(
     production_searea > production_q75, 1, production_searea / production_q75
   )) %>%
-  mutate(aquacutlure_score_q75 = proportion_prod_q75 * sustainability*100)
+  mutate(proportion_prod_q90 = ifelse(
+    production_searea > production_q90, 1, production_searea / production_q90
+  )) %>% 
+  mutate(aquacutlure_score_q75 = proportion_prod_q75 * sustainability*100) %>% 
+  mutate(aquacutlure_score_q90 = proportion_prod_q90 * sustainability*100)
   
 ```
 
@@ -244,7 +249,7 @@ plot1 <- ggplot(data = aqua_goal_final) +
 ```{r}
 mosaic::fav_stats(aqua_goal_final$aquaculture_score)
 ```
-Check the distribution of aquaculture scores if we use 0.75th qunatile of production as a maximum
+Check the distribution of aquaculture scores if we use 0.75th quantile of production as a maximum
 ```{r}
 plot2 <- ggplot(data = aqua_goal_final) +
   geom_density(aes(x = aquacutlure_score_q75),
@@ -255,7 +260,59 @@ plot2 <- ggplot(data = aqua_goal_final) +
 ```
 
 ```{r}
+plot3 <- ggplot(data = aqua_goal_final) +
+  geom_density(aes(x = aquacutlure_score_q90),
+               fill = "darkolivegreen",
+               alpha = 0.6,
+               color = "darkgreen") +
+  ggthemes::theme_gdocs()
+```
+
+
+
+```{r}
 library(patchwork)
-plot1/plot2
+plot1/plot2/plot3
 ```
 Just like in fisheries, when we use 0.75th quantile as a reference production, we get a two-mode distribution, with a group of municipalities always producing little and another group that constantly produce large quantities of fish. 
+
+Have a look at the distribution of aquaculture goal, when q75 and q90 used as reference yileds
+```{r}
+mosaic::fav_stats(aqua_goal_final$aquacutlure_score_q75)
+```
+```{r}
+mosaic::fav_stats(aqua_goal_final$aquacutlure_score_q90)
+```
+We see clearly that using absolute maximal yield is it not meaningful - only a few (12) municipalities could reach the highest score.
+If we use the 75th quantile as a reference yield, we get 75% of municipalities with a score below 86%, but using 90th percentile, we get 75% of municipalities scoring less than 50 (seems already very strict). 
+
+
+# Check the number of gapfilled values per data layers
+I want to know how many observations were gapfilled, of those observations used in the analysis (we have redundant observations in both momb and lice).
+
+I will merge production table with momb and lice again, to keeo only the non-redundant observations in lice and momb, and calculate the number of remaining that are gapfilled.
+
+```{r}
+check_gf <- production %>% 
+  left_join(lice, by = c("year" = "Year", "municip_number" = "Municip_number")) %>% 
+  left_join(momb, by = c("year" = "Year", "municip_number" = "Komnum_new")) %>% 
+  rename(prod_gf = gapfilled.x,
+         lice_gf = gf,
+         momb_gf = gapfilled.y)
+```
+
+Now check the number of gapfilled for lice and momb:
+```{r}
+check_gf %>% group_by(lice_gf) %>% tally()
+```
+```{r}
+check_gf %>% group_by(momb_gf) %>% tally()
+```
+Save the table with aquaculture goal:
+```{r}
+aqua_final_save <- aqua_goal_final %>% 
+  select(-production_final)
+
+#write.csv(aqua_final_save, "./data/aquaculture_goal_final.csv")
+```
+
