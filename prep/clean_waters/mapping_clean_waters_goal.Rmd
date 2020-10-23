@@ -1,0 +1,141 @@
+---
+title: "Mapping the clean waters goal"
+author: "Marina Espinasse"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    css: '~/github/nor-prep/prep/templates/style.css'
+    toc: true
+    number_sections: true
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: '~/github/nor-prep/prep/templates/norway_banner.html'
+  pdf_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE)
+source('~/github/nor-prep/prep/src/common.R')
+```
+
+```{r include = FALSE}
+library(here)
+library(sf)
+library(sp)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(rgdal)
+```
+
+Here I will create a simple map of the final aquaculture goal (based on the chemical and ecological assessment of coastal water areas, but not on the marine debris).
+
+# Load the data and municipalities shapes and names
+```{r}
+waters <- read.csv(here("prep", "clean_waters", "data", "clean_waters_score_per_mcp.csv"))
+allkommuner <-readOGR(dsn = "/Users/marinaespinasse/github/nor-prep/prep/administrative/raw/shapefiles/NO_AdminOmrader")
+komlist <-read.csv("/Users/marinaespinasse/github/nor-prep/prep/administrative/komlist.csv", sep = ";")
+```
+
+# Prepare map layers
+Filter the municipalities that we use in the project, from the shape file of all Norwegian municipalities.
+In the shapefile, Harstad still has an old number - 1901, while 1903 in our list of municipalities for the project.
+
+```{r}
+komlist <-filter(komlist, !Name == "NonCoast")
+
+komlist_prep <- komlist %>% 
+  mutate(Komnum = replace(Komnum,
+                          Komnum == 1903,
+                          1901))
+
+ohikom <-allkommuner[allkommuner$KOMM %in% komlist_prep$Komnum,] 
+```
+
+Prepare a world map layers, to use as a basis and a make a shapefile of municipalities and `sf` object
+```{r }
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+kommunersf <- sf::st_as_sf(ohikom, coords= c("long", "lat"), agr="identity")
+
+kommunersf_prep <- kommunersf %>% 
+  mutate(KOMM = replace(KOMM,
+                        KOMM == 1901,
+                        1903))
+```
+
+
+Merge the table of clean water scores and the shapes of municipalities. There is a Beiarn municipality, but we don't need it, it is not in the project.
+```{r}
+plot_waters <- waters %>% 
+  left_join(
+    kommunersf_prep,
+    by = c("municip_number" = "KOMM")
+  ) %>% 
+  filter(!municip_name == "Beiarn") %>% 
+  st_as_sf(.)
+```
+
+#  Mapping
+```{r}
+base_map <- ggplot() +
+  geom_sf(
+   data = world, 
+   fill = "antiquewhite1", 
+   color = "dimgray", 
+   size = 0.3) +
+  theme(axis.text = element_text(size = 17),
+        legend.text = element_text(size = 12),
+        legend.title = element_text(size = 15,  face = "bold"),
+        panel.background = element_rect(fill = "aliceblue") ,
+        panel.grid.major = element_line(color = "#dbdbd9", linetype = "dashed"),
+        plot.title = element_text(hjust = 0.5, vjust = 0.5, size = 17, face = "bold")
+  ) +
+  geom_sf(
+    data = plot_waters,
+    mapping = aes(fill = score_mcp),
+    color = "dimgray",
+    size = 0.4,
+    alpha = 0.7
+  ) +
+  coord_sf(xlim = c(8, 32), ylim = c(64, 72), expand = FALSE) +
+  labs(x = "Longitude", y = "Latitude") +
+  scale_fill_gradientn(colors = c("red", "yellow", "green"),
+                      limits = c(50,100),
+                      breaks = c(50, 75,  100),
+                      labels = c("50", "75", "100"),
+                      
+    name = "Clean waters index scores",
+    guide = guide_colorbar(
+      title.vjust = 0.6,
+      ticks = TRUE,
+      ticks.colour = "dimgray",
+      ticks.linewidth = 1
+    )
+  ) +
+  labs(
+    x = NULL,
+    y = NULL,
+    title = ""
+  ) 
+```
+
+
+
+```{r}
+komnames <- cbind(plot_waters,st_coordinates(st_centroid(plot_waters)))
+komnames_prep <- filter(komnames, !municip_number %in% c(1919, 1920))
+```
+```{r}
+main_map <- base_map +
+  geom_sf_text(data = komnames_prep, 
+               aes(X,Y, label= municip_number),fontface = "bold", size = 2)
+  
+```
+
+```{r}
+ggsave(here("prep","clean_waters", "figs", "clean_waters_scores_map.pdf") ,
+       main_map, width = 10, height = 9, dpi = 300)
+```
+
