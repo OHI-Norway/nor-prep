@@ -45,7 +45,21 @@ all_mcp <-st_read(dsn = "/Users/marinaespinasse/github/nor-prep/prep/administrat
 Select only the municipalities that we use in the project. 
 ```{r}
 komlist <-filter(komlist, !Name == "NonCoast")
-ohikom <-all_mcp[all_mcp$KOMM %in% komlist$Komnum,] 
+komlist_prep <- komlist %>% 
+  mutate(Komnum = replace(
+    Komnum,
+    Komnum == 1903,
+    1901
+  ))
+
+ohikom <-all_mcp[all_mcp$KOMM %in% komlist_prep$Komnum,] 
+
+ohikom_prep <- ohikom %>% 
+    mutate(KOMM = replace(
+    KOMM,
+    KOMM == 1901,
+    1903
+  ))
 
 ```
 
@@ -53,14 +67,14 @@ ohikom <-all_mcp[all_mcp$KOMM %in% komlist$Komnum,]
 To see how the two layers align
 ```{r}
 world <- ne_countries(scale = "medium", returnclass = "sf")
-mcpsf <- sf::st_as_sf(ohikom, coords= c("long", "lat"),crs = 4326, agr="identity")
+mcpsf <- sf::st_as_sf(ohikom_prep, coords= c("long", "lat"),crs = 4326, agr="identity")
 ```
 
 ```{r}
-water_shp_north <- water_shp[water_shp$Vannregion %in% c("Finnmark", "Troms", "Nordland"), ] 
+water_shp_north <- water_shp[water_shp$Vannregion %in% c("Finnmark", "Troms", "Nordland", "Norsk-Finsk"), ] 
 ```
 
-
+This takes long time to run, skip if you don't need to check again
 ```{r fig.width=5, fig.height=5}
 plot1 <- ggplot(data = world) +
    geom_sf(fill = "antiquewhite1") +
@@ -93,7 +107,32 @@ water_shp_north_trans <- st_transform(water_shp_north, crs = 32633)
 st_crs(water_shp_north_trans)
 ```
 
+Now we find an intersection between each municipality and each water entity.
 
+
+I get an error that one of the geoms is invalid. I found (see link below) that it might be to an invalid polygon, and we can apply a buffer to polygons to circumvent that problem.
+ https://gis.stackexchange.com/questions/163445/getting-topologyexception-input-geom-1-is-invalid-which-is-due-to-self-intersec
+ 
+ Let's check where the one or more of the geometries are invalid:
+ 
+```{r}
+sum(st_is_valid(water_shp_north_trans))
+sum(st_is_valid(mcpsf))
+
+```
+In the water entities shapes one of the geometries is invalid, we have to filter it out.
+ 
+Let's first find out which geometry is corrupt and fix it with `st_make_valid` funciton of `sf`
+```{r}
+foo <- st_is_valid(water_shp_north_trans)
+which(foo == FALSE)
+
+water_shp_north_trans[908,]#363030100-2-C Karlsøyfjorden-nordre
+
+water_shp_north_trans <- st_make_valid(water_shp_north_trans)
+```
+
+Find intersection between municipalities and water entities
 ```{r}
 entity_within_mcp <- st_intersection(mcpsf, water_shp_north_trans)
 
@@ -112,7 +151,7 @@ entity_within_mcp_prep <- entity_within_mcp %>%
 
 ```
 
-Calcualate the area of each intersection
+Calculate the area of each intersection
 ```{r}
 entity_within_mcp_prep$area <-st_area(entity_within_mcp_prep)
 
@@ -137,14 +176,15 @@ plot2
 ```
 
 Prepare a final table with area and clean the column names
+
+
 ```{r}
 water_mcp_area <- entity_within_mcp_prep %>% 
   rename(municip_name = NAVN,
          municip_number = KOMM,
          entity_id = VannforekomstID,
          entity_name = Vannforekomstnavn,
-         vannregion = Vannregion,
-         area_m2 = area) %>% 
+         vannregion = Vannregion) %>% 
  mutate(water_entity_id = stringr::str_c(entity_name, "_", entity_id)) %>% 
   st_set_geometry(., NULL) %>% 
   select(municip_name, 
@@ -153,7 +193,7 @@ water_mcp_area <- entity_within_mcp_prep %>%
          vannregion,
          vannomrade,
          vassdragomrade,
-         area_m2)
+         area)
 
 #write.csv(water_mcp_area, "data/water_entity_n_area_per_mcp.csv", row.names = F)
 ```

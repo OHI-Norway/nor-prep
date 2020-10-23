@@ -52,7 +52,8 @@ status_prep <- status %>%
   mutate_if(is.character, ~ str_replace_all(., char_class(" ,"), replacement = "_")) %>% 
   filter(vannregion %in% c(
     "nordland_og_jan_mayen",
-    "troms_og_finnmark"
+    "troms_og_finnmark",
+    "norsk-finsk"
   )) %>% 
   mutate_if(is.character, ~ str_replace_all(. ,"ø", replacement = "o")) %>% 
   mutate_if(is.character, ~ str_replace_all(. ,"å", replacement = "a")) %>% 
@@ -133,7 +134,7 @@ komlist_complete <- rbind(komlist_prep, komnames_updated_prep)
 
 
 Separate the list of water entities and the respective municipalities, put the resultant table in a long format.
-There is a mess with municipalities' numbers. Some of them are written as 3 digits, because a tailing zero is missing and I have to manually add it. All municipalities' numbers starting with "50**" can be deleted - they belong to Trondelag county.
+There is a mess with municipalities' numbers. Some of them are written as 3 digits, because a zero is missing and I have to manually add it. All municipalities' numbers starting with "50**" can be deleted - they belong to Trondelag county.
 ```{r}
 water_mcp <- status_prep3 %>% 
   select(water_entity_id, 
@@ -186,17 +187,18 @@ water_mcp_prep <- water_mcp %>%
 ```
 
 
-An overview of merged municipalities, that I will have to separate
+An overview of merged municipalities, that I will have to separate. Actually, some of the municipalities, like Gaivuotna_Kafjord_Kaivuono are not merged, this is just three names of the same municipality (in Norwegian, Kven and Sami).
+Sor-Varanger and Kvaenangen are a just a long names of a municipalities.
 ```{r}
 merged_mcp <- water_mcp_prep %>% 
-  filter(str_length(.$municip_name) >= 20) %>% 
+  filter(str_length(.$municip_name) >= 10) %>% 
   group_by(municip_name) %>% 
   tally()
 
 merged_mcp[,1]
 ```
 
-There are only 3 occasions of merged municipalities and 3 that include names in Norwegian, sami and kven language, I can correct them by hand.
+There are only 3 occasions of merged municipalities and the rest (except Sor-Varanger and Kvaenangen) are written in multiple languages. I correct the names of municipalities by hand.
 
 ```{r}
 water_mcp_prep2 <-water_mcp_prep %>% 
@@ -212,6 +214,10 @@ water_mcp_prep2 <-water_mcp_prep %>%
                                 municip_name == "Storfjord_Omasvuotna_Omasvuono",
                                 "Storfjord"
                                 )) %>% 
+  mutate(municip_name = replace(municip_name,
+                                municip_name == "Deatnu_Tana",
+                                "Tana"
+                                )) %>% 
   select(-municipality) %>% 
   separate(col = municip_name,
           into =  c("mp1", "mp2", "mp3", "mp4")) %>% 
@@ -221,23 +227,19 @@ water_mcp_prep2 <-water_mcp_prep %>%
   filter(! is.na(municip_name)) %>% 
   select(-municipality_order)
 ```
-Still have to correct some of the municipalities' names. 
+Still have to correct some of the municipalities' names. Now the municipalities like Habmer and Hamaroy are separated although, they are the same thing!
+I will recode the Sami names to Norwegian names, but that will create duplicated rows in the data. I will removed duplicated rows at the end of the code chunk. Sor-Varnager municipality was splitted by mistake, I will fix that.
 ```{r}
-water_mcp_prep3 <- water_mcp_prep2 %>% 
-  mutate(municip_name = replace(
+water_mcp_prep3 <- water_mcp_prep2 %>%  
+    mutate(municip_name = replace(
     municip_name,
-    municip_name %in% c("Sor", "Varanger"),
-    "Sor-Varanger"  
+    municip_name == "Habmer",
+    "Hamaroy"  
   )) %>% 
   mutate(municip_name = replace(
     municip_name,
     municip_name == "Unjarga",
     "Nesseby"  
-  )) %>% 
-   mutate(municip_name = replace(
-    municip_name,
-    municip_name == "Habmer",
-    "Hamaroy"  
   )) %>% 
     mutate(municip_name = replace(
     municip_name,
@@ -249,6 +251,27 @@ water_mcp_prep3 <- water_mcp_prep2 %>%
     municip_name == "Loabak",
     "Lavangen"  
   )) %>% 
+     mutate(municip_name = replace(
+    municip_name,
+    municip_name == "Sor",
+    "Varanger"  
+  )) 
+  
+```
+
+Indeed, there are 70 duplicated rows.
+```{r}
+sum(duplicated(water_mcp_prep3))
+```
+Now we have 1586 unique observations. Now we canjoin the dataframe with municipalities list.
+```{r}
+water_mcp_prep4 <- water_mcp_prep3 %>% 
+  filter(!duplicated(.)) %>% 
+    mutate(municip_name = replace(
+    municip_name,
+    municip_name == "Varanger",
+    "Sor-Varanger"  
+  )) %>% 
   left_join(komlist, by = c("municip_name" = "Name")) %>% 
   rename(municip_number_old = Komnum) %>% 
   select(-Kid) %>% 
@@ -259,11 +282,13 @@ water_mcp_prep3 <- water_mcp_prep2 %>%
          vannregion,
          vannomrade,
          vassdragsomrade)
+  
 ```
+
 
 Save the table
 ```{r}
-# write.csv(water_mcp_prep3, "data/municipalities_and_water_entities_table.csv",
+# write.csv(water_mcp_prep4, "data/municipalities_and_water_entities_table.csv",
 #          row.names = FALSE)
 ```
 
