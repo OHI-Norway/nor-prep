@@ -22,8 +22,22 @@ Y_{C,i,k} = \triangle Biomass + Harvest + Removed\ fish  - Seeded\ smolts - Adde
 \end{equation}
 $$
 
+Vertically aligned
 
-
+$$
+\begin{equation}
+\begin{align}
+\begin{split}
+Y_{C,i,k} = \triangle Biomass  \\
+ & + Harvest \\
+ &+ Removed\ fish  \\
+ & - Seeded\ smolts  \\
+ & - Added\ fish  \\
+ & - Discard
+\end{split}
+\end{align}
+\end{equation}
+$$
 
 **Protein retention ratio (PRR)**
 
@@ -68,20 +82,34 @@ Escapees \ index = \frac{\sum_{j=1}^{N}[\frac{\sum_{i=1}^{n}(incidence\ score_i)
 $$
 
 **Final aquaculture sub-goal**
+
 Sustainability: 
 $$
 \begin{equation}
 \begin{aligned}
-S_{i,k}^{AQC} = Lice\ index\\
-& *MOM\ B\ index \\
-& * PRR\ index \\
-& *Escapees\ index
+S_{i,k}^{AQC} = 
+\sqrt[4]{Lice*MOM\ B* PRR*Escapees}
 \end{aligned}
 \end{equation} 
 $$
 
+
+
 $$
 \begin{equation}
 X_{i,k}^{AQC} = \frac{Y_{C,i,k}}{Y_{R,k}}*S_{i,k}^{AQC} * 100
+\end{equation} 
+$$
+
+
+Just an example of aligning parts of the equation vertically
+$$
+\begin{equation}
+\begin{split}
+  S_{i,k}^{AQC} = Lice\ index\\
+  & *MOM\ B\ index \\
+  & * PRR\ index \\
+  & *Escapees\ index
+\end{split}
 \end{equation} 
 $$
