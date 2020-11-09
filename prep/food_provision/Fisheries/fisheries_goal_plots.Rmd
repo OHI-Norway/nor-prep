@@ -296,8 +296,6 @@ scores_final_prep2 <-scores_final_prep %>%
 ```
 
 
-
-
 ```{r}
 
 sc_counties <- unique(scores_final_prep2$county) 
@@ -353,7 +351,7 @@ plot <- ggplot(df)+
       geom_line(aes(x = Year, y = fish_score), size = 0.7, color = "darkblue") +
       facet_wrap(Norw_name  ~ .) +
       scale_x_continuous(breaks = breaks2, labels = labels2)+
-      labs(y = "Fisheries sustainability score", x = "") +
+      labs(y = "Fisheries ssubgoal score", x = "") +
       ggtitle(cty)+
       theme_stata(scheme = "s1color") +
       theme_food()
@@ -363,5 +361,10 @@ plot <- ggplot(df)+
 ggsave(paste0("figs/fisheries_sustainability_score05_18_", cty, ".pdf"), plot)
   
 }
+```
+# Plotting fisheries sustainability scores per municipality
+
+```{r}
+
 ```
 

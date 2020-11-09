@@ -1,0 +1,147 @@
+---
+title: "Plots of aquaculture goal scores and related plots"
+author: "*Compiled on `r date()` by `r Sys.info()['user']`*"
+output: 
+  html_document:
+    css: '~/github/nor-prep/prep/templates/style.css'
+    toc: true
+    number_sections: true
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: '~/github/nor-prep/prep/templates/norway_banner.html'
+  pdf_document:
+    toc: true=
+---
+
+```{r message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(message = FALSE, warning= FALSE, message = FALSE)
+source('~/github/nor-prep/prep/src/common.R')
+```
+
+
+```{r include = FALSE}
+library(readxl)
+library(ggthemes)
+library(scales)
+library(readr)
+``` 
+
+Here I will plot the final scores of the aquaculture subgoal.
+The scores will be based on 90th percentile of the annual aquaculture yield (although we could also use the maximal yield). 
+
+# Load the data 
+```{r}
+scores_final <- read_csv("data/aquaculture_goal_final.csv")
+
+#there is a column inserted in the front when reading the file, probably read_csv feature
+scores_final_prep <- scores_final[,-1]
+```
+
+Loading also the Norwegian names of the municipalities, for plotting
+```{r}
+komnames_norw <- read_excel(file.path("~/github/aqua_fish_paper/data/raw/komlist_norw.xlsx"))
+```
+
+# Prepare the data
+Here I merge the column of Norwegian municipalities names with aquaculture scores table. Also, i keep just the needed columns
+
+
+```{r}
+scores_final_prep2 <-scores_final_prep %>% 
+  left_join(komnames_norw[c("Komnum", "Norw_name")], by = c("municip_number" = "Komnum")) %>% 
+  select(c(year:municip, sustainability, aquaculture_score, aquacutlure_score_q90, Norw_name))
+```
+
+# Plotting the final scores
+Ggplot theme for food production goal:
+
+```{r}
+theme_food <- function(...) {
+  theme_stata(scheme = "s1color") +
+    theme(
+      axis.text.x = element_text(
+        size = 8, angle = 90, hjust = 1, vjust = 0.5,
+        face = "bold"
+      ),
+      axis.text.y = element_text(size = 10, angle = 0, face = "bold"),
+      axis.title.y = element_text(margin = margin(t = 0, r = 15, b = 0, l = 0), face = "bold", size = 10),
+      plot.title = element_text(hjust = 0.5, vjust = 0.5, face = "bold"),
+      axis.ticks.x = element_line(size = 0.5),
+      axis.ticks.length = unit(0.2, "cm"),
+      strip.text = element_text(size = 10, face = "bold"),
+      strip.background = element_rect(fill = "bisque", color ="bisque"),
+      panel.background = element_rect(fill = "white"),
+      plot.background = element_rect(fill = "white"),
+      panel.grid.major.y = element_line(color = "grey", size = 0.7),
+      legend.background = element_rect(color = "white")
+    )
+}
+
+```
+
+Define breaks for y-axis
+```{r}
+breaks <- seq(2005, 2018, by = 1)
+labels <- as.character(breaks)
+labels[!breaks%%2==0]<- ""
+```
+
+Plotting aquaculture score per municipality and county
+
+```{r}
+sc_counties <- unique(scores_final_prep2$county) 
+
+for(i in 1:length(sc_counties))
+  {
+  cty <- sc_counties[i]
+  
+  df <- scores_final_prep2 %>%
+    filter(county == cty) 
+    
+    
+plot <- ggplot(df)+
+      geom_line(aes(x = year, y = aquacutlure_score_q90), size = 0.7, color = "darkblue") +
+      facet_wrap(Norw_name  ~ .) +
+      scale_x_continuous(breaks = breaks, labels = labels)+
+      labs(y = "Aquacultlure subgoal score", x = "") +
+      ggtitle(cty)+
+      theme_stata(scheme = "s1color") +
+      theme_food()
+           
+           
+            
+ggsave(paste0("figs/aquaculture_final_score_q90_", cty, ".pdf"), plot)
+  
+}
+```
+
+# Plotting aquacutlure sustainability scores per municipality
+Here we plot just the sustainability scores (that are multiplied by production/max production)
+```{r}
+sc_counties <- unique(scores_final_prep2$county) 
+
+for(i in 1:length(sc_counties))
+  {
+  cty <- sc_counties[i]
+  
+  df <- scores_final_prep2 %>%
+    filter(county == cty) 
+    
+    
+plot <- ggplot(df)+
+      geom_line(aes(x = year, y = sustainability), size = 0.7, color = "black") +
+      facet_wrap(Norw_name  ~ .) +
+      scale_x_continuous(breaks = breaks, labels = labels)+
+      labs(y = "Aquacultlure sustainability score", x = "") +
+      ggtitle(cty)+
+      theme_stata(scheme = "s1color") +
+      theme_food()
+           
+           
+            
+ggsave(paste0("figs/aquaculture_sustainability_score_", cty, ".pdf"), plot)
+  
+}
+```
+
