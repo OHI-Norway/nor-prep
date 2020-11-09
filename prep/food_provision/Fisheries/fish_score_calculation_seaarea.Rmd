@@ -56,13 +56,12 @@ fish_nor %>% group_by(English) %>%
 # Further data cleaning: removing and re-arranging locations 
 Deleting municipalities that are not in the study (Beiarn county and Guovdageaidnu-Kautokeino)
 Re-estimating landings for the municipalities that were merged (Bodo + Skjerstad_2005, Bjarkoy_2013 + Harstad_2013) - I sum the landings for these pairs of municipalities for the years before they've merged. 
-Using this approach to merge cathes will create duplicated rows, I remove them in the chunk after.
+Using this approach to merge catches will create duplicated rows, I remove them in the chunk after.
 ```{r}
-
 fish_nor_prep <- fish_nor %>% 
                   rename(Species = English) %>% 
                   mutate(Municip_name = as.character(Municip_name)) %>% 
-                  filter(!Municip_name %in% c("Beiarn", "Guovdageaidnu-Kautokeino")) %>% #mind the correct spelling of Guo... county
+                  filter(!Municip_name %in% c("Beiarn", "Guovdageaidnu-Kautokeino")) %>% 
                   mutate(newid = case_when(Municip_name %in% c("Harstad_2013", "Bjarkoy_2013") ~ "1",
                                            Municip_name %in% c("Bodo", "Skjerstad_2005") ~ "2",
                                            TRUE ~ Municip_name)) %>% 
@@ -89,7 +88,7 @@ fish_nor_prep2 <- fish_nor_prep %>%
 
 
 # Examining the distribution of observations of catches by species, regardless of municipality
-This grapth shows how the number of municipalities, where the catch was delivered, varied fro, 1994 to 2018
+This graph shows how the number of municipalities, where the catch was delivered, varied from 1994 to 2018
 ```{r}
 catch_dist <- ggplot(data = fish_nor_prep2) +
   geom_density_ridges(aes(y = Species, x = Year, fill = Species)) +
@@ -102,16 +101,17 @@ catch_dist
 
 # Estimating cacth per area and maximal weighted catch
 (Check fisheries README. for details). This approach however, has a danger of positive  outliers dominating 
-the maximal catch per area. Due to multiple reasons, catch will vary in every municipality for each stock from year to year. Thus, a maximal catch (biomass) per area can be just an outlier, a seldomly seen very high catch. Therefore most of the biomass.area/max.biomass.area ratios are very low (75% are less than 0.6).
-The largest catch per sea area was observed in Oksnes in 2018, for Atlantic cod.
+the maximal catch per area. Due to multiple reasons, catch will vary in every municipality for each stock from year to year. Thus, a maximal catch (biomass) per area can be just an outlier, a seldom seen very high catch. Therefore most of the biomass.area/max.biomass.area ratios are very low (75% are less than 0.6).
+The largest catch per sea area was observed in Øksnes in 2018, for Atlantic cod.
 
-We do not have MSY-reference points, but we can assume it is sustainable.
+We do not have MSY-reference points for shrimp, but we can assume it is sustainable.
 https://www.hi.no/hi/temasider/arter/kyst-og-fjordreke 
 Similarly, for Kingcrab, I will assume its catches sustainable.
 
 I remove redfish, blue whiting and greenland halibut from the table.
 17.02.2020 we decided not to include these three species into the Fisheries sub-goal.
 
+Calculation catch weighted scores (proportional catch multiplied by the stock score).
 ```{r}
 seaarea <- seaarea %>% 
           mutate(Komnum = as.character(Komnum))   
@@ -153,7 +153,27 @@ mosaic::fav_stats(weighted_catch_score$catch_per_area)
 
 ## Apply 3-years rolling mean on catch data
 Rolling mean is a remedy against inter-annual variability in catches and against influential outliers. 
-I apply 3-year rolliing mean to catch data. However,rolling mean does not help to smooth variability in catches between the municipalities.
+I apply 3-year rolling mean to catch data. However,rolling mean does not help to smooth variability in catches between the municipalities.
+
+When we apply a rolling mean, some observations will become NA (those at the edges of the 3-year window), because `rollapply` function calculates means of 3 overlapping years. Out of 8330 observations of catch, 1086 will become NA. The NAs are the first and the last year of a dataframe, made by unique combination of species and municipality. 
+Since, there is certainly a temporal increase the total catches (taking a mean of all would be wrong), the best is to replace NA with the closest non-NA value, for instance for year 1994, take the catch of year 1995. I will do that with a `zoo::na.fill` function. 
+
+
+A simple function, that takes a dataframe as an argument, checks the number of rows. It applies 3-years running mean only of dataframe has at least 6 rows of data, and does not change the values if there are less than 6 rows of data.
+```{r}
+runmean_on_df <- function(df, col){
+  if (nrow(df) >= 6) {
+    runmean <- rollapply(df[,col], width = 3, FUN = mean,  fill=list("extend"))
+    df2 <-cbind(df, runmean)
+  } else {
+    runmean <-df[,col]
+    df2 <-cbind(df, runmean)
+  }
+  df2
+}
+```
+
+
 ```{r}
 municipalities <-unique(fish_nor_prep2$Municip_name_new)
 species <-unique(fish_nor_prep2$Species)
@@ -171,9 +191,10 @@ for (i in 1:length(municipalities))
         df.sp <- df.mp %>% 
             filter(Species == sp)
   
-      runmean <-data.frame(catch_runmean = rollapply(df.sp$Total_catch_new, width = 3, FUN = mean,  fill=NA))
-      df.sp.full <- bind_cols(df.sp, runmean)
-      splist[[j]] <- df.sp.full
+      #runmean <-data.frame(catch_runmean = rollapply(df.sp$Total_catch_new, width = 3, FUN = mean,  fill=NA))
+      df.sp.runmean <- runmean_on_df(as.data.frame(df.sp), 14) #column 14 is Total_catch_new
+      #df.sp.full <- bind_cols(df.sp, runmean)
+      splist[[j]] <- df.sp.runmean
       smoothed_catches_spp <- do.call("rbind", splist)
       finallist[[i]] <-smoothed_catches_spp
     
@@ -181,11 +202,16 @@ for (i in 1:length(municipalities))
    
  }
  
-smoothed_catches <- do.call("rbind", finallist)
+smoothed_catches <- do.call("rbind", finallist) %>% 
+  rename(catch_runmean = runmean)
 colSums(is.na(smoothed_catches)) 
 ```
 
+
+
 ## Re-esitmate weighted catch per area based on smoothed catches
+Since we remove three species, the resultant dataset is shorter - now with 6091 number of rows.
+For the calculation of catch weighted score, I use maximal catch observed in a given year per species.
 ```{r}
 smoothed_weighted_catch_score <- smoothed_catches %>%
   filter(!Species %in%
@@ -208,7 +234,7 @@ left_join(seaarea[, c("Havflate", "Komnum")], by = c("Municip_number" = "Komnum"
   rename("Seaarea" = "Havflate") %>%
   filter(!is.na(catch_runmean)) %>%
   mutate(catch_per_area = catch_runmean / Seaarea) %>%
-  group_by(Species) %>%
+  group_by(Year,Species) %>%
   mutate(max_catch_area = max(catch_per_area)) %>%
   ungroup() %>%
   mutate(weighted_catch = catch_per_area / max_catch_area) %>%
@@ -278,7 +304,6 @@ newtable
 
 ```{r}
 final_scores_smoothed_area <- smoothed_weighted_catch_score %>%
-  filter(!is.na(catch_runmean)) %>%
   group_by(Year, Municip_number, Municip_name_new) %>%
   mutate(total_tons = sum(catch_runmean)) %>%
   mutate(catch_prop = catch_runmean / total_tons) %>%
@@ -289,14 +314,17 @@ final_scores_smoothed_area <- smoothed_weighted_catch_score %>%
 # Quick-check of the distribution of area-weighted final score 
 ```{r}
 mosaic::fav_stats(final_scores_smoothed_area$fish_score)       
-plot<- ggplot(final_scores_smoothed_area) +
-        geom_density(aes(fish_score), fill = "blue", color = "navy", alpha = 0.7)
-plot 
+plot1<- ggplot(final_scores_smoothed_area) +
+        geom_density(aes(fish_score), fill = "blue", color = "navy", alpha = 0.7) +
+  ggtitle("Referense is  max catch") +
+  ggthemes::theme_gdocs()
+
+plot1
 ```
 
 # Using 0.75th quartile of catch per area as a target
 ```{r}
-smoothed_weighted_catch_score_quantile <- smoothed_catches %>%
+smoothed_weighted_catch_score_q75 <- smoothed_catches %>%
   filter(!Species %in%
     c(
       "Redfish",
@@ -317,7 +345,7 @@ smoothed_weighted_catch_score_quantile <- smoothed_catches %>%
   rename("Seaarea" = "Havflate") %>%
   filter(!is.na(catch_runmean)) %>%
   mutate(catch_per_area = catch_runmean / Seaarea) %>%
-  group_by(Species) %>%
+  group_by(Year,Species) %>%
   mutate(catch_area_q75 = quantile(catch_per_area, probs = 0.75)) %>%
   ungroup() %>%
   mutate(weighted_catch = ifelse(
@@ -328,19 +356,78 @@ smoothed_weighted_catch_score_quantile <- smoothed_catches %>%
 
 # Recalcualte fisheries score based on 0.75th quartile of catch as a reference
 ```{r}
-final_scores_smoothed_area_q75 <- smoothed_weighted_catch_score_quantile %>%
+final_scores_smoothed_area_q75 <- smoothed_weighted_catch_score_q75 %>%
                   group_by(Year, Municip_number, Municip_name_new) %>% 
                   mutate(total_tons = sum(catch_runmean)) %>%
                   mutate(catch_prop = catch_runmean / total_tons) %>% 
                   summarize(fish_score = sum(weighted_catch_score*catch_prop*100))
 
-#write.csv(final_scores_smoothed_area_q75, "data/fish_score_smoothed_seaarea.csv")
 ```
 
-# Quick-check the distribution of area-weighted final score based on 0.75th qunatile
+
+```{r}
+smoothed_weighted_catch_score_q90 <- smoothed_catches %>%
+  filter(!Species %in%
+    c(
+      "Redfish",
+      "Greenland halibut",
+      "Blue whiting"
+    )) %>%
+  mutate(stock_score = replace(
+    stock_score,
+    Species == "Shrimp",
+    1
+  )) %>%
+  mutate(stock_score = replace(
+    stock_score,
+    Species == "Kingcrab",
+    1
+  )) %>%
+  left_join(seaarea[, c("Havflate", "Komnum")], by = c("Municip_number" = "Komnum")) %>%
+  rename("Seaarea" = "Havflate") %>%
+  filter(!is.na(catch_runmean)) %>%
+  mutate(catch_per_area = catch_runmean / Seaarea) %>%
+  group_by(Year,Species) %>%
+  mutate(catch_area_q90 = quantile(catch_per_area, probs = 0.90)) %>%
+  ungroup() %>%
+  mutate(weighted_catch = ifelse(
+    catch_per_area > catch_area_q90, 1, catch_per_area / catch_area_q90
+  )) %>%
+  mutate(weighted_catch_score = weighted_catch * stock_score)
+```
+
+```{r}
+final_scores_smoothed_area_q90 <- smoothed_weighted_catch_score_q90 %>%
+                  group_by(Year, Municip_number, Municip_name_new) %>% 
+                  mutate(total_tons = sum(catch_runmean)) %>%
+                  mutate(catch_prop = catch_runmean / total_tons) %>% 
+                  summarize(fish_score = sum(weighted_catch_score*catch_prop*100))
+
+#write.csv(final_scores_smoothed_area_q90, "data/fisheries_goal_scores_q90.csv", row.names = F)
+```
+
+
+
+# Quickly check the distribution of area-weighted final score based on 0.75th qunatile and 0.90 quantile
 ```{r}
 mosaic::fav_stats(final_scores_smoothed_area_q75$fish_score)       
 plot4<- ggplot(final_scores_smoothed_area_q75) +
-        geom_density(aes(fish_score), fill = "blue", color = "navy", alpha = 0.7)
-plot4 
+        geom_density(aes(fish_score), fill = "blue", color = "navy", alpha = 0.7) +
+  ggtitle("Referense is 75th quantile of max catch") +
+  ggthemes::theme_gdocs()
+
 ```
+
+```{r}
+mosaic::fav_stats(final_scores_smoothed_area_q90$fish_score)       
+plot5<- ggplot(final_scores_smoothed_area_q90) +
+        geom_density(aes(fish_score), fill = "blue", color = "navy", alpha = 0.7) +
+  ggtitle("Referense is 90th quantile of max catch") +
+  ggthemes::theme_gdocs()
+```
+
+```{r}
+library(patchwork)
+plot1/plot4/plot5
+```
+

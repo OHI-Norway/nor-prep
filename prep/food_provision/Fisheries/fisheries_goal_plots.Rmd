@@ -10,7 +10,7 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, message = F)
 source('~/github/nor-prep/prep/src/common.R')
 ```
 
@@ -26,7 +26,7 @@ library(readr)
 # Load the data tables
 ```{r}
 stocks_stat <- read_csv("data/stock_scores.csv")
-catch <-read_csv("data/area_weighted_catch_and_catchscore.csv")
+catch <-read_csv("data/smoothed_area_weighted_catch_and_catchscore.csv")
 ```
 
 Loading also Norwegian names of municipalities (with the special Norwegian  letters) to use for publication grapths.
@@ -241,6 +241,7 @@ theme_food <- function(...) {
       legend.background = element_rect(color = "white")
     )
 }
+
 ```
 
 ```{r}
@@ -278,35 +279,88 @@ ggsave("figs/stock_scores_all_spp.pdf", plot3)
 
 
 # Plotting final fisheries sustainability scores
+Here I plot the final fisheries subgoal scores, based on the references catch as a 90th percentile of catches within a year
 ```{r}
-
-scores_final <- read.table()
+scores_final <- read_csv("data/fisheries_goal_scores_q90.csv")
 scores_final_prep <-scores_final %>% 
-  left_join(komnames_norw[c("Komnum", "Norw_name")], by = ("Municip_number" = "Norw_name"))
+  left_join(komnames_norw[c("Komnum", "Norw_name")], by = c("Municip_number" = "Komnum"))
 ```
 
+Add counties column to the scores table
+```{r}
+scores_final_prep2 <-scores_final_prep %>% 
+             mutate(county = case_when(
+                                    Municip_number >= 1800 &  Municip_number < 1900 ~ "Nordland",
+                                    Municip_number >= 1900 &  Municip_number < 2000 ~ "Troms",
+                                    Municip_number >= 2000 ~ "Finnmark")) 
+```
+
+
+
+
 ```{r}
 
-sc_counties <- unique(scores_final_prep$county) 
+sc_counties <- unique(scores_final_prep2$county) 
 
 for(i in 1:length(sc_counties))
   {
   cty <- sc_counties[i]
   
-  df <- scores_final_prep %>%
+  df <- scores_final_prep2 %>%
     filter(county == cty) 
     
     
 plot <- ggplot(df)+
-      geom_line(aes(x = Year, y = final_score), size = 0.7, color = "darkblue") +
+      geom_line(aes(x = Year, y = fish_score), size = 0.7, color = "darkblue") +
       facet_wrap(Norw_name  ~ .) +
       scale_x_continuous(breaks = breaks1, labels = labels1)+
       labs(y = "Fisheries sustainability score", x = "") +
       ggtitle(cty)+
-      theme_food()
+      theme_stata(scheme = "s1color") +
+      theme(legend.position = "none", 
+            axis.text.x = element_text(size = 5, angle = 90, hjust = 0.5, vjust = 0.5, face = "bold"),
+            axis.text.y = element_text(size = 6, face = "bold", hjust = 0.5, vjust = 0.5, 
+                                       margin = margin(t = 0, r = 2, b = 0, l = 0)),
+            plot.title = element_text(hjust=0.5, vjust=0.5),
+            axis.ticks.x = element_line(size = 0.5),
+            axis.ticks.length = unit(0.2, "cm"))
+           
            
             
-ggsave(paste0("figs/fisheries_sustainability_score_", cty, ".pdf"), plot)
+ggsave(paste0("figs/fisheries_sustainability_score94_18_", cty, ".pdf"), plot)
+  
+}
+```
+The same plot, but I limit the time frame to 2005-2018, to compare fisheries score with aquaculture scores (and also for the food production paper).
+To limit the time frame, I use breaks2 and labels2 defined earlier.
+
+```{r}
+
+scores_final_prep3 <- scores_final_prep2 %>% 
+ filter(Year >= 2005 & Year <= 2018)
+ 
+sc_counties <- unique(scores_final_prep3$county) 
+
+for(i in 1:length(sc_counties))
+  {
+  cty <- sc_counties[i]
+  
+  df <- scores_final_prep3 %>%
+    filter(county == cty) 
+    
+    
+plot <- ggplot(df)+
+      geom_line(aes(x = Year, y = fish_score), size = 0.7, color = "darkblue") +
+      facet_wrap(Norw_name  ~ .) +
+      scale_x_continuous(breaks = breaks2, labels = labels2)+
+      labs(y = "Fisheries sustainability score", x = "") +
+      ggtitle(cty)+
+      theme_stata(scheme = "s1color") +
+      theme_food()
+           
+           
+            
+ggsave(paste0("figs/fisheries_sustainability_score05_18_", cty, ".pdf"), plot)
   
 }
 ```

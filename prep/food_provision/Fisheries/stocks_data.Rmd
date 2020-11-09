@@ -55,7 +55,7 @@ There is no MSYBtrigger assessment for redfish (except Blim in 2018), greenland 
 # Removing unnessesary rows and small-cleaning the ICES stocks data
 
 Remove unused stocks.
-I also suspect that the same stock were uploaded to the database under different names, such as cod-arct and cod.27.1-2 have similar stock description (both are NEA cod). Same problem occurred for haddock  (had-arct and had.27.1-2(), saithe (pok.27.1-2 and sai-arct),  redfish (	reg.27.1-2 and smr-arct), and halibut (ghl-arct and  ghl.27.1-2) which are the same stocks.
+I also suspect that the same stocks were uploaded to the database under different names, such as cod-arct and cod.27.1-2 have similar stock description (both are NEA cod). Same problem occurred for haddock  (had-arct and had.27.1-2, saithe (pok.27.1-2 and sai-arct),  redfish (reg.27.1-2 and smr-arct), and halibut (ghl-arct and  ghl.27.1-2) which are the same stocks.
 
 I observed also that stock stats for mackerel are duplicated, but SSB and F vary slightly between the duplicates. Likely, this is because data came from two databases, or two assessments. I cannot see how to distinguish between the two assessments, so I just keep the first row of the each pair of duplicated rows. The difference in SSB and F values is small and will not affect our analysis. 
 
