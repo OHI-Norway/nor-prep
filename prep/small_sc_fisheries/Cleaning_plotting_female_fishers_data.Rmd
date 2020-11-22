@@ -144,7 +144,7 @@ lady_final_3<- lady_final_3 %>%
     municip_name = "Name"
   )
 
-write.csv(lady_final_3, "C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/data/number_age_parttime_fulltime_female_fishers.csv")
+write.csv(lady_final_3, "C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/data/number_parttime_fulltime_female_fishers.csv")
 ```
 
 ## Plotting female fishers
