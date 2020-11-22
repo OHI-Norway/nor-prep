@@ -133,16 +133,35 @@ sum(lady_final_3$part_time_occupation)
 
 lady_final_3<- lady_final_3 %>%
   filter(!municip_numb %in% c("1922"))
+```
+
+```{r}
 
 ## Replace names of municipalities with names in municip file
-lady_final_3<- left_join(lady_final_3, municip, by = c("municip_numb"="Komnum"))
+lady_final_3<- full_join(lady_final_3, municip, by = c("municip_numb"="Komnum"))
 
 lady_final_3<- lady_final_3 %>%
   select(-municip_name, 
-         -Kid) %>%
+         -Kid,
+         -county) %>%
   dplyr::rename(
     municip_name = "Name"
   )
+
+##There are four study municipalities that are not included in this file because they have no female fishers) - they are 1824 (Vefsen), 1840 (Saltdal), 1853 (Evenes),1854 (Ballangen). Add these to file. 
+
+lady_final_3 <-lady_final_3 %>% 
+  complete(nesting(municip_name, 
+                  municip_numb), year) %>% 
+  filter(
+    row_number() <= n()-5) %>% # remove last 5 rows (those with NA in the year column for the missing municipalities + noncoast row)
+            replace_na(
+              list(main_occupation = 0, part_time_occupation = 0)) %>%  # replace NA values with zero
+  filter(!(municip_numb == "9999")) # remove the noncoast rows
+
+#check that hte same number of rows for each year and same number of rows for each municipality
+#x<-lady_final_3 %>% count(year)
+#x<-lady_final_3 %>% count(municip_numb)
 
 write.csv(lady_final_3, "C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/data/number_parttime_fulltime_female_fishers.csv")
 ```
