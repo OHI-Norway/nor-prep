@@ -1,0 +1,90 @@
+---
+title: "Summary Stats Local Fisheries"
+author: "Sigrid Engen"
+date: "22 11 2020"
+output: html_document
+---
+
+## Load packages 
+```{r, echo=T, results='hide', message=FALSE, warning=FALSE}
+library(tidyverse)
+library(readxl
+library(ggplot2)
+
+```
+
+## Load data
+```{r}
+fishers<-read.csv(file.path("data/number_age_parttime_fulltime_fishers.csv"), sep=",")
+females<-read.csv(file.path("data/number_parttime_fulltime_female_fishers.csv"), sep=",")
+vessels<-read.csv(file.path("data/number_vessels_length.csv"), sep=",")
+munic<-read.csv(file.path("C:/Users/sigrid.engen/github/nor-prep/prep/administrative/komlist.csv"), sep=";")
+  
+```
+
+### Number of fishers 2018 by municipality
+```{r}
+
+a<-filter(fishers, year ==  "2018") %>%
+  group_by(municip_numb) %>%
+  summarise(sum(main_occupation)) %>% 
+  dplyr::rename(fishers_main_occup = 'sum(main_occupation)')
+
+b<-filter(fishers, year =="2018") %>%
+  group_by(municip_numb) %>%
+  summarise(sum(part_time_occupation))%>% 
+  dplyr::rename(fishers_parttime_occup = 'sum(part_time_occupation)')
+
+c<-full_join(a,b, by="municip_numb") %>% 
+  mutate(total_fishers =fishers_main_occup + fishers_parttime_occup)
+
+```
+
+### Number of female fishers 2018 by municipality
+```{r}
+
+d<-filter(females, year ==  "2018") %>% 
+  dplyr::rename(females_main_occup = main_occupation, 
+                females_part_time_occup = part_time_occupation) %>%
+  select(-X) %>% 
+  mutate(total_females =females_part_time_occup + females_main_occup)
+
+
+f<-full_join(c,d, by ="municip_numb")
+
+```
+
+### Number of vessels by vessel size 2018 by municipality
+```{r}
+g<-filter(vessels, 
+          year == "2018") %>%
+  select(-X) %>% 
+  pivot_wider(names_from = vessel_length, values_from = number_of_vessels) %>% 
+  mutate(total_vessels= `0to9.99m` + `10to10.99m`+ `11to14.99m` + `15to20.99m` + `21to27.99m`+ `28_and_larger`)
+
+h<-full_join(f,g, by ="municip_numb") %>% 
+  rename(year = year.x) 
+
+
+i<-h %>% select(
+  -municip_name,
+  -year.y,) %>%  
+  select( 
+    county,
+    municipality, 
+    municip_numb, 
+    year,
+    everything()
+  ) 
+
+```
+
+### Plot data
+```{r, knitr::opts_chunk$set(fig.width=20, fig.height=9) }
+
+i %>% ggplot(aes(x = reorder(municipality, total_fishers), y = total_fishers)) + # reorder function sorts values largest to smallest
+  geom_col() + #use geom col to show actual values as opposed to geom bar
+  coord_flip()  # flip the two axes
+
+```
+
