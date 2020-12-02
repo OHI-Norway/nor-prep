@@ -11,6 +11,7 @@
 number_lice_observations_per_mp.csv|Number of localities that counted lice per year and municipalities|
 number_momb_examinations_per_mp.csv|Number of momb examinations per municipality and year|
 |neighbour_mcp_edited.xlsx|Aggregated neigbour municipalities that share coastlie, this aggregation was used for recalcualting eFCR index|
+|aquaculture_goal_final.csv|Final scores for aquaculture subgoal, reference yield is the maximal annual yield observed in northern Norway. The column of production per municipality is excluded - we cannot put it online (see nor-data closed repository)|
 
 
 
