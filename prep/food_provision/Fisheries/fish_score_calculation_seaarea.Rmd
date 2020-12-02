@@ -309,6 +309,7 @@ final_scores_smoothed_area <- smoothed_weighted_catch_score %>%
   mutate(catch_prop = catch_runmean / total_tons) %>%
   mutate(fish_score = sum(weighted_catch_score * catch_prop * 100))
 
+#write.csv(final_scores_smoothed_area, "data/fisheries_goal_scores.csv", row.names = F)
 ```
 
 # Quick-check of the distribution of area-weighted final score 
