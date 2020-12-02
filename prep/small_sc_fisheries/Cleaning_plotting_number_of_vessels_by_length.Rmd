@@ -238,6 +238,8 @@ vessels_final_4<- vessels_final_4 %>%
 #levels(as.factor(vessels_final_4$vessel_length))
 #should be 19440 rows 
 
+write.csv(vessels_final_4, "C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/data/number_vessels_length.csv")
+
 ```
 ## Plotting data
 ### Plot number of vessels through time by length
