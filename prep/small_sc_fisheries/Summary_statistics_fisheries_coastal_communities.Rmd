@@ -2,15 +2,19 @@
 title: "Summary Stats Local Fisheries"
 author: "Sigrid Engen"
 date: "22 11 2020"
-output: html_document
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
 ---
 
 ## Load packages 
 ```{r, echo=T, results='hide', message=FALSE, warning=FALSE}
 library(tidyverse)
-library(readxl
+library(readxl)
 library(ggplot2)
-
+library(conflicted) # identifies conflicts between functions in different packages
+library(formattable) # makes nice tables https://www.littlemissdata.com/blog/prettytables
 ```
 
 ## Load data
@@ -18,19 +22,21 @@ library(ggplot2)
 fishers<-read.csv(file.path("data/number_age_parttime_fulltime_fishers.csv"), sep=",")
 females<-read.csv(file.path("data/number_parttime_fulltime_female_fishers.csv"), sep=",")
 vessels<-read.csv(file.path("data/number_vessels_length.csv"), sep=",")
+catch<-read.csv(file.path("data/Catch_local_total_ladnings_2000_2019.csv"), sep= ",")
 munic<-read.csv(file.path("C:/Users/sigrid.engen/github/nor-prep/prep/administrative/komlist.csv"), sep=";")
+phone<-read.csv(file.path("C:/Users/sigrid.engen/github/nor-prep/prep/administrative/Fishermen_phones_new_municipal_names.csv"), sep=",")
   
 ```
 
 ### Number of fishers 2018 by municipality
 ```{r}
 
-a<-filter(fishers, year ==  "2018") %>%
+a<-dplyr::filter(fishers, year ==  "2018") %>%
   group_by(municip_numb) %>%
   summarise(sum(main_occupation)) %>% 
   dplyr::rename(fishers_main_occup = 'sum(main_occupation)')
 
-b<-filter(fishers, year =="2018") %>%
+b<-dplyr::filter(fishers, year =="2018") %>%
   group_by(municip_numb) %>%
   summarise(sum(part_time_occupation))%>% 
   dplyr::rename(fishers_parttime_occup = 'sum(part_time_occupation)')
@@ -43,30 +49,30 @@ c<-full_join(a,b, by="municip_numb") %>%
 ### Number of female fishers 2018 by municipality
 ```{r}
 
-d<-filter(females, year ==  "2018") %>% 
+d<-dplyr::filter(females, year ==  "2018") %>% 
   dplyr::rename(females_main_occup = main_occupation, 
                 females_part_time_occup = part_time_occupation) %>%
-  select(-X) %>% 
+  dplyr::select(-X) %>% 
   mutate(total_females =females_part_time_occup + females_main_occup)
 
 
-f<-full_join(c,d, by ="municip_numb")
+e<-full_join(c,d, by ="municip_numb")
 
 ```
 
 ### Number of vessels by vessel size 2018 by municipality
 ```{r}
-g<-filter(vessels, 
+f<-dplyr::filter(vessels, 
           year == "2018") %>%
   select(-X) %>% 
   pivot_wider(names_from = vessel_length, values_from = number_of_vessels) %>% 
   mutate(total_vessels= `0to9.99m` + `10to10.99m`+ `11to14.99m` + `15to20.99m` + `21to27.99m`+ `28_and_larger`)
 
-h<-full_join(f,g, by ="municip_numb") %>% 
+g<-full_join(e,f, by ="municip_numb") %>% 
   rename(year = year.x) 
 
 
-i<-h %>% select(
+h<-g %>% select(
   -municip_name,
   -year.y,) %>%  
   select( 
@@ -79,12 +85,117 @@ i<-h %>% select(
 
 ```
 
-### Plot data
-```{r, knitr::opts_chunk$set(fig.width=20, fig.height=9) }
+### Fishing industry present
 
-i %>% ggplot(aes(x = reorder(municipality, total_fishers), y = total_fishers)) + # reorder function sorts values largest to smallest
-  geom_col() + #use geom col to show actual values as opposed to geom bar
-  coord_flip()  # flip the two axes
+```{r}
+i<-dplyr::filter(catch, 
+          year == "2018") %>% 
+  dplyr::select(landing_municip_numb,
+         fishing_industry_yes_no)
+
+j<-full_join(h,i, by=c("municip_numb" = "landing_municip_numb")) 
 
 ```
+
+## Plotting
+### Number of fishers
+```{r}
+
+k<-j %>% ggplot(aes(x = reorder(municipality, total_fishers), y = total_fishers)) + # reorder function sorts values largest to smallest
+  geom_col(fill="blue") + #use geom col to show actual values as opposed to geom bar
+  theme(axis.text.x = element_text(size=8, angle=90)) +
+  labs(title = "Fishers", subtitle = "Total number of fishers in 2018") + 
+  xlab("") + 
+  ylab("Number")
+
+plot(k)
+```
+
+### Contact info fishers
+```{r}
+k<- phone %>% count(Kommune)
+
+l<-k %>% ggplot(aes(x = reorder(Kommune, n), y = n)) + # reorder function sorts values largest to smallest
+  geom_col(fill="blue") + #use geom col to show actual values as opposed to geom bar
+  theme(axis.text.x = element_text(size=8, angle=90)) +
+  labs(title = "Fishers", subtitle = "Total number of fishers in 2018") + 
+  xlab("") + 
+  ylab("Number")
+
+plot(l)
+
+```
+
+### Fishing industry present
+```{r}
+
+k<-j %>% ggplot(aes(x = reorder(municipality, fishing_industry_yes_no), y = fishing_industry_yes_no)) + # reorder function sorts values largest to smallest
+  geom_col(fill="darkgreen") + #use geom col to show actual values as opposed to geom bar
+  theme(axis.text.x = element_text(size=8, angle=90)) +
+  labs(title = "Fishing industry", subtitle = "Presence of fishing industry 2018") + 
+  xlab("") + 
+  ylab("Number")
+
+plot(k)
+
+```
+### Number of vessels
+```{r}
+
+k<-j %>% ggplot(aes(x = reorder(municipality, total_vessels), y = total_vessels)) + # reorder function sorts values largest to smallest
+  geom_col(fill="green") + #use geom col to show actual values as opposed to geom bar
+  theme(axis.text.x = element_text(size=8, angle=90)) +
+  labs(title = "Vessels", subtitle = "Total number of vessels in 2018") + 
+  xlab("") + 
+  ylab("Number")
+
+plot(k)
+
+```
+
+## Pretty table
+```{r}
+o<- j %>% select(municipality,
+                 total_fishers,
+                 total_vessels,
+                 total_females,
+                 fishing_industry_yes_no) %>%
+  mutate("Females (%)" = total_females/total_fishers*100) %>%
+  rename(Municipality = municipality, 
+         Fishers = total_fishers,
+         Vessels = total_vessels, 
+         Industry = fishing_industry_yes_no) %>% 
+  select(-total_females)
+
+
+#reduce number of decimals
+  
+o$"Females (%)"<- round(o$"Females (%)", 0)
+
+#sort table in decending order by the column fishers
+
+o<- o %>% arrange(desc(Fishers))
+
+#change order of columns
+
+o<- o[,c(1,2,3,5,4)]
+
+#set a color variable
+
+customGreen0 = "#DeF7E9"
+customGreen = "#71CA97"
+white = "#FFFFFF"
+
+# Add the color mapping
+
+formattable(o, align =c("l","c","c","c","c"), list(
+  `Municipality` = formatter("span", style = ~ style(color = "grey",font.weight = "bold")), 
+  `Fishers`= color_bar(customGreen0),
+  `Vessels`= color_bar(customGreen0),
+  `Females (%)`= color_bar(customGreen0),
+  `Industry`= color_tile(white,customGreen0)
+))
+
+```
+
 
