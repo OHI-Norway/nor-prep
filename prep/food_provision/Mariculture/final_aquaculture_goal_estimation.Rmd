@@ -314,11 +314,30 @@ check_gf %>% group_by(lice_gf) %>% tally()
 check_gf %>% group_by(momb_gf) %>% tally()
 ```
 # Save final score tables
-Save the table with aquaculture goal when the reference is max yiled and when the reference is 90th percentile of the yield
+Save the table with aquaculture goal when the reference is max yield (as we decided to use maximal yield as a reference yield, on the meeting 18.11.2020)
 ```{r}
 aqua_final_save <- aqua_goal_final %>% 
-  select(-production_final)
+  select(-c(production_final,
+         production_q75,
+         production_q90,
+        proportion_prod_q75:aquacutlure_score_q90))
+
+
 
 #write.csv(aqua_final_save, "./data/aquaculture_goal_final.csv")
 ```
+
+Save also the version of this table with production final on the closed repository nor-data
+```{r}
+aqua_final_save <- aqua_goal_final %>% 
+  select(-c(production_q75,
+         production_q90,
+         proportion_prod_q75:aquacutlure_score_q90))
+
+
+
+#write.csv(aqua_final_save, "~/github/nor-data/aquaculture/aquaculture_goal_final_with_production.csv")
+```
+
+
 

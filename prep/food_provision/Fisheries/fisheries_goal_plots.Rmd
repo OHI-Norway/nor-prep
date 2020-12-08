@@ -281,7 +281,7 @@ ggsave("figs/stock_scores_all_spp.pdf", plot3)
 # Plotting final fisheries sustainability scores
 Here I plot the final fisheries subgoal scores, based on the references catch as a 90th percentile of catches within a year
 ```{r}
-scores_final <- read_csv("data/fisheries_goal_scores_q90.csv")
+scores_final <- read_csv("data/fisheries_goal_scores.csv")
 scores_final_prep <-scores_final %>% 
   left_join(komnames_norw[c("Komnum", "Norw_name")], by = c("Municip_number" = "Komnum"))
 ```
@@ -297,6 +297,12 @@ scores_final_prep2 <-scores_final_prep %>%
 
 
 ```{r}
+
+#To redefine breaks:
+breaks1 <- seq(1994, 2018, by = 1)
+labels1 <- as.character(breaks1)
+labels1[!breaks1%%2==0]<- ""
+
 
 sc_counties <- unique(scores_final_prep2$county) 
 
@@ -333,6 +339,11 @@ The same plot, but I limit the time frame to 2005-2018, to compare fisheries sco
 To limit the time frame, I use breaks2 and labels2 defined earlier.
 
 ```{r}
+
+breaks2 <- seq(2005, 2018, by = 1)
+labels2 <- as.character(breaks2)
+labels2[!breaks2%%2==0]<- ""
+
 
 scores_final_prep3 <- scores_final_prep2 %>% 
  filter(Year >= 2005 & Year <= 2018)

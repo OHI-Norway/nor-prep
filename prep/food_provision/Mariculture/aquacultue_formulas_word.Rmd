@@ -63,7 +63,13 @@ $$
 Lice \ index = \sum_{i = 1}^{N \ of \ sites}[\frac{n \ weeks\ below \ threshold}{total\ weeks}]
 \end{equation}
 $$
+The correct formula is:
 
+$$
+\begin{equation}
+Lice \ index = \frac{\sum_{i = 1}^{N}[\frac{n \ weeks\ below \ threshold}{total\ weeks}]}{N}
+\end{equation}
+$$
 
 
 **Environmentlal monitoring - MOM B scores**

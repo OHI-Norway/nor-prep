@@ -261,6 +261,7 @@ There is no need to keep all the rivers in the table, I will keep only the asses
 ```{r}
 sum(is.na(dist_farm_rivers_prep5$incidence_cat))
 ```
+
 ```{r}
 dist_farm_rivers_prep6 <- dist_farm_rivers_prep5 %>%
  filter(!is.na(incidence_cat))
