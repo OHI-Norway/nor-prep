@@ -1,0 +1,154 @@
+---
+title: "Cleaning fishers' phones data"
+author: "Sigrid Engen"
+date: "23 11 2020"
+output: html_document
+---
+
+## Load packages 
+```{r, echo=T, results='hide', message=FALSE, warning=FALSE}
+library(tidyverse)
+library(readxl)
+library(lemon) # makes nice table https://cran.r-project.org/web/packages/lemon/vignettes/lemon_print.html 
+```
+
+## Load data
+```{r}
+munic<-read.csv(file.path("C:/Users/sigrid.engen/github/nor-prep/prep/administrative/komlist.csv"), sep=";")
+phone<-read_excel(file.path("C:/Users/sigrid.engen/github/nor-prep/prep/administrative/Fishermen_phones.xlsx"))
+fish<-read_excel(file.path("C:/Users/sigrid.engen/github/nor-prep/prep/administrative/Fiskermantall_october_2020_list_used_for_phone_number_search.xlsx"))  # original file over registered fishers which was used to search for fishers' phone numbers
+```
+
+## Clean contact info fishers 
+### Reformat municipalities names in phone list
+```{r}
+
+# reformatting names to match the names in komlist.csv
+phone$Kommune <- gsub("Ø", "O", phone$Kommune) #replace ø with o
+phone$Kommune <- gsub("Å", "A", phone$Kommune) #replace Å with A
+phone$Kommune <- gsub("Æ", "AE", phone$Kommune) #replace Å with A
+
+phone$Kommune<- gsub("PORSANGER - PORSÁ\\?GU - PORSANKI", "PORSANGER", phone$Kommune) # use \\ in front of ? to tell R not interpret it as a question mark only. If \\ not included then the name is not replaced in the phone data
+
+phone$Kommune<- gsub("UNJÁRGA - NESSEBY","NESSEBY",phone$Kommune)
+
+phone$Kommune<- gsub("DEATNU - TANA", "TANA", phone$Kommune)
+
+phone$Kommune<- gsub("GÁIVUOTNA - KAFJORD - KAIVUONO", "KAFJORD", phone$Kommune)
+
+phone$Kommune<- gsub("BO i Nordland", "BO", phone$Kommune)
+
+phone$Kommune<- gsub("HEROY i Nordland", "HEROY", phone$Kommune)
+
+phone$Kommune<- gsub("STORFJORD - OMASVUOTNA - OMASVUONO", "STORFJORD", phone$Kommune)
+
+phone$Kommune<- gsub("LOABÁK - LAVANGEN", "LAVANGEN", phone$Kommune)
+
+phone$Kommune<-str_to_title(phone$Kommune) #change from uppercase to first uppercase then lowercase
+
+#write.csv(phone, file.path("C:/Users/sigrid.engen/github/nor-prep/prep/administrative/Fishermen_phones_new_municipal_names.csv"))
+```
+
+### Reformat municipalities names list over all fishers in 2020
+```{r}
+# reformatting names to match the names in komlist.csv
+fish$Kommune <- gsub("Ø", "O", fish$Kommune) #replace ø with o
+fish$Kommune <- gsub("Å", "A", fish$Kommune) #replace Å with A
+fish$Kommune <- gsub("Æ", "AE", fish$Kommune) #replace Å with A
+
+fish$Kommune<- gsub("PORSANGER.*", "PORSANGER", fish$Kommune) # use https://stackoverflow.com/questions/13275614/replace-entire-expression-that-contains-a-specific-string to change name. Basically, the .* tells R to replace all cases starting with PORSANGER with PORSANGER
+
+fish$Kommune<- gsub("UNJÁRGA - NESSEBY","NESSEBY",fish$Kommune)
+
+fish$Kommune<- gsub("DEATNU - TANA", "TANA", fish$Kommune)
+
+fish$Kommune<- gsub("GÁIVUOTNA - KAFJORD - KAIVUONO", "KAFJORD", fish$Kommune)
+
+fish$Kommune<- gsub("BO i Nordland", "BO", fish$Kommune)
+
+fish$Kommune<- gsub("HEROY i Nordland", "HEROY", fish$Kommune)
+
+fish$Kommune<- gsub("STORFJORD - OMASVUOTNA - OMASVUONO", "STORFJORD", fish$Kommune)
+
+fish$Kommune<- gsub("LOABÁK - LAVANGEN", "LAVANGEN", fish$Kommune)
+
+fish$Kommune<-str_to_title(fish$Kommune) #change from uppercase to first uppercase then lowercase
+
+```
+
+### Inspect data
+```{r}
+s<- phone %>% count(Kommune) #  number of phone numbers for fishers per municipality
+t<- fish %>% count(Kommune) #  number of registered fishers in the original dataset
+
+u<-full_join(t, s, by = "Kommune") %>%
+  rename(fishers = "n.x", 
+         phone_numbers = "n.y")
+
+u$phone_numbers[is.na(u$phone_numbers)] <- 0 # Replace NA with zero
+```
+
+```{r caption="Data frame is now printed using `kable`.",render=lemon_print}
+knit_print.data.frame <- lemon_print
+head(u)
+```
+\
+
+#### Check if there are municipalities with registered fishers but not included in the study area
+```{r}
+anti_join(t, munic, by= c("Kommune" = "Name")) 
+```
+
+\
+Hattfjelldal and Senja are muncipalities with registered fishers in 2020 but municipalities not included in the 81 coastal municipalities (ie study area). The reason Senja shows up is only that it is under a different name as of 2020. Senja in the study area list is a combination of Berg, Lenvik, Torsken, Tranøy. 
+\
+\
+
+#### Check if there are coastal municipalities with no registered fishers
+```{r}
+anti_join(munic, t, by= c("Name" = "Kommune"))
+
+```
+\
+All of the coastal municipalities on the list are municipalities that merged with other municipalities in 2020 and the fishers in these municipalities are registered under a different name. Tysfjord municipaity was split and one part is Narvik and another Hamarøy in 2020. Ballangen is Narvik in 2020. Skånland is Tjeldsund in 2020. Tranøy, Torsken, Berg, Lenvik is Senja in 2020. Kvalsund is Hammerfest in 2020.
+
+**We can conclude that there is good overlap between study municipalities (i.e. komlist) and where fishers are registered**. All fishers except one in Hattfjelldal are registered in the municipalities in the komlist. 
+\
+\
+
+#### Check if there are municipalities with registered fishers but no phone numbers
+```{r}
+anti_join(t, s, by="Kommune")
+```
+\
+
+#### Registered fishers vs count of phone numbers
+
+```{r}
+r<-full_join(t, s, by ="Kommune") %>%
+  rename(Registered_fishers = "n.x",
+         Phone_numbers = "n.y") 
+
+r$Phone_numbers[is.na(r$Phone_numbers)] <- 0 # Replace NA with zero
+
+# make grouped geom_col graph - requires long data format
+
+r<- r %>% pivot_longer(!Kommune, names_to = "fishers_phone", values_to = "count")
+
+p<-ggplot(r ) + 
+  geom_col(aes(x = Kommune, y = count, group=fishers_phone, fill=fishers_phone), position = "dodge" )  +
+  theme(axis.text.x = element_text(size=8, angle=90)) +
+  labs(title = "Fishers' phone numbers", subtitle = "Fishers registered in 2020 vs retrived phone numbers") + 
+  xlab("") + 
+  ylab("Count") + 
+  scale_fill_discrete(name = "") + #remove legend title
+  theme(legend.position="bottom")
+
+plot(p)
+```
+
+```{r}
+ 
+```
+
+
