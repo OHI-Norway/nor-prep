@@ -96,7 +96,7 @@ grat <- graticule(lons, lats, proj = prj, xlim = xl, ylim = yl)
 ```
 ### Make final plot
 ```{r, results="markup"} 
-#tiff('figs/studysites.tiff',width = 4, height = 4, units = 'in',  res=300) #remove # to save this map as tiff 
+tiff('figs/studysites.tiff',width = 4, height = 4, units = 'in',  res=300) #remove # to save this map as tiff 
 plot(NN, col="lightgrey", border="darkgrey")
 #plot(ocean, add=T, col="lightblue", border="transparent")
 plot(muni_sub_land, add=T, col="lightgreen", border="seagreen4")
@@ -110,12 +110,12 @@ plot(grat, add = TRUE, lty = 2, col = rgb(0, 0, 0, 0.8))
 #text(679881.05, 7890097.99, "Skjervøy",cex = .6)
 #text(785856.82, 7959146.91, "Hammerfest",cex = .6)
 #text(1175049.16, 7909146.91, "Vardø",cex = .6)
-text(630514.6, 7368858.64, "Arctic Circle",cex = .7, font=3)
-addnortharrow(pos = "bottomright", padin = c(2, 0.15), scale = 0.5,
-    lwd = 1, border = "dimgray", cols = c("white", "dimgray"),
-    text.col = "dimgray")
+text(660510.6, 7368858.64, "Arctic Circle",cex = .6, font=3)
+addnortharrow(pos = "bottomright", padin = c(1, 0.15), scale = 0.4,
+    lwd = 1, border = "black", cols = c("white", "black"),
+    text.col = "black")
 #add scalebar - haven't been able to make it work so far
-#dev.off() # remove # to save this map as tiff
+dev.off() # remove # to save this map as tiff
 ```
 
 
