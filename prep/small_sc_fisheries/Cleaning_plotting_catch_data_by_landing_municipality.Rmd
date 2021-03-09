@@ -336,7 +336,7 @@ p <- ggplot(final_4)+
             axis.ticks.length = unit(0.2, "cm")) +
       scale_x_discrete(breaks=c("2000", "2005", "2010", "2015", "2019"))
 
-#ggsave(paste0("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/figs/total_catch_by_local_fishers_tonnes.pdf"), p)
+ggsave(paste0("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/figs/total_catch_by_local_fishers_tonnes.pdf"), p)
 
 #proportion local landings tonnes
 p <- ggplot(final_4)+
