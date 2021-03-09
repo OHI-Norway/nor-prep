@@ -1,0 +1,330 @@
+---
+title: "Quota ownership"
+author: "Sigrid Engen"
+date: "29 12 2020"
+output: html_document
+---
+
+## Load packages 
+```{r, echo=T, results='hide', message=FALSE, warning=FALSE}
+library(tidyverse)
+library(readxl)
+library(DescTools) #gini coefficient
+
+```
+
+## Load data
+```{r}
+quota<-readr::read_rds("data/quota_ownership_auditor_general_do_not_share")
+m<-readr::read_rds("data/municipality_names_coordinates_from_auditor_general")
+municip<-read.csv(file.path("C:/Users/sigrid.engen/github/nor-prep/prep/administrative/komlist.csv"), sep=";")
+```
+
+## Clean data
+```{r}
+
+##Quota data are individuals by vessels by year. Some individuals may have quota shares in multiple vessels. Must summarise to get total individual share
+
+quota_1 <- quota %>% select('År', 
+                          Eier.kommunenr,
+                          Eier.kommune,
+                          Eier.fylke,
+                          Eier.navn,
+                          F.nummer,                        
+                          'Kjønn',
+                          Alder,
+                          Eierandel,
+                          Organisasjonsform,
+                          'Fartøy.ID',
+                          'Største.lengde',
+                          VCU,
+                          kontrollert.andel.u11m,
+                          kontrollert.andel.11.15m,
+                          kontrollert.andel.15.20m,
+                          kontrollert.andel.21.28m
+                          ) %>% 
+  group_by(F.nummer) %>% 
+  mutate(individual = cur_group_id()) %>% 
+  ungroup() %>% 
+  rename(year = "År", 
+         municip_numb = "Eier.kommunenr",
+         municipality = "Eier.kommune",
+         county = "Eier.fylke",
+         name_quota_owner = "Eier.navn",
+         social_sec_numb ="F.nummer",
+         gender ="Kjønn",
+         age = "Alder", 
+         ownership_proportion = "Eierandel",
+         organization = "Organisasjonsform",
+         vessel_id = "Fartøy.ID", 
+         cod_b11m = "kontrollert.andel.u11m",
+         cod_11_15m = "kontrollert.andel.11.15m",
+         cod_15_20m = "kontrollert.andel.15.20m",
+         cod_21_28m = "kontrollert.andel.21.28m") 
+
+#check if annual values add to 100%
+
+sum100<-quota_1 %>% 
+  group_by(year) %>%  
+  summarise(across(cod_b11m:cod_21_28m, sum, na.rm= TRUE))
+
+# The data from 2004-2007 seems to be incomplete
+                
+ 
+  # add the names and numbers of municipalities that merged in the study period to the study areas list in order to extract all the relevant population data
+
+municip_1<-municip %>% 
+  select(-Kid) %>% 
+  add_row(Komnum = 2001, Name = "Hammerfest") %>% 
+  add_row(Komnum = 2016, Name = "Soroysund") %>%
+  add_row(Komnum = 1901, Name = "Harstad") %>%
+  add_row(Komnum = 1915, Name = "Bjarkoy") %>%
+  add_row(Komnum = 1842, Name = "Skjerstad") %>% 
+  rename(municip_numb = "Komnum")
+
+
+# check 
+
+g<-anti_join(municip_1, quota, by= c("Komnum" = "Eier.kommunenr"))
+
+
+# Liste med variabelnavnene for kvoteandel.
+varlist1 <- dplyr::vars(c("kontrollert.andel.u11m",
+                   "kontrollert.andel.11.15m",
+                   "kontrollert.andel.15.20m",
+                   "kontrollert.andel.21.28m",
+                   "kontrollert.andel.torsketraal",
+                   "kontrollert.andel.NVG",
+                   "kontrollert.andel.ringnot",
+                   "kontrollert.andel.konv.torsk",
+                   "kontrollert.andel.NVG.kyst",
+                   "kontrollert.andel.makrell.not.u13m",
+                   "kontrollert.andel.makrell.not.13.21m",
+                   "kontrollert.andel.makrell.garn.u13m",
+                   "kontrollert.andel.makrell.garn.13.21m"))
+
+
+# Hvis du vil ha et paneldatasett med alle kvoteandelene (i prosent) for hver kommune, for alle år
+
+dt <- eierdata.komplett %>% 
+  group_by(År, Eier.kommunenr) %>% 
+  summarise_at(varlist1, 
+               sum, 
+               na.rm = TRUE) %>% 
+  
+
+
+# Fletter inn kommunenavn og posisjon.
+dt2 <- dt %>% left_join(kommunenavn, by = c("Kommunenummer"))
+
+
+# Eksempel på utregning hvis du bare vil se på kvoteandel torsk < 11 m
+
+test <- eierdata.komplett %>% 
+  group_by(År, Eier.kommunenr) %>% 
+  summarise(kontrollert.andel.u11m = sum(kontrollert.andel.u11m, na.rm = TRUE))
+
+x <- c(541, 1463, 2445, 3438, 4437, 5401, 6392, 8304, 11904, 22261)
+# compute Gini coefficient
+gini(x)
+# generate a vector of weights.
+w <- runif(n=length(x))
+gini(x,w)
+
+#https://www.r-bloggers.com/2013/01/calculating-a-gini-coefficients-for-a-number-of-locales-at-once-in-r/  
+# https://www.khanacademy.org/economics-finance-domain/ap-microeconomics/ap-consumer-producer-surplus/inequality/v/gini-coefficient-and-lorenz-curve 
+
+
+```
+
+## Cod quota shares by municipality through time (2008-2018)
+```{r}
+varlist1 <- dplyr::vars(c("cod_b11m",
+                           "cod_11_15m",
+                           "cod_15_20m",
+                           "cod_21_28m"))
+               
+dt <- quota_1 %>% 
+  filter(county %in% c("Finnmark", "Troms", "Nordland")) %>% 
+  group_by(year, municip_numb) %>% 
+  summarise_at(varlist1, 
+               sum, 
+               na.rm = TRUE) %>% 
+  mutate(municip_numb = as.numeric(municip_numb)) %>% 
+  left_join(municip_1, by = c("municip_numb"))
+
+# Karasjok and Kautokeino are in the data - no qouta share -remove?
+
+  
+```
+## Plot 
+```{r, fig.width = 11, fig.height = 8}
+
+ggplot(dt)+
+      geom_col(aes(x = year, y = cod_b11m), fill = "dodgerblue4")+
+      facet_wrap(Name  ~ .) +
+      labs(y = "", x = "") +
+      ggtitle("test")+
+      theme(legend.position = "none", 
+            axis.text.x = element_text(size = 5, angle = 90, hjust = 0.5, vjust = 0.5, face = "bold"),
+            axis.text.y = element_text(size = 6, face = "bold", hjust = 0.5, vjust = 0.5, margin = margin(t = 0, r = 2, b = 0, l = 0)),
+            plot.title = element_text(hjust=0.5, vjust=0.5),
+            axis.ticks.x = element_line(size = 0.5),
+            axis.ticks.length = unit(0.2, "cm"))
+```
+## Plot 
+```{r, fig.width = 11, fig.height = 8}
+
+ggplot(dt)+
+      geom_col(aes(x = year, y = cod_11_15m), fill = "dodgerblue4")+
+      facet_wrap(Name  ~ .) +
+      labs(y = "", x = "") +
+      ggtitle("test")+
+      theme(legend.position = "none", 
+            axis.text.x = element_text(size = 5, angle = 90, hjust = 0.5, vjust = 0.5, face = "bold"),
+            axis.text.y = element_text(size = 6, face = "bold", hjust = 0.5, vjust = 0.5, margin = margin(t = 0, r = 2, b = 0, l = 0)),
+            plot.title = element_text(hjust=0.5, vjust=0.5),
+            axis.ticks.x = element_line(size = 0.5),
+            axis.ticks.length = unit(0.2, "cm"))
+```
+## Plot 
+```{r, fig.width = 11, fig.height = 8}
+
+ggplot(dt)+
+      geom_col(aes(x = year, y = cod_15_20m), fill = "dodgerblue4")+
+      facet_wrap(Name  ~ .) +
+      labs(y = "", x = "") +
+      ggtitle("test")+
+      theme(legend.position = "none", 
+            axis.text.x = element_text(size = 5, angle = 90, hjust = 0.5, vjust = 0.5, face = "bold"),
+            axis.text.y = element_text(size = 6, face = "bold", hjust = 0.5, vjust = 0.5, margin = margin(t = 0, r = 2, b = 0, l = 0)),
+            plot.title = element_text(hjust=0.5, vjust=0.5),
+            axis.ticks.x = element_line(size = 0.5),
+            axis.ticks.length = unit(0.2, "cm"))
+```
+## Plot 
+```{r, fig.width = 11, fig.height = 8}
+
+ggplot(dt)+
+      geom_col(aes(x = year, y = cod_21_28m), fill = "dodgerblue4")+
+      facet_wrap(Name  ~ .) +
+      labs(y = "", x = "") +
+      ggtitle("test")+
+      theme(legend.position = "none", 
+            axis.text.x = element_text(size = 5, angle = 90, hjust = 0.5, vjust = 0.5, face = "bold"),
+            axis.text.y = element_text(size = 6, face = "bold", hjust = 0.5, vjust = 0.5, margin = margin(t = 0, r = 2, b = 0, l = 0)),
+            plot.title = element_text(hjust=0.5, vjust=0.5),
+            axis.ticks.x = element_line(size = 0.5),
+            axis.ticks.length = unit(0.2, "cm"))
+```
+## Quota shares individuals within municipality through time (gini coefficient)
+```{r}
+#grouping on social sec number but what about those values without social sec number
+
+dt_2 <- quota_1 %>% 
+  filter(county %in% c("Finnmark", "Troms", "Nordland")) %>% 
+  group_by(year, municip_numb, social_sec_numb) %>% 
+  summarise_at(varlist1, 
+               sum, 
+               na.rm = TRUE) %>% 
+  ungroup() %>% 
+  mutate(municip_numb = as.numeric(municip_numb)) %>% 
+  left_join(municip_1, by = c("municip_numb"))
+
+dt_3 <- dt_2 %>% select(-c(cod_11_15m:cod_21_28m)) %>% 
+  filter(!cod_b11m == 0) %>%   # remove zero values - only look at those with cod quota
+  group_by(year, municip_numb) %>% 
+  summarise(count =n()) %>% 
+  left_join(municip_1, by = c("municip_numb"))
+
+dt_gini_codb11<- dt_2 %>% 
+  select(-c(cod_11_15m:cod_21_28m)) %>% 
+  filter(!cod_b11m == 0) %>%
+  group_by(year, municip_numb) %>% 
+  summarise(gini = Gini(cod_b11m))%>% 
+  left_join(municip_1, by = c("municip_numb"))
+
+dt_gini_codb11_15<- dt_2 %>% 
+  select(-c(cod_b11m, cod_15_20m:cod_21_28m)) %>% 
+  filter(!cod_11_15m == 0) %>%
+  group_by(year, municip_numb) %>% 
+  summarise(gini = Gini(cod_11_15m))%>% 
+  left_join(municip_1, by = c("municip_numb"))
+  
+```
+## Plot 
+```{r, fig.width = 11, fig.height = 8}
+
+ggplot(dt_3)+
+      geom_col(aes(x = year, y = count), fill = "dodgerblue4")+
+      facet_wrap(Name  ~ .) +
+      labs(y = "", x = "") +
+      ggtitle("test")+
+      theme(legend.position = "none", 
+            axis.text.x = element_text(size = 5, angle = 90, hjust = 0.5, vjust = 0.5, face = "bold"),
+            axis.text.y = element_text(size = 6, face = "bold", hjust = 0.5, vjust = 0.5, margin = margin(t = 0, r = 2, b = 0, l = 0)),
+            plot.title = element_text(hjust=0.5, vjust=0.5),
+            axis.ticks.x = element_line(size = 0.5),
+            axis.ticks.length = unit(0.2, "cm"))
+
+
+```
+
+## Plot 
+```{r, fig.width = 11, fig.height = 8}
+
+ggplot(dt_gini)+
+      geom_col(aes(x = year, y = gini), fill = "dodgerblue4")+
+      facet_wrap(Name  ~ .) +
+      labs(y = "", x = "") +
+      ggtitle("test")+
+      theme(legend.position = "none", 
+            axis.text.x = element_text(size = 5, angle = 90, hjust = 0.5, vjust = 0.5, face = "bold"),
+            axis.text.y = element_text(size = 6, face = "bold", hjust = 0.5, vjust = 0.5, margin = margin(t = 0, r = 2, b = 0, l = 0)),
+            plot.title = element_text(hjust=0.5, vjust=0.5),
+            axis.ticks.x = element_line(size = 0.5),
+            axis.ticks.length = unit(0.2, "cm"))
+
+
+```
+###
+2.2.2. Gini coefficient
+We use the Gini coefficient to measure changes in the distributionoftheuse ofquota interms of catchshare revenue among active
+vessels. The Gini coefficient is a measure of the difference between
+the cumulative distribution of catch share revenue and the cumulative distribution of the uniform distribution. Since revenue data
+were available for all active vessels in each catch share program,
+the Gini coefficient for a census can be calculated as follows:
+G =
+(2 × i − n − 1) x1
+n2u ,
+where i = 1 to n; i is the vessel’s rank order in ascending order; x is
+the annual catch share species revenue for vessel i; n is the number
+of active vessels; u is the mean revenue (Bellú and Liberati, 2006).
+
+Performance of federally managed catch share fisheries in the UnitedStatesAyeisha A. Brinsona,∗, Eric M. ThunbergbaNOAA 
+
+###
+https://stats.stackexchange.com/questions/339972/gini-coefficients-accounting-for-firm-exits 
+
+###
+In many applications the Gini coefficient is estimated from grouped
+data with 5 to 30 categories instead of the microdata (Gastwirth, 1972;
+Abounoori and McCloughan, 2003). For example, income or tax statistics
+are often grouped for confidentiality reasons (Van Ourti and Clarke, 2011).
+Empirical research has shown that the Gini coefficient may have a nonnegligible downward bias when data are grouped (Lerman and Yitzhaki, 1989;
+Davies and Shorrocks, 1989; Kwok, 2010). Vice versa, Kwok (2010) noted
+that the Gini coefficient increases if a combined household is split into several smaller households or people living alone. Thus, the Gini coefficient
+may produce different results for income when the units of analysis are individuals instead of households (Deininger and Squire, 1996). Therefore, in
+interpreting the Gini coefficient the demographic structure of a country or
+region should be taken into account.
+
+On the Negative Bias of the Gini Coefficient
+due to Grouping 
+
+###
+The Gini coefficient is a downwardly biased measure of inequality in small populations when
+income is generated by one of three common distributions. The paper discusses the sources of
+bias and argues that this property is far more general. This has implications for (i) the comparison
+of inequality among sub-samples, some of which may be small, and (ii) the use of the Gini in
+measuring firm size inequality in markets with a small number of firms. The small sample bias
+has often lead to mis-perceptions about trends in industry concentration. THE SMALL SAMPLE BIAS OF THE GINI COEFFICIENT: 
