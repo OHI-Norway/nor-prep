@@ -1,0 +1,443 @@
+---
+title: "Number of fishers indicator"
+author: "Sigrid Engen"
+date: "8 12 2020"
+output: html_document
+---
+## Load packages 
+```{r, echo=T, results='hide', message=FALSE, warning=FALSE}
+library(tidyverse)
+library(readxl)
+library(ggplot2)
+library(zoo) # for function rollapply
+library(scales) # for rescaling btw 0 and 1
+library(plotly) # for interactive plot https://www.r-graph-gallery.com/163-interactive-area-chart-plotly.html
+library(hrbrthemes) # for https://www.r-graph-gallery.com/163-interactive-area-chart-plotly.html 
+library(htmlwidgets) # for https://www.r-graph-gallery.com/163-interactive-area-chart-plotly.html
+library(viridis) # for https://www.r-graph-gallery.com/stacked-area-chart-plotly.html 
+library(gganimate) #  for animated plot https://www.r-graph-gallery.com/287-smooth-animation-with-tweenr.html 
+```
+
+## Load data
+```{r}
+fishers<-read.csv(file.path("data/number_age_parttime_fulltime_fishers.csv"), sep=",")
+municip<-read.csv(file.path("C:/Users/sigrid.engen/github/nor-prep/prep/administrative/komlist.csv"), sep=";")
+population<-read_excel(file.path("C:/Users/sigrid.engen/github/nor-prep/prep/administrative/data/population_muncipalities_Norway_SSB_1986_2020.xlsx"), sheet = 1, skip = 3) 
+```
+
+## Data cleaning - change municipal names (remove Norwegian letters and Sami names)
+```{r}
+fishers_0<-left_join(fishers, municip, by = c("municip_numb" = "Komnum")) %>% 
+  select(-c(X, Kid, municip_name)) %>% 
+  rename(municip_name = "Name") 
+```
+
+## Data cleaning - municipal population data 
+```{r}
+# add the names and numbers of municipalities that merged in the study period to the study areas list in order to extract all the relevant population data
+
+municip_1<-municip %>% 
+  select(-Kid) %>% 
+  add_row(Komnum = 2001, Name = "Hammerfest") %>% 
+  add_row(Komnum = 2016, Name = "Soroysund") %>%
+  add_row(Komnum = 1901, Name = "Harstad") %>%
+  add_row(Komnum = 1915, Name = "Bjarkoy") %>%
+  add_row(Komnum = 1842, Name = "Skjerstad") 
+
+#Clean data over poupulation by municipalities downloaded from SSB 
+popul<- population %>% filter(row_number() <= n()-66) %>%   # remove last 66 rows of data 
+  rename(municip_name = "...1") %>% 
+  separate(municip_name, into = c("municip_numb", "municip_name"), sep = 4, remove = TRUE) %>% 
+  mutate(municip_numb = as.numeric(municip_numb))
+
+popul_1<-left_join(municip_1, popul, by = c("Komnum" = "municip_numb")) %>% 
+  mutate(Komnum = replace(Komnum, Komnum == "2001", "2004")) %>%  #old hammerfest with new hammerfest
+  mutate(Komnum = replace(Komnum, Komnum == "2016", "2004")) %>%  # sørøysund with new hammerfest
+  mutate(Komnum = replace(Komnum, Komnum == "1901", "1903")) %>%  #old harstad with new harstad
+  mutate(Komnum = replace(Komnum, Komnum == "1915", "1903")) %>%  #Bjarkøy with new harstad 
+  mutate(Komnum = replace(Komnum, Komnum == "1842", "1804")) %>%  #Skjerstad to Bodø
+  select(-municip_name, -Name) %>% 
+  mutate(Komnum = as.numeric(Komnum)) %>% 
+  group_by(Komnum) %>% 
+  summarise_each(funs(sum)) %>% # sum each column that have the same komnum
+  filter(!Komnum == 9999) %>%  # remove komnum 999
+  select(-c("2019", "2020")) %>% # remove the year 2020 b/c have not adjusted for major changes in municipality numbers/mergers this year
+  ungroup()
+
+popul_2 <- popul_1 %>% left_join(municip, popul_1, by = "Komnum") %>% 
+  select(-Kid)
+
+#ref to the remove last 66 rows https://stackoverflow.com/questions/21148498/remove-last-n-rows-in-data-frame-with-the-arbitrary-number-of-rows
+
+```
+
+
+## Calculate 5 year moving average of number of fishers - main occupation
+```{r}
+fishers_1<- fishers_0 %>% 
+  group_by(municip_numb,
+           municip_name,
+           year) %>%
+  summarise(sum(main_occupation))  %>% 
+  dplyr::rename(main_occup = 'sum(main_occupation)') %>% 
+  ungroup()
+
+
+fishers_2 <- fishers_1 %>% 
+  group_by(municip_numb) %>%
+  mutate(five_yr_roll_aver = rollapply(main_occup, 5, mean, fill=NA)) %>% 
+  select(-main_occup) %>% 
+  mutate(year = year + 3) %>%  #recoding year variable - have to remove count and add back in in next step so the order is correct
+  filter(!year %in% c("2020", "2021", "2022")) %>% 
+  ungroup()
+
+fishers_3<- left_join(fishers_1, fishers_2, by = c("municip_numb", "municip_name", "year")) %>% 
+  filter(!is.na(five_yr_roll_aver)) %>% 
+  mutate(main_occup_score = main_occup/five_yr_roll_aver) %>%
+  mutate(main_occup_score_1 = replace(main_occup_score, main_occup_score >= 1, 1))
+  
+```
+
+## Plot scores - main occupation
+```{r, fig.width = 11, fig.height = 8}
+ggplot(fishers_3)+
+      geom_col(aes(x = year, y = main_occup_score_1), fill = "dodgerblue4")+
+      facet_wrap(municip_name  ~ .) +
+      labs(y = "Sustainability score", x = "") +
+      ggtitle("")+
+      theme(legend.position = "none", 
+            axis.text.x = element_text(size = 5, angle = 90, hjust = 0.5, vjust = 0.5, face = "bold"),
+            axis.text.y = element_text(size = 6, face = "bold", hjust = 0.5, vjust = 0.5, margin = margin(t = 0, r = 2, b = 0, l = 0)),
+            plot.title = element_text(hjust=0.5, vjust=0.5),
+            axis.ticks.x = element_line(size = 0.5),
+            axis.ticks.length = unit(0.2, "cm"))
+
+```
+
+## Calculate 5 year moving average of number of fishers - part-time occupation
+```{r}
+fishers_1_p<- fishers_0 %>% 
+  group_by(municip_numb,
+           municip_name,
+           year) %>%
+  summarise(sum(part_time_occupation)) %>% 
+  dplyr::rename(part_occup = 'sum(part_time_occupation)') %>% 
+  ungroup()
+
+
+fishers_2_p <- fishers_1_p %>% 
+  group_by(municip_numb) %>%
+  mutate(five_yr_roll_aver = rollapply(part_occup, 5, mean, fill=NA)) %>% 
+  select(-part_occup) %>% 
+  mutate(year = year + 3) %>% 
+  filter(!year %in% c("2020", "2021", "2022")) %>% 
+  ungroup()
+
+fishers_3_p<- left_join(fishers_1_p, fishers_2_p, by = c("municip_numb", "municip_name", "year")) %>% 
+  filter(!is.na(five_yr_roll_aver)) %>% 
+  mutate(part_time_occup_score = part_occup/five_yr_roll_aver) %>%
+  mutate(part_time_occup_score_1 = replace(part_time_occup_score, part_time_occup_score >= 1 & part_time_occup_score < Inf, 1))
+```
+
+## Plot scores - part time occupation
+```{r, fig.width = 11, fig.height = 8}
+ggplot(fishers_3_p)+
+      geom_col(aes(x = year, y = part_time_occup_score_1), fill = "dodgerblue4")+
+      facet_wrap(municip_name  ~ .) +
+      labs(y = "Number of fishers", x = "") +
+      ggtitle("test")+
+      theme(legend.position = "none", 
+            axis.text.x = element_text(size = 5, angle = 90, hjust = 0.5, vjust = 0.5, face = "bold"),
+            axis.text.y = element_text(size = 6, face = "bold", hjust = 0.5, vjust = 0.5, margin = margin(t = 0, r = 2, b = 0, l = 0)),
+            plot.title = element_text(hjust=0.5, vjust=0.5),
+            axis.ticks.x = element_line(size = 0.5),
+            axis.ticks.length = unit(0.2, "cm"))
+
+```
+
+## Calculate 5 year moving average of number of fishers - all fishers
+```{r}
+
+fishers_all<- fishers_0 %>% 
+  group_by(municip_numb,
+           municip_name,
+           year) %>%
+  summarise_at(c("main_occupation", "part_time_occupation"), sum) %>% 
+  mutate(total_fishers = main_occupation+part_time_occupation) %>% 
+  ungroup()
+
+fishers_all_2 <- fishers_all %>% 
+  group_by(municip_numb) %>%
+  mutate(five_yr_roll_aver = rollapply(total_fishers, 5, mean, fill=NA)) %>% 
+  select(-c(main_occupation:total_fishers)) %>% 
+  mutate(year = year + 3) %>% 
+  filter(!year %in% c("2020", "2021", "2022")) %>% 
+  ungroup()
+
+fishers_all_3<- left_join(fishers_all, fishers_all_2, by = c("municip_numb", "municip_name", "year")) %>% 
+  filter(!is.na(five_yr_roll_aver)) %>% 
+  mutate(occup_score = total_fishers/five_yr_roll_aver) %>%
+  mutate(occup_score_1 = replace(occup_score, occup_score >= 1, 1))
+```
+### Plot total number of fishers by municipality
+```{r, fig.width = 11, fig.height = 8}
+ggplot(fishers_all_3)+
+      geom_col(aes(x = year, y = total_fishers), fill = "dodgerblue4")+
+      facet_wrap(municip_name  ~ .) +
+      labs(y = "Number of fishers", x = "") +
+      ggtitle("")+
+      theme(legend.position = "none", 
+            axis.text.x = element_text(size = 5, angle = 90, hjust = 0.5, vjust = 0.5, face = "bold"),
+            axis.text.y = element_text(size = 6, face = "bold", hjust = 0.5, vjust = 0.5, margin = margin(t = 0, r = 2, b = 0, l = 0)),
+            plot.title = element_text(hjust=0.5, vjust=0.5),
+            axis.ticks.x = element_line(size = 0.5),
+            axis.ticks.length = unit(0.2, "cm"))
+```
+### Plot total number of fishers by municipality (without Tromsø)
+
+```{r, fig.width = 11, fig.height = 8}
+fishers_all_3_noTromso <- fishers_all_3 %>% 
+  filter(!municip_name %in% c("Tromso"))
+
+ggplot(fishers_all_3_noTromso)+
+      geom_col(aes(x = year, y = total_fishers), fill = "dodgerblue4")+
+      facet_wrap(municip_name  ~ .) +
+      labs(y = "Number of fishers", x = "") +
+      ggtitle("")+
+      theme(legend.position = "none", 
+            axis.text.x = element_text(size = 5, angle = 90, hjust = 0.5, vjust = 0.5, face = "bold"),
+            axis.text.y = element_text(size = 6, face = "bold", hjust = 0.5, vjust = 0.5, margin = margin(t = 0, r = 2, b = 0, l = 0)),
+            plot.title = element_text(hjust=0.5, vjust=0.5),
+            axis.ticks.x = element_line(size = 0.5),
+            axis.ticks.length = unit(0.2, "cm"))
+```
+
+## Plot scores - all fishers
+```{r, fig.width = 11, fig.height = 8}
+ggplot(fishers_all_3)+
+      geom_col(aes(x = year, y = occup_score_1), fill = "dodgerblue4")+
+      facet_wrap(municip_name  ~ .) +
+      labs(y = "Sustainability score", x = "") +
+      ggtitle("")+
+      theme(legend.position = "none", 
+            axis.text.x = element_text(size = 5, angle = 90, hjust = 0.5, vjust = 0.5, face = "bold"),
+            axis.text.y = element_text(size = 6, face = "bold", hjust = 0.5, vjust = 0.5, margin = margin(t = 0, r = 2, b = 0, l = 0)),
+            plot.title = element_text(hjust=0.5, vjust=0.5),
+            axis.ticks.x = element_line(size = 0.5),
+            axis.ticks.length = unit(0.2, "cm"))
+
+```
+### Plot distribution of all scores
+```{r, fig.width = 11, fig.height = 8}
+ggplot(fishers_all_3, aes(occup_score_1)) +
+  geom_bar(fill = "blue") +
+  scale_x_binned()
+```
+### Plot distribution of scores by municipality
+```{r, fig.width = 11, fig.height = 8}
+ggplot(fishers_all_3, aes(occup_score_1)) +
+  facet_wrap(municip_name  ~ .) +
+  geom_bar(fill = "blue") +
+  scale_x_binned()+
+  theme(axis.text.x = element_text(size = 5))
+```
+## Plot total number of fishers - interactive plot
+```{r}
+fishers_northernNorw<- fishers %>% 
+  group_by(year) %>%
+  summarise_at(c("main_occupation", "part_time_occupation"), sum) %>% 
+  mutate(total_fishers = main_occupation+part_time_occupation) %>% 
+  ungroup()
+
+# Usual area chart
+p <- fishers_northernNorw %>%
+  ggplot(aes(x=year, y=total_fishers)) +
+  geom_area(fill="#69b3a2", alpha=0.5) +
+  geom_line(color="#69b3a2") +
+  ggtitle("Utvikling i antall fiskere i Nord-Norge 1983-2018,   Data: Fiskeridirektoratet") +
+  ylab("Antall fiskere") +
+  xlab("År") +
+  theme_ipsum() +
+  theme(plot.title = element_text(family = "arial", size=12, face= "italic"), 
+        axis.title.x = element_text(family = "arial", size=10), 
+        axis.title.y = element_text(family = "arial", size=10), 
+        axis.line = element_line(size = 2, colour = "grey80"))
+
+# Turn it interactive with ggplotly
+p <- ggplotly(p)
+p
+
+# save the widget
+#saveWidget(p, "figs/ggplotlyAreachart_Total_Fishers_NN.html", selfcontained = TRUE) 
+
+```
+## Plot total number of fishers - animated plot
+```{r}
+fishers_northernNorw_long<- fishers_northernNorw %>% 
+  select(-c(total_fishers)) %>%
+  pivot_longer(cols = c("main_occupation", "part_time_occupation"),
+                        names_to = "fishers", 
+                        values_to = "n")
+
+# Plot
+p_2 <- fishers_northernNorw_long %>%
+  ggplot(aes(x=year, y=n, group=fishers, color=fishers)) +
+  geom_line() +
+  geom_point() +
+  scale_color_viridis(discrete = TRUE) +
+  ggtitle("Number of fishers in Northern-Norway") +
+  theme_ipsum() +
+  ylab("Number of fishers") +
+  transition_reveal(year) + 
+  theme_set(theme_gray(base_size = 20, base_family = 'Font Name' )) +
+  scale_color_manual(values=c('#999999','#E69F00'))
+
+
+
+animate(p_2, duration = 5, fps = 20, width = 500, height = 500, renderer = gifski_renderer())
+anim_save("output.gif")
+
+# Save at gif:
+anim_save(p_2, "figs/287-smooth-animation-with-tweenr.gif")
+getwd()
+```
+
+
+## Plot fishers age distribution
+```{r}
+fishers_age_NN<- fishers %>% 
+  group_by(year, 
+           age) %>%
+  summarise_at(c("main_occupation", "part_time_occupation"), sum) %>% 
+  mutate(total_fishers = main_occupation+part_time_occupation) %>% 
+  ungroup()
+
+
+#calculate age distribution in percentages
+fishers_age_NN_percentages<- fishers_age_NN %>% 
+  group_by(year) %>%
+  mutate(percentage_main = main_occupation/sum(main_occupation)*100) %>% 
+  mutate(percentage_part = part_time_occupation/sum(part_time_occupation)*100) %>%
+  ungroup()
+```
+
+### Plot fishers age distribution - main occupation
+```{r}
+# Plot age distribution main occupation
+p <- fishers_age_NN_percentages %>% 
+  ggplot( aes(x=year, y=percentage_main, fill=age, text=age)) +
+  geom_area( ) +
+  scale_fill_viridis(discrete = TRUE) +
+  theme(legend.position="none") +
+  ggtitle("Aldersfordeling (%) blant fiskere med fiske som hovedyrke,   Data: Fiskeridirektoratet") +
+  theme_ipsum() +
+  theme(legend.position="right")+
+  theme(plot.title = element_text(family = "arial", size=12, face= "italic"), 
+        axis.title.x = element_text(family = "arial", size=10), 
+        axis.title.y = element_text(family = "arial", size=10), 
+        axis.line = element_line(size = 2, colour = "grey80"))
+
+# Turn it interactive
+p <- ggplotly(p, tooltip = c("text", "x", "fill"))
+p
+
+# save the widget
+# library(htmlwidgets)
+# saveWidget(p, file=paste0( getwd(), "/HtmlWidget/ggplotlyStackedareachart.html"))
+
+```
+
+### Plot fishers age distribution - part time occupation
+```{r}
+
+# Plot age distribution main occupation
+p <- fishers_age_NN_percentages %>% 
+  ggplot(aes(x=year, y=percentage_part, fill=age, text=age)) +
+  geom_area( ) +
+  scale_fill_viridis(discrete = TRUE) +
+  theme(legend.position="none") +
+  ggtitle("Aldersfordeling (%) blant fiskere med fiske som biyrke,   Data: Fiskeridirektoratet") +
+  theme_ipsum() +
+  theme(legend.position="right")+
+  theme(plot.title = element_text(family = "arial", size=12, face= "italic"), 
+        axis.title.x = element_text(family = "arial", size=10), 
+        axis.title.y = element_text(family = "arial", size=10), 
+        axis.line = element_line(size = 2, colour = "grey80"))
+
+# Turn it interactive
+p <- ggplotly(p, tooltip = c("text", "x", "fill"))
+p
+
+# save the widget
+# library(htmlwidgets)
+# saveWidget(p, file=paste0( getwd(), "/HtmlWidget/ggplotlyStackedareachart.html"))
+```
+
+```{r}
+library(rgdal)
+library(dplyr)
+library(raster)
+library(graticule)
+library(rgeos)
+library(prettymapr)
+```
+### Load data
+```{r}
+#Norway counties
+Norway<-readOGR(dsn="C:/Users/sigrid.engen/github/nor-prep/prep/administrative/raw//shapefiles/NO_Fylker", "NO_Fylker_pol")
+
+#Ocean area
+ocean<-readOGR(dsn="C:/Users/sigrid.engen/github/nor-prep/prep/administrative/raw/shapefiles/NO_Havflate", "NO_Havflate_pol")
+
+#Municipalities 
+municip<-readOGR(dsn="C:/Users/sigrid.engen/github/nor-prep/prep/administrative/raw/shapefiles/NO_AdminOmrader", "NO_AdminOmrader_pol")
+
+#Norway counties
+counties<-readOGR(dsn="C:/Users/sigrid.engen/github/nor-prep/prep/administrative/raw/shapefiles/NO_Fylker","NO_Fylker_pol")
+
+#coordinates municipalities
+m<-readr::read_rds("data/municipality_names_coordinates_from_auditor_general")
+
+#Study municipalities
+stud.munic<-read.table("komlist.csv", header=TRUE, sep=";")
+```
+
+### Data cleaning & subset study region 
+```{r,  results="hide",message=FALSE}
+
+#remove value 999Noncoast
+stud.munic<- stud.munic[-c(82),]
+
+#Change municipalnumber of Harstad from 1901 to the correct 1903. THe muncipality was merged with Bjarkjøy in 2013 and went from 
+#number 1901 to 1903. The polygon in the shapefile reflects this merger (Harstad includes Bjarkøy) but the number is wrong. 
+
+municip@data[municip@data$KOMM == "1901", "KOMM"] <- "1903"
+
+#extract subset of data (studymunicipalities from komlist.csv) from spatialpolygonsdataframe
+muni_sub <- municip[municip$KOMM %in% c(1804L, 1805L, 1811L, 1812L, 1813L, 1815L, 1816L, 1818L, 1820L, 
+          1822L, 1824L, 1827L, 1828L, 1832L, 1833L, 1834L, 1835L, 1836L, 
+          1837L, 1838L, 1840L, 1841L, 1845L, 1848L, 1849L, 1850L, 1851L, 
+          1852L, 1853L, 1854L, 1856L, 1857L, 1859L, 1860L, 1865L, 1866L, 
+          1867L, 1868L, 1870L, 1871L, 1874L, 1902L, 1903L, 1911L, 1913L, 
+          1917L, 1919L, 1920L, 1923L, 1924L, 1925L, 1926L, 1927L, 1928L, 
+          1929L, 1931L, 1933L, 1936L, 1938L, 1939L, 1940L, 1941L, 1942L, 
+          1943L, 2002L, 2003L, 2004L, 2012L, 2014L, 2015L, 2017L, 2018L, 
+          2019L, 2020L, 2022L, 2023L, 2024L, 2025L, 2027L, 2028L, 2030L
+          ), ]
+#extract only ocean area of the study municipalities
+muni_sub_ocean<-crop(muni_sub, ocean)
+
+#subset the northermost counties
+NN<-subset(counties,NAVN=="Troms" | NAVN=="Finnmark" | NAVN=="Nordland")
+
+#merge county polygons to make shapefile of region without counties
+NN <- aggregate(NN,dissolve=T)
+
+#erase ocean area from municipalities file
+muni_sub_land= erase(muni_sub, muni_sub_ocean)
+
+#Make shapefile of municipalities (one for land area and one for ocean area) where we did stakeholder workshops
+muni_stake <- muni_sub_land[muni_sub_land$KOMM %in% c(1815L, 1865L, 1902L, 1941L,2004L, 2002L), ]
+muni_stake_ocean<-muni_sub_ocean[muni_sub_ocean$KOMM %in% c(1815L, 1865L, 1902L, 1941L,2004L, 2002L), ]
+```
+
