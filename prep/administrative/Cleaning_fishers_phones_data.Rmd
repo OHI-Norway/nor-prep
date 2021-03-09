@@ -138,11 +138,12 @@ r<- r %>% pivot_longer(!Kommune, names_to = "fishers_phone", values_to = "count"
 p<-ggplot(r ) + 
   geom_col(aes(x = Kommune, y = count, group=fishers_phone, fill=fishers_phone), position = "dodge" )  +
   theme(axis.text.x = element_text(size=8, angle=90)) +
-  labs(title = "Fishers' phone numbers", subtitle = "Fishers registered in 2020 vs retrived phone numbers") + 
   xlab("") + 
   ylab("Count") + 
   scale_fill_discrete(name = "") + #remove legend title
   theme(legend.position="bottom")
+
+ggsave("C:/Users/sigrid.engen/github/nor-prep/prep/administrative/figs/fishers_phones.tiff", p, width = 7, height = 4, dpi = 300, units = "in")
 
 plot(p)
 ```
