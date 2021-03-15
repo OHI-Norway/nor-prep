@@ -1,0 +1,62 @@
+---
+title: "Cleaning population data study municipalities"
+author: "Sigrid Engen"
+date: "15 3 2021"
+output: html_document
+---
+#Load libraries 
+```{r}
+library(tidyverse)
+```
+
+
+## Load data
+```{r}
+population<-read_excel(file.path("C:/Users/sigrid.engen/github/nor-prep/prep/administrative/data/population_muncipalities_Norway_SSB_1986_2020.xlsx"), sheet = 1, skip = 3) 
+municip<-read.csv(file.path("C:/Users/sigrid.engen/github/nor-prep/prep/administrative/komlist.csv"), sep=";")
+
+```
+
+## Data cleaning - municipal population data 
+```{r}
+# add the names and numbers of municipalities that merged in the study period to the study areas list in order to extract all the relevant population data
+
+municip_1<-municip %>% 
+  dplyr::select(-Kid) %>% 
+  add_row(Komnum = 2001, Name = "Hammerfest") %>% 
+  add_row(Komnum = 2016, Name = "Soroysund") %>%
+  add_row(Komnum = 1901, Name = "Harstad") %>%
+  add_row(Komnum = 1915, Name = "Bjarkoy") %>%
+  add_row(Komnum = 1842, Name = "Skjerstad") 
+
+#Clean data over poupulation by municipalities downloaded from SSB 
+popul<- population %>% filter(row_number() <= n()-66) %>%   # remove last 66 rows of data 
+  rename(municip_name = "...1") %>% 
+  separate(municip_name, into = c("municip_numb", "municip_name"), sep = 4, remove = TRUE) %>% 
+  mutate(municip_numb = as.numeric(municip_numb))
+
+popul_1<-left_join(municip_1, popul, by = c("Komnum" = "municip_numb")) %>% 
+  mutate(Komnum = replace(Komnum, Komnum == "2001", "2004")) %>%  #old hammerfest with new hammerfest
+  mutate(Komnum = replace(Komnum, Komnum == "2016", "2004")) %>%  # sørøysund with new hammerfest
+  mutate(Komnum = replace(Komnum, Komnum == "1901", "1903")) %>%  #old harstad with new harstad
+  mutate(Komnum = replace(Komnum, Komnum == "1915", "1903")) %>%  #Bjarkøy with new harstad 
+  mutate(Komnum = replace(Komnum, Komnum == "1842", "1804")) %>%  #Skjerstad to Bodø
+  dplyr::select(-municip_name, -Name) %>% 
+  mutate(Komnum = as.numeric(Komnum)) %>% 
+  group_by(Komnum) %>% 
+  summarise_each(funs(sum)) %>% # sum each column that have the same komnum
+  filter(!Komnum == 9999) %>%  # remove komnum 999
+  dplyr::select(-c("2019", "2020")) %>% # remove the year 2020 b/c have not adjusted for major changes in municipality numbers/mergers this year
+  ungroup()
+
+popul_2 <- popul_1 %>% left_join(municip, popul_1, by = "Komnum") %>% 
+  dplyr::select(-Kid) %>% 
+  pivot_longer(!c(Name, Komnum), names_to = "Year", values_to = "population")
+
+#Save data
+# write.csv(popul_2, "C:/Users/sigrid.engen/github/nor-prep/prep/administrative/data/population_size_study_municipalities_1986_2018.csv")
+
+
+#ref to the remove last 66 rows https://stackoverflow.com/questions/21148498/remove-last-n-rows-in-data-frame-with-the-arbitrary-number-of-rows
+
+```
