@@ -49,7 +49,7 @@ plot_catches <- catch %>%
                 ungroup() %>% 
                 mutate(catch_prop = (catch_spp/catch_grandtot)*100)
                 
-ggplot(plot_catches, aes(x = Year, y = catch_prop, fill= Species))+
+catch_props <- ggplot(plot_catches, aes(x = Year, y = catch_prop, fill= Species))+
   geom_bar(stat = "identity")+
   scale_x_continuous(breaks = breaks1, labels = labels1)+
   labs(x = "", y = "Total catch proporiton, %")+
@@ -59,6 +59,10 @@ ggplot(plot_catches, aes(x = Year, y = catch_prop, fill= Species))+
         legend.title = element_blank())+
   theme_hc()+
   scale_fill_viridis_d(option = "D") 
+```
+
+```{r}
+ggsave("figs/species_proportional_catch.pdf", catch_props,height = 5, width=7, units = "in")
 ```
 
 
@@ -279,7 +283,7 @@ ggsave("figs/stock_scores_all_spp.pdf", plot3)
 
 
 # Plotting final fisheries sustainability scores
-Here I plot the final fisheries subgoal scores, based on the references catch as a 90th percentile of catches within a year
+Here I plot the final fisheries subgoal scores
 ```{r}
 scores_final <- read_csv("data/fisheries_goal_scores.csv")
 scores_final_prep <-scores_final %>% 
@@ -338,6 +342,8 @@ ggsave(paste0("figs/fisheries_sustainability_score94_18_", cty, ".pdf"), plot)
 The same plot, but I limit the time frame to 2005-2018, to compare fisheries score with aquaculture scores (and also for the food production paper).
 To limit the time frame, I use breaks2 and labels2 defined earlier.
 
+NB! Tranoy municipality had delivered catches only in 2008 (and only of one species - cod), so I do not include Tranoy in these figures.  
+
 ```{r}
 
 breaks2 <- seq(2005, 2018, by = 1)
@@ -346,7 +352,8 @@ labels2[!breaks2%%2==0]<- ""
 
 
 scores_final_prep3 <- scores_final_prep2 %>% 
- filter(Year >= 2005 & Year <= 2018)
+ filter(Year >= 2005 & Year <= 2018) %>% 
+  filter(Municip_number != 1927)
  
 sc_counties <- unique(scores_final_prep3$county) 
 
@@ -373,9 +380,5 @@ ggsave(paste0("figs/fisheries_sustainability_score05_18_", cty, ".pdf"), plot)
   
 }
 ```
-# Plotting fisheries sustainability scores per municipality
 
-```{r}
-
-```
 
