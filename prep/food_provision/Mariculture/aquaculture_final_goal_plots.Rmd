@@ -28,7 +28,7 @@ library(readr)
 ``` 
 
 Here I will plot the final scores of the aquaculture subgoal.
-The scores will be based on 90th percentile of the annual aquaculture yield (although we could also use the maximal yield). 
+The scores will be based on maximal yield in northern Norway.
 
 # Load the data 
 ```{r}
@@ -87,7 +87,7 @@ labels <- as.character(breaks)
 labels[!breaks%%2==0]<- ""
 ```
 
-Plotting aquaculture score per municipality and county
+# Plotting aquaculture goal scores per municipality and county
 
 ```{r}
 sc_counties <- unique(scores_final_prep2$county) 
