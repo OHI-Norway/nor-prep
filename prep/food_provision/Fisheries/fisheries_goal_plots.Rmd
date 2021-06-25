@@ -35,7 +35,7 @@ komnames_norw <- read_excel(file.path("~/github/aqua_fish_paper/data/raw/komlist
 ```
 
 ## Overview of fisheries data and scores with ggplots:
-Compare total proportions of catch per stock  
+Compare total proportions of catch per stock. Kingcrab should be written as "King crab"
 ```{r, warning=FALSE}
 breaks1 <- seq(1994, 2018, by = 1)
 labels1 <- as.character(breaks1)
@@ -47,7 +47,12 @@ plot_catches <- catch %>%
                 group_by(Year) %>% 
                 mutate(catch_grandtot = sum(catch_spp)) %>% 
                 ungroup() %>% 
-                mutate(catch_prop = (catch_spp/catch_grandtot)*100)
+                mutate(catch_prop = (catch_spp/catch_grandtot)*100) %>% 
+                  mutate(Species = replace(
+              Species,
+              Species == "Kingcrab",
+                         "King crab"
+                ))
                 
 catch_props <- ggplot(plot_catches, aes(x = Year, y = catch_prop, fill= Species))+
   geom_bar(stat = "identity")+

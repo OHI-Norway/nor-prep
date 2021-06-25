@@ -44,13 +44,15 @@ komnames_norw <- read_excel(file.path("~/github/aqua_fish_paper/data/raw/komlist
 ```
 
 # Prepare the data
-Here I merge the column of Norwegian municipalities names with aquaculture scores table. Also, i keep just the needed columns
+Here I merge the column of Norwegian municipalities names with aquaculture scores table. Also, i keep just the needed columns.
+Note, that Gamvik did not produce except for the year 2005, so I will not include this municipality in the plots.
 
 
 ```{r}
 scores_final_prep2 <-scores_final_prep %>% 
   left_join(komnames_norw[c("Komnum", "Norw_name")], by = c("municip_number" = "Komnum")) %>% 
-  select(c(year:municip, sustainability, aquaculture_score, Norw_name))
+  select(c(year:municip, sustainability, aquaculture_score, Norw_name)) %>% 
+  filter(municip != "Gamvik")
 ```
 
 # Plotting the final scores
@@ -104,6 +106,7 @@ plot <- ggplot(df)+
       geom_line(aes(x = year, y = aquaculture_score), size = 0.7, color = "darkblue") +
       facet_wrap(Norw_name  ~ .) +
       scale_x_continuous(breaks = breaks, labels = labels)+
+      scale_y_continuous(limits = c(0, 100)) +
       labs(y = "Aquacultlure subgoal score", x = "") +
       ggtitle(cty)+
       theme_stata(scheme = "s1color") +
