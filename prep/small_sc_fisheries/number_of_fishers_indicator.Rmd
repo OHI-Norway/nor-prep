@@ -230,58 +230,6 @@ ggplot(fishers_all_3, aes(occup_score_1)) +
   scale_x_binned()+
   theme(axis.text.x = element_text(size = 5))
 ```
-## Plot total number of fishers - interactive plot
-```{r}
-# summarise total number of fishers
-fishers_northernNorw<- fishers_0 %>% 
-  group_by(year) %>%
-  summarise_at(c("main_occupation", "part_time_occupation"), sum) %>% 
-  mutate(total_fishers = main_occupation+part_time_occupation) %>% 
-  ungroup() 
-
-# smooth total number of fishers using rolling mean
-fishers_northernNorw<- fishers_northernNorw %>% 
-  mutate(total_fishers_rollmean3 =rollmean(total_fishers, 3, fill = NA, align = "right")) %>% 
-  mutate(total_fishers_rollmean5 =rollmean(total_fishers, 5, fill = NA, align = "right"))
-
-# Calculate percent change from year to year - total number of fishers & rollavg number of fishers
-fishers_northernNorw<- fishers_northernNorw %>% 
-  arrange(year, .by_group = TRUE) %>%
-  mutate(pct_change = (total_fishers/lag(total_fishers) - 1) * 100)
-
-fishers_northernNorw_long<- fishers_northernNorw %>% 
-  select(-c(total_fishers)) %>%
-  pivot_longer(cols = c("main_occupation", "part_time_occupation"),
-                        names_to = "fishers", 
-                        values_to = "n")
-
-# Usual area chart
-p <- fishers_northernNorw %>%
-  select(c(total_fishers_rollmean3,total_fishers_rollmean5)) %>%
-  pivot_longer(cols = c("total_fishers_rollmean3","total_fishers_rollmean5"),
-                        names_to = "fishers", 
-                        values_to = "n")
-  ggplot(aes(x=year, y=total_fishers)) +
-  geom_area(fill="#69b3a2", alpha=0.5) +
-  geom_line(color="#69b3a2") +
-  ggtitle("Utvikling i antall fiskere i Nord-Norge 1983-2018,   Data: Fiskeridirektoratet") +
-  ylab("Number of fishers") +
-  xlab("Year") +
-  theme_ipsum() +
-  theme(plot.title = element_text(family = "arial", size=12, face= "italic"), 
-        axis.title.x = element_text(family = "arial", size=10), 
-        axis.title.y = element_text(family = "arial", size=10), 
-        axis.line = element_line(size = 2, colour = "grey80"))
-
-# Turn it interactive with ggplotly
-p <- ggplotly(p)
-p
-
-
-# save the widget
-#saveWidget(p, "figs/ggplotlyAreachart_Total_Fishers_NN.html", selfcontained = TRUE) 
-
-```
 ## Plot total number of fishers - animated plot
 ```{r}
 fishers_northernNorw_long<- fishers_northernNorw %>% 
@@ -313,16 +261,41 @@ p
 #saveWidget(p, "figs/ggplotlyAreachart_Total_Fishers_NN.html", selfcontained = TRUE) 
 
 ```
-## Plot percent change from year to year - total number of fishers
+## Plot total number of fishers - interactive plot
 ```{r}
+# summarise total number of fishers
+fishers_northernNorw<- fishers_0 %>% 
+  group_by(year) %>%
+  summarise_at(c("main_occupation", "part_time_occupation"), sum) %>% 
+  mutate(total_fishers = main_occupation+part_time_occupation) %>% 
+  ungroup() 
+
+# smooth total number of fishers using rolling mean
+fishers_northernNorw<- fishers_northernNorw %>% 
+  mutate(total_fishers_rollmean3 =rollmean(total_fishers, 3, fill = NA, align = "right")) %>% 
+  mutate(total_fishers_rollmean5 =rollmean(total_fishers, 5, fill = NA, align = "right"))
+
+# Calculate percent change from year to year - total number of fishers & rollavg number of fishers
+
+# https://stackoverflow.com/questions/48196552/calculate-percentage-change-in-r-using-dplyr
+fishers_northernNorw<- fishers_northernNorw %>% 
+  arrange(year, .by_group = TRUE) %>%
+  mutate(pct_change_total = (total_fishers/lag(total_fishers) - 1) * 100) %>% 
+  mutate(pct_change_rollmean5 = (total_fishers_rollmean5/lag(total_fishers_rollmean5) - 1) * 100)
+
+
+fishers_rollmean_NN_long <- fishers_northernNorw %>%
+  select(c(year,total_fishers_rollmean3,total_fishers_rollmean5)) %>%
+  pivot_longer(cols = c("total_fishers_rollmean3","total_fishers_rollmean5"),
+                        names_to = "fishers_roll_avg", 
+                        values_to = "n")
 
 # Usual area chart
-p <- fishers_northernNorw %>%
-  ggplot(aes(x=year, y=pct_change)) +
-  geom_area(fill="#69b3a2", alpha=0.5) +
-  geom_line(color="#69b3a2") +
-  ggtitle("Prosentvis endring i antall fiskere i Nord-Norge 1983-2018,   Data: Fiskeridirektoratet") +
-  ylab("Prosent") +
+p<- fishers_rollmean_NN_long %>% 
+  ggplot(aes(x=year, y=n, color = fishers_roll_avg)) +
+  geom_line() +
+  ggtitle("Utvikling i antall fiskere i Nord-Norge 1983-2018 - glidende gjennomsnitt,   Data: Fiskeridirektoratet") +
+  ylab("Antall fiskere") +
   xlab("År") +
   theme_ipsum() +
   theme(plot.title = element_text(family = "arial", size=12, face= "italic"), 
@@ -334,8 +307,35 @@ p <- fishers_northernNorw %>%
 p <- ggplotly(p)
 p
 
-# save the widget
-#saveWidget(p, "figs/ggplotlyAreachart_Pct_change_Total_Fishers_NN.html", selfcontained = TRUE) 
+#looks like 5 year rollaverage is best 
+
+```
+
+## Plot percent change from year to year - total number of fishers
+```{r}
+
+fishers_pct_avg_NN_long <- fishers_northernNorw %>%
+  select(c(year,pct_change_total, pct_change_rollmean5)) %>%
+  pivot_longer(cols = c("pct_change_total","pct_change_rollmean5"),
+                        names_to = "fishers_pct_change", 
+                        values_to = "n")
+
+# Usual area chart
+p<- fishers_pct_avg_NN_long %>% 
+  ggplot(aes(x=year, y=n, color = fishers_pct_change)) +
+  geom_line() +
+  ggtitle("Utvikling i antall fiskere i Nord-Norge 1983-2018 - prosentvis endring,   Data: Fiskeridirektoratet") +
+  ylab("Prosent") +
+  xlab("År") +
+  theme_ipsum() +
+  theme(plot.title = element_text(family = "arial", size=12, face= "italic"), 
+        axis.title.x = element_text(family = "arial", size=10), 
+        axis.title.y = element_text(family = "arial", size=10), 
+        axis.line = element_line(size = 2, colour = "grey80"))
+
+# Turn it interactive with ggplotly
+p <- ggplotly(p)
+p
 
 ```
 
