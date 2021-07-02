@@ -1,0 +1,70 @@
+---
+title: "Cleaning_plotting_fish_landing_sites"
+author: "Sigrid Engen"
+date: "1 7 2021"
+output: html_document
+---
+
+---
+```{r, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning=FALSE)
+````
+
+```{r}
+
+library(readxl)
+library(stringr)
+library(tidyverse)
+library(ggplot2)
+```
+
+## load data
+```{r}
+sites<-read_excel(file.path("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/data/Fish_landing_sites_retrieved_from_Råfisklaget_1996_2018.xlsx"), range = "B7:Z83")
+
+municip<-read.csv(file.path("C:/Users/sigrid.engen/github/nor-prep/prep/administrative/komlist.csv"), sep=";")
+
+```
+## Clean municipalities names 
+```{r}
+
+sites_1<- sites %>%
+  mutate(FYLKE_NAVN = zoo::na.locf(FYLKE_NAVN)) %>% 
+  mutate(KOMMUNE_NAVN = str_to_title(KOMMUNE_NAVN)) %>%
+  mutate(KOMMUNE_NAVN = str_replace_all(KOMMUNE_NAVN, c("æ" = "ae","ø"="o","å"="a", "Ø"="O"))) %>%  
+  mutate(KOMMUNE_NAVN = str_replace(KOMMUNE_NAVN, " \\s*\\([^\\)]+\\)", "")) %>%
+  full_join(municip, by = c("KOMMUNE_NAVN" = "Name")) %>% 
+  select(-c("Kid", "FYLKE_NAVN")) %>% 
+  filter(!KOMMUNE_NAVN %in% c("Bjarkoy", "NonCoast")) %>% #remove municipality not study site
+  replace(is.na(.), 0) 
+  
+  
+sites_2<- sites_1 %>% 
+  select(-c("Komnum")) %>% 
+  pivot_longer(cols = "1996":"2018",
+               names_to = "year", 
+               values_to = "landing_sites")
+
+###remove brackets and text within with \\s*\\([^\\)]+\\) see  https://newbedev.com/remove-parentheses-and-text-within-from-strings-in-r 
+###remove na in whole dataframe https://stackoverflow.com/questions/49947592/replace-na-with-zero-in-dplyr-without-using-list
+  
+```
+### Plot fish landing sites
+```{r, fig.width = 11, fig.height = 8}
+ggplot(sites_2)+
+  geom_col(aes(x = year, y = landing_sites), fill = "dodgerblue4")+
+  facet_wrap(KOMMUNE_NAVN  ~ .) +
+  labs(y = "Number of landing sites", x = "") +
+  ggtitle("")+
+  theme(legend.position = "none", 
+        axis.text.x = element_text(size = 5, angle = 90, hjust = 0.5, vjust = 0.5, face = "bold"),
+        axis.text.y = element_text(size = 6, face = "bold", hjust = 0.5, vjust = 0.5, margin = margin(t = 0, r = 2, b = 0, l = 0)),
+        plot.title = element_text(hjust=0.5, vjust=0.5),
+        axis.ticks.x = element_line(size = 0.5),
+        axis.ticks.length = unit(0.2, "cm")) +
+  scale_x_discrete(breaks=c("1996", "2000", "2004", "2008", "2012", "2016"))
+```
+```{r}
+
+```
+
