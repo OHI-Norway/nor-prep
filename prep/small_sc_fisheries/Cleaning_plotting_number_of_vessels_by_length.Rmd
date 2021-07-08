@@ -24,6 +24,10 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning=FALSE)
 library(tidyverse)
 library(readxl)
 library(plyr)
+library(ggplot2)
+library(plotly) # for interactive plot https://www.r-graph-gallery.com/163-interactive-area-chart-plotly.html
+library(hrbrthemes) # for https://www.r-graph-gallery.com/163-interactive-area-chart-plotly.html 
+library(htmlwidgets) # for https://www.r-graph-gallery.com/163-interactive-area-chart-plotly.html
 ```
 
 ## Load data
@@ -238,7 +242,7 @@ vessels_final_4<- vessels_final_4 %>%
 #levels(as.factor(vessels_final_4$vessel_length))
 #should be 19440 rows 
 
-write.csv(vessels_final_4, "C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/data/number_vessels_length.csv")
+#write.csv(vessels_final_4, "C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/data/number_vessels_length.csv")
 
 ```
 ## Plotting data
@@ -292,7 +296,7 @@ ggsave(paste0("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/fig
 
 ```
 
-### Plot number of vessels through time by length (without below 11m group)
+### Plot number of vessels through time by municipality and length (without below 11m group)
 ```{r}
 #collapse length categories in new variable
 vessels_plot<-vessels_final_4%>%
@@ -342,3 +346,36 @@ ggsave(paste0("C:/Users/sigrid.engen/github/nor-prep/prep/small_sc_fisheries/fig
 }
 
 ```
+### Plot number of vessels through time by length - whole study region
+```{r}
+vessels_below_11<- vessels_final_4 %>% 
+  group_by(year) %>%
+  filter(vessel_length %in% c("0to9.99m", "10to10.99m")) %>% 
+  dplyr::summarize(vessels=sum(number_of_vessels))%>% 
+  filter(!year %in% c("2019")) %>% #remove year 2019. unsure about the quality of the data. check if 2019 is included
+  ungroup()
+
+# Usual area chart
+p <- vessels_below_11 %>%
+  ggplot(aes(x=year, y=vessels,  group = 1)) +
+  geom_area(fill="#69b3a2", alpha=0.5) +
+  geom_line(color="#69b3a2") +
+  ggtitle("Utvikling i antall fartøy under 11 meter i Nord-Norge 1980-2018,   Data: Fiskeridirektoratet") +
+  ylab("Antall fartøy under 11 meter") +
+  xlab("År") +
+  theme_ipsum() +
+  theme(plot.title = element_text(family = "arial", size=12, face= "italic"), 
+        axis.title.x = element_text(family = "arial", size=10), 
+        axis.title.y = element_text(family = "arial", size=10), 
+        axis.line = element_line(size = 2, colour = "grey80")) +
+  scale_x_discrete(breaks=seq(1980,2020,10))
+
+
+# Turn it interactive with ggplotly
+p <- ggplotly(p)
+p
+
+# save the widget
+#saveWidget(p, "figs/ggplotlyAreachart_Total_Fishers_NN.html", selfcontained = TRUE) 
+```
+
