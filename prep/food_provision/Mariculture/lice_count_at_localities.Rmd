@@ -133,7 +133,7 @@ foo4 <- foo3 %>%
 lus_prep2 <-lus_prep %>% 
   filter(!is.na(Lus.i.bevegelige.stadier)) %>%
   filter(Over.lusegrense.uke != "Ukjent") %>% 
-  bind_rows(foo2)
+  bind_rows(foo4)
 ```
 
 
@@ -215,7 +215,7 @@ lus_new_locs <-lus %>%
   group_by(Lokalitetsnummer, Lokalitetsnavn, Lat, Lon) %>% 
   summarise(count = n())
 
-#merge the old and new datasets to see for which locations I can find lat and lon info - only for 63 (extra check - for another colleague)
+#merge the old and new datasets to see for which locations I can find lat and lon info - only for 63 observations
 locnames_merged <-lus_old_missinglocs %>% 
   left_join(lus_new_locs, by = c("Location" = "Lokalitetsnummer")) %>% 
   filter(!is.na(Lokalitetsnavn)) %>% 
@@ -342,7 +342,7 @@ lice_municips <- below_lice_full %>%
 
 
 ## Compiling final dataframe
-```{r}
+```{r, message=FALSE, warning=FALSE}
 allyears <-data.frame(Year = seq(2005, 2019, by = 1))
 
 lice_replaced_prep <- map(lice_municips, ~ as.data.frame(.x)) %>%
