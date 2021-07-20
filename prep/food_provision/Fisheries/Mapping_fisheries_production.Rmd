@@ -1,0 +1,347 @@
+---
+title: "Mapping fisheries and aquaculture production"
+author: "*Compiled on `r date()` by `r Sys.info()['user']`*"
+output: 
+  html_document:
+    css: '~/github/nor-prep/prep/templates/style.css'
+    toc: true
+    number_sections: true
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: '~/github/nor-prep/prep/templates/norway_banner.html'
+  pdf_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+    echo = TRUE, 
+    out.width = "100%",
+    dpi = 300,
+    fig.width = 8,
+    fig.height = 6,
+    strip.white = T)
+source('~/github/aqua_fish_paper/src/common.r')
+```
+
+```{r}
+library(mapdata)
+library(maptools)
+library(rgdal)
+library(rgeos)
+library(maps)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(sf)
+```
+
+
+# Loading data
+## Municipalities shape files
+```{r}
+allkommuner <-readOGR(dsn = "/Users/marinaespinasse/github/nor-prep/prep/administrative/raw/shapefiles/NO_AdminOmrader")
+komlist <-read.csv("/Users/marinaespinasse/github/nor-prep/prep/administrative/komlist.csv", sep = ";")
+```
+
+# Fisheries annual production data
+Loading production data for fisheries and also Norwegian names of municipalities (with special Norwegian characters)
+```{r}
+fishcatch <- vroom::vroom(file.path("~/github/nor-prep/prep/food_provision/fisheries/data/catch_total.csv"))
+komnames_norw <- read_excel(file.path("../data/raw/komlist_norw.xlsx"))
+```
+
+# Preparing mapping layers 
+There is a mess with municipalities' numbers: in the shapefile, Harstad for example, has number 1901 (old number), while in our list of municipalities - the number is  1903. I need to change that number to 1901 before selecting municipalities from the shapefile, but than change it back to 1903 in the list of municipalities table.
+```{r }
+komlist <-filter(komlist, !Name == "NonCoast")
+
+komlist_prep <- komlist %>% 
+  mutate(Komnum = replace(Komnum,
+                          Komnum == 1903,
+                          1901))
+
+
+ohikom <-allkommuner[allkommuner$KOMM %in% komlist_prep$Komnum,] 
+```
+
+
+```{r }
+world <- ne_countries(scale = "medium", returnclass = "sf")
+kommuner.pol <- spTransform(ohikom, CRS("+proj=longlat +ellps=GRS80"))
+kommunersf <- sf::st_as_sf(ohikom, coords= c("long", "lat"),crs = 4326, agr="identity")
+
+kommunersf_prep <- kommunersf %>% 
+  mutate(KOMM = replace(KOMM,
+                        KOMM == 1901,
+                        1903))
+```
+## Summing the catch for municipalities that have merged
+I remove municipalities that we did not include in the project: Beiarn and Guovdageaidnu-Kautokeino.
+Since Bjarkoy and Harstad have merged in 2013, Skjerstad and Bodo have merged in 2005, I will also merge their catches and treat those municipalities as merged, from the beginning of the data series.  
+```{r}
+fishcatch_prep <- fishcatch %>% 
+                  mutate(Municip_name = as.character(Municip_name)) %>% 
+                  filter(!Municip_name %in% c("Beiarn", "Guovdageaidnu-Kautokeino")) %>% 
+                  mutate(newid = case_when(Municip_name %in% c("Harstad_2013", "Bjarkoy_2013") ~ "1",
+                                           Municip_name %in% c("Bodo", "Skjerstad_2005") ~ "2",
+                                           TRUE ~ Municip_name)) %>% 
+                  group_by(newid, Year, English) %>%  
+                  mutate(Total_catch_new = sum(Total_catch)) 
+                  
+```
+
+Using mutate above created duplicated rows (Skjerstad plus Bodo and Bodo plus Skjerstad both appear as distinct rows). I will remove duplicates suing `distinct` function.
+```{r}
+fishcatch_prep2 <- fishcatch_prep %>% 
+                  ungroup() %>% 
+                  select(-c(Municip_name, Total_catch)) %>% 
+                  mutate(Municip_name_new = newid) %>% 
+                  mutate(Municip_name_new = replace(Municip_name_new, Municip_name_new == "1", "Harstad")) %>% 
+                  mutate(Municip_number = replace(Municip_number, Municip_name_new == "Harstad", "1903")) %>% 
+                  mutate(Municip_name_new = replace(Municip_name_new, Municip_name_new == "2", "Bodo")) %>% 
+                  mutate(Municip_number = replace(Municip_number, Municip_name_new == "Bodo", "1804")) %>% 
+                  select(-newid) %>% 
+                  distinct(across(everything())) %>% 
+                  rename(Municip_name = Municip_name_new)
+```
+
+
+```{r}
+# norway <-world[world$name_long %in% c("Norway", "Sweden", "Finland", "Russian federation"),]
+# norway <-st_transform(norway,crs = 32633)
+# st_crs(norway)
+```
+
+## Preparing the data for year 2005
+I first calculate the total catch of all species per year and municipality. Then I join the resultant table with a polygon geometries for all municipalities.
+```{r }
+fishcatch05 <-filter(fishcatch_prep2, Year == "2005")
+
+plot_fishcatch05_prep <- fishcatch05 %>% 
+  group_by(Year, Municip_number,Municip_name) %>% 
+  summarize(catch_all_sp = sum(Total_catch_new)) 
+
+
+plot_fishcatch05_prep2 <- plot_fishcatch05_prep %>% 
+  mutate(Municip_number = as.double(Municip_number)) %>% 
+  left_join(
+  kommunersf_prep, 
+  by = c("Municip_number"="KOMM")) %>% 
+  st_as_sf(.)
+```
+
+In 2005, 68 municipalities had  catch registered. 
+
+
+## Preparing the data for year 2018
+I do all the same manipulations for catch in year 2018 as for year 2005. I calculate total catch of all species,
+and then join the catches table with a geometry of municipalities.
+```{r }
+fishcatch18 <-filter(fishcatch_prep2, Year == "2018")
+
+plot_fishcatch18_prep <- fishcatch18 %>% 
+  group_by(Year, Municip_number,Municip_name) %>% 
+  summarize(catch_all_sp = sum(Total_catch_new)) 
+
+
+plot_fishcatch18_prep2 <-  plot_fishcatch18_prep %>% 
+  mutate(Municip_number = as.double(Municip_number)) %>%
+  left_join(
+  kommunersf_prep, 
+  by = c("Municip_number"="KOMM")) %>% 
+  st_as_sf(.)
+```
+In 2018, 60 municipalities had registered catch.
+
+# Mapping fisheries production
+## 2005 maps
+It is better that both maps has similar number of intervals for legend, like 6.
+I also divide the catches by 1000, to label them as thousand tons on the map.
+
+```{r}
+
+intervals05 <-c(0, 8, 16, 24, 32,40,46)#intervals for year 2005 only
+
+labels05 <- imap_chr(intervals05, function(., id){
+  return(paste0(formatC(intervals05[id], format="f", big.mark="," , digits = 0),
+                             "",
+                             " – ",
+                             formatC(intervals05[id + 1], format="f", big.mark="," , digits = 0),
+                             ""))
+})
+
+labels05 <- labels05[1:length(labels05) - 1]
+
+
+plot_fishcatch05_prep3  <- plot_fishcatch05_prep2 %>% 
+  filter(!is.na(catch_all_sp)) %>% 
+  mutate(catch_all_sp_ths = catch_all_sp/1000) %>% 
+  mutate(catch_quantiles = cut(catch_all_sp_ths,
+                               breaks = intervals05,
+                               labels = labels05,
+                               include.lowest = T)) 
+
+
+```
+
+For adding municipalities names, we need centroids of each municipality's polygon.
+I will also remove the municipalities 1920 and 1919 because they are too small, and numbers don't fit, i'll add number manually afterwards.
+```{r}
+komnames05 <- cbind(plot_fishcatch05_prep2,st_coordinates(st_centroid(plot_fishcatch05_prep2)))
+komnames_prep05 <- filter(komnames05, !Municip_number %in% c(1919, 1920))
+```
+
+Add transparency to map colors, as suggested here: https://gotellilab.github.io/GotelliLabMeetingHacks/NickGotelli/ColorPalettes.html
+
+```{r}
+
+addalpha <- function(colors, alpha=0.7) {
+  r <- col2rgb(colors, alpha=T)
+  # Apply alpha
+  r[4,] <- alpha*255
+  r <- r/255.0
+  return(rgb(r[1,], r[2,], r[3,], r[4,]))
+}
+
+```
+
+```{r}
+cols <-addalpha(brewer.pal(6,"Greens"))
+```
+
+
+```{r}
+base_map05 <- ggplot() +
+  geom_sf(
+   data = world, 
+   fill = "antiquewhite1", 
+   color = "dimgray", 
+   size = 0.3) +
+   #coord_sf(xlim = c(10, 32), ylim = c(65, 72)
+  theme(axis.text = element_text(size = 17),
+        legend.text = element_text(size = 15),
+        legend.title = element_text(size = 15,  face = "bold"),
+        panel.background = element_rect(fill = "aliceblue") ,
+        panel.grid.major = element_line(color = "#dbdbd9", linetype = "dashed"),
+        plot.title = element_text(hjust = 0.5, vjust = 0.5, size = 17, face = "bold")
+  ) +
+  geom_sf(
+    data = plot_fishcatch05_prep4,
+    mapping = aes(fill = catch_quantiles),
+    color = "white",
+    size = 0.2
+  ) +
+  
+  coord_sf(xlim = c(8, 32), ylim = c(64, 72), expand = FALSE) +
+  labs(x = "Longitude", y = "Latitude") +
+  scale_fill_manual(
+    values = cols,
+    name = "Fisheries catch ranges, 1000 tons",
+    guide = guide_legend(
+      keyheight = unit(8, units = "mm"),
+      title.position = "top"
+    )
+  ) +
+  labs(
+    x = NULL,
+    y = NULL,
+    title = "2005"
+  ) 
+
+```
+
+```{r, dpi = 250, fig.height=8, fig.width=8}
+main_map05 <- base_map05 +
+  geom_path(kommuner.pol, mapping = aes(x = long, y = lat, group = id), color = 'dimgray',  size = .4) +    geom_sf_text(data = komnames_prep05, aes(X,Y, label= Municip_number),fontface = "bold", size = 2) 
+main_map05
+```
+## 2018 map version2
+Similarly, prepare municipalities numbers - only for those, that had registered catches in 2018.
+```{r}
+komnames18 <- cbind(plot_fishcatch18_prep2,st_coordinates(st_centroid(plot_fishcatch18_prep2)))
+komnames_prep18 <- filter(komnames18, !Municip_number %in% c(1919, 1920))
+```
+
+```{r}
+
+intervals18 <-c(70, 125000,250000, 375000,500000,625000,740000)#intervals for year 2018 only
+
+labels18 <- imap_chr(intervals18, function(., id){
+  return(paste0(formatC(intervals18[id], format="f", big.mark="," , digits = 0),
+                             "",
+                             " – ",
+                             formatC(intervals18[id + 1], format="f", big.mark="," , digits = 0),
+                             ""))
+})
+
+labels18 <- labels18[1:length(labels18) - 1]
+
+plot_fishcatch18_prep4  <- plot_fishcatch18_prep2 %>% 
+  filter(!is.na(catch_all_sp)) %>% 
+   mutate(catch_all_sp_ths = catch_all_sp/1000) %>% 
+  mutate(catch_quantiles = cut(catch_all_sp_ths,
+                               breaks = intervals18,
+                               labels = labels18,
+                               include.lowest = T))
+```
+
+```{r}
+base_map18 <- ggplot() +
+  geom_sf(
+   data = world, 
+   fill = "antiquewhite1", 
+   color = "dimgray", 
+   size = 0.3) +
+   #coord_sf(xlim = c(10, 32), ylim = c(65, 72)
+  theme(axis.text = element_text(size = 17),
+        legend.text = element_text(size = 15),
+        legend.title = element_text(size = 15,  face = "bold"),
+        panel.background = element_rect(fill = "aliceblue") ,
+        panel.grid.major = element_line(color = "#dbdbd9", linetype = "dashed"),
+        plot.title = element_text(hjust = 0.5, vjust = 0.5, size = 17, face = "bold")
+  ) +
+  geom_sf(
+    data = plot_fishcatch18_prep4,
+    mapping = aes(fill = catch_quantiles),
+    color = "white",
+    size = 0.2
+  ) +
+  
+  coord_sf(xlim = c(8, 32), ylim = c(64, 72), expand = FALSE) +
+  labs(x = "Longitude", y = "Latitude") +
+  scale_fill_manual(
+    values = cols,
+    name = "Fisheries catch ranges, 1000 tons",
+    guide = guide_legend(
+      keyheight = unit(8, units = "mm"),
+      title.position = "top"
+    )
+  ) +
+  labs(
+    x = NULL,
+    y = NULL,
+    title = "2018"
+  ) 
+
+```
+
+```{r, dpi = 250, fig.height=8, fig.width=8}
+main_map18 <- base_map18 +geom_path(kommuner.pol, mapping = aes(x = long, y = lat, group = id), color = 'dimgray',  size = .4) +geom_sf_text(data = komnames_prep18, aes(X,Y, label= Municip_number),fontface = "bold", size = 2) 
+main_map18
+```
+
+# Aligning both plots together
+```{r}
+library(patchwork)
+```
+
+```{r fig.height=5, fig.width=4, dpi = 400}
+grDevices::cairo_pdf("../figs/fisheries_catch_2005_2018.pdf", width = 10, height = 12, fallback_resolution = 300)
+main_map05/main_map18
+```
+
+
+
+
+

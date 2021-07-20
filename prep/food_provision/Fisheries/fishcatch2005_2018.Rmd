@@ -1,0 +1,465 @@
+---
+title: "Mapping fisheries and aquaculture production"
+author: "*Compiled on `r date()` by `r Sys.info()['user']`*"
+output: 
+  html_document:
+    css: '~/github/nor-prep/prep/templates/style.css'
+    toc: true
+    number_sections: true
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: '~/github/nor-prep/prep/templates/norway_banner.html'
+  pdf_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+    echo = TRUE, 
+    out.width = "100%",
+    dpi = 300,
+    fig.width = 8,
+    fig.height = 6,
+    strip.white = T)
+source('~/github/aqua_fish_paper/src/common.r')
+```
+
+```{r}
+library(mapdata)
+library(maptools)
+library(rgdal)
+library(rgeos)
+library(maps)
+library(rnaturalearth)
+library(rnaturalearthdata)
+```
+
+
+# Loading data
+## Municipalities shape files
+```{r}
+allkommuner <-readOGR(dsn = "/Users/marinaespinasse/github/nor-prep/prep/administrative/raw/shapefiles/NO_AdminOmrader")
+komlist <-read.csv("/Users/marinaespinasse/github/nor-prep/prep/administrative/komlist.csv", sep = ";")
+```
+
+# Fisheries annual production data
+Loading production data for fisheries and also Norwegian names of municipalities (with special Norwegian characters)
+```{r}
+fishcatch <- vroom::vroom(file.path("~/github/nor-prep/prep/food_provision/fisheries/data/catch_total.csv"))
+
+komnames_norw <- read_excel(file.path("../data/raw/komlist_norw.xlsx"))
+```
+
+# Preparing mapping layers 
+```{r }
+komlist <-filter(komlist, !Name == "NonCoast")
+ohikom <-allkommuner[allkommuner$KOMM %in% komlist$Komnum,] 
+```
+
+```{r }
+world <- ne_countries(scale = "medium", returnclass = "sf")
+kommuner.pol <- spTransform(ohikom, CRS("+proj=longlat +ellps=GRS80"))
+kommunersf <- sf::st_as_sf(ohikom, coords= c("long", "lat"),crs = 4326, agr="identity")
+```
+
+
+```{r}
+library(sf)
+norway <-world[world$name_long %in% c("Norway", "Sweden", "Finland", "Russian deferation"),]
+norway <-st_transform(norway,crs = 32633)
+st_crs(norway)
+```
+
+## Preparing the data for plotting
+I first calculate the total catch of all species per year and municipality. Then I join the resultant table with a polygon geometries for all municipalities.
+```{r }
+fishcatch05 <-filter(fishcatch, Year == "2005")
+
+plot_fishcatch05_prep <- fishcatch05 %>% 
+  group_by(Year, Municip_number,Municip_name) %>% 
+  summarize(catch_all_sp = sum(Total_catch)) 
+
+
+plot_fishcatch05_prep2 <- left_join(
+  plot_fishcatch05_prep,
+  kommunersf, 
+  by = c("Municip_number"="KOMM")) %>% 
+  st_as_sf(.)
+```
+
+In 2005, 13 municipalities did not have any catch registered (no info on their catches in the table). 
+
+
+Create intervals of total fisheries catch, it would be easier to visualize then. These intervals I apply to the values of total catch, such as category 0-4,000 ton, or 4,000-8,000 ton.
+```{r}
+
+intervals05 <-c(0, 4000, 8000, 12000, 16000, 20000,24000, 28000,46000)#intervals for year 2005 only
+
+labels2 <- imap_chr(intervals05, function(., id){
+  return(paste0(formatC(intervals05[id], format="f", big.mark="," , digits = 0),
+                             "",
+                             " – ",
+                             formatC(intervals05[id + 1], format="f", big.mark="," , digits = 0),
+                             ""))
+})
+
+labels2 <- labels2[1:length(labels2) - 1]
+
+
+plot_fishcatch05_prep3  <- plot_fishcatch05_prep2 %>% 
+  filter(!is.na(catch_all_sp)) %>% 
+  mutate(catch_quantiles = cut(catch_all_sp,
+                               breaks = intervals05,
+                               labels = labels2,
+                               include.lowest = T))
+```
+
+
+## Map for year 2005
+```{r}
+base_map <- ggplot() +
+  geom_sf(
+   data = world, 
+   fill = "antiquewhite1", 
+   color = "gray", 
+   size = 0.2) +
+   #coord_sf(xlim = c(10, 32), ylim = c(65, 72)
+  theme(axis.text = element_text(size = 17),
+        legend.text = element_text(size = 15),
+        legend.title = element_text(size = 15,  face = "bold"),
+        panel.background = element_rect(fill = "aliceblue") ,
+        panel.grid.major = element_line(color = "#dbdbd9", linetype = "dashed"),
+        plot.title = element_text(hjust = 0.5, vjust = 0.5, size = 17, face = "bold")
+  ) +
+  geom_sf(
+    data = plot_fishcatch05_prep3,
+    mapping = aes(fill = catch_quantiles),
+    color = "white",
+    size = 0.2
+  ) +
+  coord_sf(xlim = c(8, 32), ylim = c(64, 72), expand = FALSE) +
+  labs(x = "Longitude", y = "Latitude") +
+  scale_fill_viridis_d(
+    option = "magma",
+    name = "Fisheries catch ranges, tons",
+    alpha = 0.7, # make fill a bit brighter
+    begin = 0.1, end = 0.9,
+    direction = 1, # dark is lowest, yellow is highest
+    guide = guide_legend(
+      keyheight = unit(8, units = "mm"),
+      title.position = "top",
+      reverse = T
+    )
+  ) +
+  labs(
+    x = NULL,
+    y = NULL,
+    title = "2005"
+  ) 
+
+
+```
+
+# Adding municipalities borders on land
+```{r, dpi = 250, fig.height=8, fig.width=8}
+grDevices::cairo_pdf("../figs/fisheries_catch_2005.pdf", width = 10, height = 10)
+main_map <- base_map +geom_path(kommuner.pol, mapping = aes(x = long, y = lat, group = id), color = 'dimgray',  size = .4)
+main_map
+```
+ggsave did not work well - dashes in the legend disapper
+```{r}
+ggsave("../figs/fisheries_catch_2005.pdf", main_map)
+```
+## Map for year 2018
+I do all the same manipulations for catch in yaer 2018 as for year 2005. I calculate total catch of all species,
+and then join the catches table with a geometry of municipalities.
+```{r }
+fishcatch18 <-filter(fishcatch, Year == "2018")
+
+plot_fishcatch18_prep <- fishcatch18 %>% 
+  group_by(Year, Municip_number,Municip_name) %>% 
+  summarize(catch_all_sp = sum(Total_catch)) 
+
+
+plot_fishcatch18_prep2 <- left_join(
+  plot_fishcatch18_prep,
+  kommunersf, 
+  by = c("Municip_number"="KOMM")) %>% 
+  st_as_sf(.)
+```
+Check, for which municipalities did not have registered catch in 2018. None, all municipalities had catch registered in 2018.
+```{r}
+filter(plot_fishcatch18_prep2, is.na(catch_all_sp)) %>% pull("NAVN")
+```
+
+Again, creating intervals for 2018 total catch and creating labels for the intervals.
+```{r}
+
+intervals18 <-c(70000, 1000000, 25000000, 55000000,115000000,145000000, 230000000,
+                330000000,740000000)#intervals for year 2018 only
+
+labels3 <- imap_chr(intervals18, function(., id){
+  return(paste0(formatC(intervals18[id], format="f", big.mark="," , digits = 0),
+                             "",
+                             " – ",
+                             formatC(intervals18[id + 1], format="f", big.mark="," , digits = 0),
+                             ""))
+})
+
+labels3 <- labels3[1:length(labels3) - 1]
+
+plot_fishcatch18_prep3  <- plot_fishcatch18_prep2 %>% 
+  filter(!is.na(catch_all_sp)) %>% 
+  mutate(catch_quantiles = cut(catch_all_sp,
+                               breaks = intervals18,
+                               labels = labels3,
+                               include.lowest = T))
+```
+
+The plot for year 2018
+```{r}
+base_map2 <- ggplot() +
+  geom_sf(
+   data = world, 
+   fill = "antiquewhite1", 
+   color = "gray", 
+   size = 0.2) +
+   #coord_sf(xlim = c(10, 32), ylim = c(65, 72)
+  theme(axis.text = element_text(size = 17),
+        legend.text = element_text(size = 15),
+        legend.title = element_text(size = 15,  face = "bold"),
+        panel.background = element_rect(fill = "aliceblue") ,
+        panel.grid.major = element_line(color = "#dbdbd9", linetype = "dashed"),
+        plot.title = element_text(hjust = 0.5, vjust = 0.5, size = 17, face = "bold")
+  ) +
+  geom_sf(
+    data = plot_fishcatch18_prep3,
+    mapping = aes(fill = catch_quantiles),
+    color = "white",
+    size = 0.2
+  ) +
+  coord_sf(xlim = c(8, 32), ylim = c(64, 72), expand = FALSE) +
+  labs(x = "Longitude", y = "Latitude") +
+  scale_alpha(
+    name = "",
+    range = c(0.6, 0),
+    guide = F
+  ) +
+  scale_fill_viridis_d(
+    option = "magma",
+    name = "Fisheries catch ranges, tons",
+    alpha = 0.9, # make fill a bit brighter
+    begin = 0.1, end = 0.9,
+    direction = 1, # dark is lowest, yellow is highest
+    guide = guide_legend(
+      keyheight = unit(10, units = "mm"),
+      title.position = "top",
+      reverse = T
+    )
+  ) +
+  labs(
+    x = NULL,
+    y = NULL,
+    title = "2018"
+  ) 
+
+```
+
+```{r, dpi = 250, fig.height=8, fig.width=8}
+grDevices::cairo_pdf("../figs/fisheries_catch_2018.pdf", width = 10, height = 10)
+main_map2 <- base_map2 +geom_path(kommuner.pol, mapping = aes(x = long, y = lat, group = id), color = 'dimgray',  size = .4)
+main_map2
+```
+
+# Same maps but with different colors,  with municipalities's numbers and modified breaks
+## 2005 maps
+Likely also, it is better that both maps has similar number of intervals for legend, like 6.
+I also divide the catches by 1000, to label them as thousand tons on the map.
+
+
+```{r}
+
+intervals05 <-c(0, 8, 16, 24, 32,40,46)#intervals for year 2005 only
+
+labels2 <- imap_chr(intervals05, function(., id){
+  return(paste0(formatC(intervals05[id], format="f", big.mark="," , digits = 0),
+                             "",
+                             " – ",
+                             formatC(intervals05[id + 1], format="f", big.mark="," , digits = 0),
+                             ""))
+})
+
+labels2 <- labels2[1:length(labels2) - 1]
+
+
+plot_fishcatch05_prep4  <- plot_fishcatch05_prep2 %>% 
+  filter(!is.na(catch_all_sp)) %>% 
+  mutate(catch_all_sp_ths = catch_all_sp/1000) %>% 
+  mutate(catch_quantiles = cut(catch_all_sp_ths,
+                               breaks = intervals05,
+                               labels = labels2,
+                               include.lowest = T)) 
+
+
+```
+For adding municipalities names, we need centroids of each municipality's polygon.
+I will also remove the muncipalities 1920 and 1919 because they are too small, and numbers don't fit, i'll add number manually afterwards.
+```{r}
+kom.names05 <- cbind(plot_fishcatch05_prep2,st_coordinates(st_centroid(plot_fishcatch05_prep2)))
+kom.names_prep05 <- filter(kom.names05, !Municip_number %in% c(1919, 1920))
+```
+
+
+Add transparency to map colors, as suggested here: https://gotellilab.github.io/GotelliLabMeetingHacks/NickGotelli/ColorPalettes.html
+
+```{r}
+
+addalpha <- function(colors, alpha=0.7) {
+  r <- col2rgb(colors, alpha=T)
+  # Apply alpha
+  r[4,] <- alpha*255
+  r <- r/255.0
+  return(rgb(r[1,], r[2,], r[3,], r[4,]))
+}
+
+```
+
+```{r}
+cols3 <-addalpha(brewer.pal(6,"Greens"))
+```
+
+
+```{r}
+base_map3 <- ggplot() +
+  geom_sf(
+   data = world, 
+   fill = "antiquewhite1", 
+   color = "dimgray", 
+   size = 0.3) +
+   #coord_sf(xlim = c(10, 32), ylim = c(65, 72)
+  theme(axis.text = element_text(size = 17),
+        legend.text = element_text(size = 15),
+        legend.title = element_text(size = 15,  face = "bold"),
+        panel.background = element_rect(fill = "aliceblue") ,
+        panel.grid.major = element_line(color = "#dbdbd9", linetype = "dashed"),
+        plot.title = element_text(hjust = 0.5, vjust = 0.5, size = 17, face = "bold")
+  ) +
+  geom_sf(
+    data = plot_fishcatch05_prep4,
+    mapping = aes(fill = catch_quantiles),
+    color = "white",
+    size = 0.2
+  ) +
+  
+  coord_sf(xlim = c(8, 32), ylim = c(64, 72), expand = FALSE) +
+  labs(x = "Longitude", y = "Latitude") +
+  scale_fill_manual(
+    values = cols3,
+    name = "Fisheries catch ranges, 1000 tons",
+    guide = guide_legend(
+      keyheight = unit(8, units = "mm"),
+      title.position = "top"
+    )
+  ) +
+  labs(
+    x = NULL,
+    y = NULL,
+    title = "2005"
+  ) 
+
+```
+
+```{r, dpi = 250, fig.height=8, fig.width=8}
+grDevices::cairo_pdf("../figs/fisheries_catch_2005.pdf", width = 10, height = 10)
+main_map3 <- base_map3 +geom_path(kommuner.pol, mapping = aes(x = long, y = lat, group = id), color = 'dimgray',  size = .4) +geom_sf_text(data = kom.names_prep05, aes(X,Y, label= Municip_number),fontface = "bold", size = 2) 
+main_map3
+```
+## 2018 map version2
+Similarly, prepare municipalities numbers - only for those, that had registered catches in 2018.
+```{r}
+kom.names18 <- cbind(plot_fishcatch18_prep2,st_coordinates(st_centroid(plot_fishcatch18_prep2)))
+kom.names_prep18 <- filter(kom.names18, !Municip_number %in% c(1919, 1920))
+```
+
+```{r}
+
+intervals18 <-c(70, 125000,250000, 375000,500000,625000,740000)#intervals for year 2018 only
+
+labels3 <- imap_chr(intervals18, function(., id){
+  return(paste0(formatC(intervals18[id], format="f", big.mark="," , digits = 0),
+                             "",
+                             " – ",
+                             formatC(intervals18[id + 1], format="f", big.mark="," , digits = 0),
+                             ""))
+})
+
+labels3 <- labels3[1:length(labels3) - 1]
+
+plot_fishcatch18_prep4  <- plot_fishcatch18_prep2 %>% 
+  filter(!is.na(catch_all_sp)) %>% 
+   mutate(catch_all_sp_ths = catch_all_sp/1000) %>% 
+  mutate(catch_quantiles = cut(catch_all_sp_ths,
+                               breaks = intervals18,
+                               labels = labels3,
+                               include.lowest = T))
+```
+
+```{r}
+base_map4 <- ggplot() +
+  geom_sf(
+   data = world, 
+   fill = "antiquewhite1", 
+   color = "dimgray", 
+   size = 0.3) +
+   #coord_sf(xlim = c(10, 32), ylim = c(65, 72)
+  theme(axis.text = element_text(size = 17),
+        legend.text = element_text(size = 15),
+        legend.title = element_text(size = 15,  face = "bold"),
+        panel.background = element_rect(fill = "aliceblue") ,
+        panel.grid.major = element_line(color = "#dbdbd9", linetype = "dashed"),
+        plot.title = element_text(hjust = 0.5, vjust = 0.5, size = 17, face = "bold")
+  ) +
+  geom_sf(
+    data = plot_fishcatch18_prep4,
+    mapping = aes(fill = catch_quantiles),
+    color = "white",
+    size = 0.2
+  ) +
+  
+  coord_sf(xlim = c(8, 32), ylim = c(64, 72), expand = FALSE) +
+  labs(x = "Longitude", y = "Latitude") +
+  scale_fill_manual(
+    values = cols3,
+    name = "Fisheries catch ranges, 1000 tons",
+    guide = guide_legend(
+      keyheight = unit(8, units = "mm"),
+      title.position = "top"
+    )
+  ) +
+  labs(
+    x = NULL,
+    y = NULL,
+    title = "2018"
+  ) 
+
+```
+
+```{r, dpi = 250, fig.height=8, fig.width=8}
+grDevices::cairo_pdf("../figs/fisheries_catch_2018.pdf", width = 10, height = 10)
+main_map4 <- base_map4 +geom_path(kommuner.pol, mapping = aes(x = long, y = lat, group = id), color = 'dimgray',  size = .4) +geom_sf_text(data = kom.names_prep18, aes(X,Y, label= Municip_number),fontface = "bold", size = 2) 
+main_map4
+```
+
+# Aligning both plots together
+```{r}
+library(patchwork)
+```
+
+```{r fig.height=5, fig.width=4, dpi = 300}
+main_map3/main_map4
+```
+
+
+
+
