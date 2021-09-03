@@ -126,6 +126,7 @@ Municipalities 1919 and 1920 are too small, I will denote them with asterisks la
 komnames05 <- cbind(plot_aquaprod05_prep2,st_coordinates(st_centroid(plot_aquaprod05_prep2)))
 komnames_prep05 <- filter(komnames05, !municip_number %in% c(1919, 1920))
 ```
+
 Adding color palette and alpha level 0.7 to it:
 ```{r}
 addalpha <- function(colors, alpha=0.8) {

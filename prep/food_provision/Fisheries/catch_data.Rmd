@@ -377,11 +377,13 @@ catch18_prep2 <-catch18_prep %>%
   select(Municip_number,Municip_name, English, Catch) 
 ```
 
+In 2018, catches are in kg while in other years - in tons. I divide catches by 1000, to have them in tons.
 ```{r}
 catch18_final <- catch18_prep2 %>% 
      group_by(Municip_number,Municip_name,English) %>% 
      summarize(Total_catch = sum(Catch))  %>% 
      mutate(Year = 2018) %>% 
+    mutate(Total_catch = Total_catch/1000) |> 
      select(c(
        Year,
        Municip_number,

@@ -25,7 +25,7 @@ library(janitor)
 
 # Load catch data
 ```{r}
-catch <- read.csv("data/fish_catch_by_municipality_newcrab.csv")
+catch <- read.csv("data/catch_total.csv")
 ```
 
 # Filtering out the six municipalities (Vardo, Hammerfest,Skervoy,Tromso, Vega, Vagan)
